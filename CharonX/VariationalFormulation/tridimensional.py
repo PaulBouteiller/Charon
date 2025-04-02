@@ -38,6 +38,7 @@ class TridimensionnalLoading(Loading):
         self.add_loading(value, u[2], dx, **kwargs)
 
 class Tridimensionnal(Problem):
+    @property
     def name(self):
         return "Tridimensionnal"
 
@@ -61,15 +62,15 @@ class Tridimensionnal(Problem):
     
     def dot_grad_scal(self, tensor1, tensor2):
         self.dot(tensor1, tensor2)
+        
+    def inner(self, a, b):
+        return inner(a, b)
     
     def undamaged_stress(self, u, v, T, T0, J):
         return self.constitutive.stress_3D(u, v, T, T0, J)
     
     def conjugate_strain(self):
         return dot(sym(grad(self.u_)), cofac(self.kinematic.F_3D(self.u)))
-    
-    def inner(self, a, b):
-        return inner(a, b)
     
     def extract_deviatoric(self, deviatoric):
         return deviatoric

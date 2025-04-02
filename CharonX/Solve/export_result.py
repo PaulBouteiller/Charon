@@ -32,7 +32,7 @@ class ExportResults:
         self.dico_csv = dictionnaire_csv
         self.param = default_post_processing_parameters()
         self.file_name = self.save_dir(name) + self.param["file_results"]
-        self.model_meca = self.pb.name()
+        self.model_meca = self.pb.name
         if self.param["writer"] == "xdmf":
             if path.isfile(self.file_name) and COMM_WORLD.rank == 0:
                 remove(self.file_name)
@@ -50,7 +50,7 @@ class ExportResults:
             self.file_results = VTKFile(self.pb.mesh.comm, self.file_name, "a")
             # XDMFFile(self.pb.mesh.comm, self.file_name, "w").write_mesh(self.pb.mesh)
         self.set_expression()
-        self.csv = OptimizedCSVExport(self.save_dir(name), name, problem, problem.name(), dictionnaire_csv)
+        self.csv = OptimizedCSVExport(self.save_dir(name), name, problem, problem.name, dictionnaire_csv)
 
     def save_dir(self, name):
         """

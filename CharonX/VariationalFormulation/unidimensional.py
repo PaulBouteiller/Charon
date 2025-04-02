@@ -70,11 +70,11 @@ class Unidimensionnal(Problem):
         """
         cell = self.mesh.basix_cell()
         self.U_e = element("Lagrange", cell, degree = self.u_deg)   
-        if self.name() == "CartesianUD" :
+        if self.name == "CartesianUD" :
             self.Sig_e = self.quad.quad_element(["Scalar"])
-        elif self.name() == "CylindricalUD":
+        elif self.name == "CylindricalUD":
             self.Sig_e = self.quad.quad_element(["Vector", 2])
-        elif self.name() == "SphericalUD":
+        elif self.name == "SphericalUD":
             self.Sig_e = self.quad.quad_element(["Vector", 3])
         self.devia_e = self.quad.quad_element(["Vector", 3])
         
@@ -96,11 +96,11 @@ class Unidimensionnal(Problem):
         reduit_1 : Vecteur de taille 1 ou 2, représentation réduite d'un tenseur diagonal.
         reduit_2 : Vecteur de taille 1 ou 2, représentation réduite d'un tenseur diagonal.
         """
-        if self.name() =="CartesianUD":
+        if self.name =="CartesianUD":
             return reduit_1 * reduit_2
-        elif self.name() =="CylindricalUD":
+        elif self.name =="CylindricalUD":
             return as_vector([reduit_1[i] * reduit_2[i] for i in range(2)])
-        elif self.name() =="SphericalUD":
+        elif self.name =="SphericalUD":
             return as_vector([reduit_1[i] * reduit_2[i] for i in range(3)])
         
     def inner(self, reduit_1, reduit_2):
@@ -113,9 +113,9 @@ class Unidimensionnal(Problem):
         reduit_1 : Vecteur de taille 1 ou 2, représentation réduite d'un tenseur diagonal.
         reduit_2 : Vecteur de taille 1 ou 2, représentation réduite d'un tenseur diagonal.
         """
-        if self.name() =="CartesianUD":
+        if self.name =="CartesianUD":
             return reduit_1 * reduit_2
-        elif self.name() in ["CylindricalUD", "SphericalUD"]:
+        elif self.name in ["CylindricalUD", "SphericalUD"]:
             return dot(reduit_1, reduit_2)
         
     def extract_deviatoric(self, deviatoric):
@@ -155,26 +155,26 @@ class Unidimensionnal(Problem):
         ----------
         u : Function, champ de déplacement.
         """
-        if self.name() =="CartesianUD":
+        if self.name =="CartesianUD":
             return 1
-        elif self.name() =="CylindricalUD":               
+        elif self.name =="CylindricalUD":               
             return as_vector([1 + self.u / self.r, 1 + u.dx(0)])
-        elif self.name() =="SphericalUD":
+        elif self.name =="SphericalUD":
             return as_vector([(1 + self.u / self.r)**2, 
                               (1 + u.dx(0)) * (1 + self.u / self.r),
                               (1 + u.dx(0)) * (1 + self.u / self.r)])
     
 class CartesianUD(Unidimensionnal):
-    # @property
+    @property
     def name(self):
         return "CartesianUD"
 
 class CylindricalUD(Unidimensionnal):
-    # @property
+    @property
     def name(self):
         return "CylindricalUD"
 
 class SphericalUD(Unidimensionnal):
-    # @property
+    @property
     def name(self):
         return "SphericalUD"

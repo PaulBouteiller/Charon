@@ -146,6 +146,7 @@ class Bidimensionnal(Problem):
         return dot(tensor1, tensor2)
     
 class Plane_strain(Bidimensionnal):
+    @property
     def name(self):
         return "PlaneStrain"
     
@@ -193,6 +194,7 @@ class Axisymetric(Bidimensionnal):
     """
     Défini un problème axisymétrique, par convention l'axe de symétrie est l'axe Oy
     """
+    @property
     def name(self):
         return "Axisymetric"
     
