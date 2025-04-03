@@ -7,10 +7,10 @@ Created on Wed Apr  2 11:23:58 2025
 """
 """Mie-Grüneisen family of equations of state."""
 
-from math import sqrt
+from ufl import sqrt
 from .base_eos import BaseEOS
 
-class MG_EOS(BaseEOS):
+class MGEOS(BaseEOS):
     """Standard Mie-Grüneisen equation of state.
     
     This EOS combines a reference curve with a thermal term.
@@ -92,7 +92,7 @@ class MG_EOS(BaseEOS):
         return self.C * mu + self.D * mu**2 + self.S * mu**3 + material.rho_0 / J * self.gamma0 * (T - T0)
 
 
-class xMG_EOS(BaseEOS):
+class xMGEOS(BaseEOS):
     """Extended Mie-Grüneisen equation of state.
     
     This variant adds more terms to better capture high-pressure behavior.
@@ -156,13 +156,11 @@ class xMG_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
-        material : Material Material properties
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+            
         Returns
         -------
-        float or Function Pressure
+        Expression Pressure
         """
         from ..utils.generic_functions import ppart, npart
         
@@ -178,7 +176,7 @@ class xMG_EOS(BaseEOS):
         return numerator_pos / denominator_pos + part_neg + thermal
 
 
-class PMG_EOS(BaseEOS):
+class PMGEOS(BaseEOS):
     """Puff Mie-Grüneisen equation of state.
     
     This variant uses a polynomial form for the reference curve.

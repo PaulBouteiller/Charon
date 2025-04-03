@@ -7,11 +7,11 @@ Created on Wed Apr  2 11:21:36 2025
 """
 """Hyperelastic isotropic equation of state models (U-family)."""
 
-from math import sqrt
-from ufl import ln
+from ufl import ln, sqrt
 from .base_eos import BaseEOS
+from ...utils.generic_functions import ppart
 
-class U_EOS(BaseEOS):
+class UEOS(BaseEOS):
     """Hyperelastic isotropic equation of state with one coefficient.
     
     This class implements various energy potentials (U1 through U8)
@@ -74,14 +74,11 @@ class U_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
-        model_type : str, optional U-model variant to use (U1, U5, U8, etc.), by default "U5"
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function  Pressure
+        Expression Pressure
         """
         if model_type == "U1":
             return -self.kappa * (J - 1 - 3 * self.alpha * (T - T0))
@@ -91,3 +88,21 @@ class U_EOS(BaseEOS):
             return -self.kappa/2 * (ln(J) - 1/J - ln(1 + 3*self.alpha*(T-T0)) + 1/(1+self.alpha*(T-T0)))
         else:
             raise ValueError(f"Unsupported U-model: {model_type}")
+            
+    def volumetric_helmholtz_energy(self, u, J, kinematic, model_type="U5"):
+        """Calculate the volumetric Helmholtz free energy for U-models.
+        
+        Parameters
+        ----------
+        u, J, kinematic : See Helmholtz_energy method in ConstitutiveLaw.py for details.
+            
+        Returns
+        -------
+        Volumetric Helmholtz free energy
+        """
+        if model_type == "U5":
+            return self.kappa * (J * ln(J) - J + 1)
+        elif model_type == "U8":
+            return self.kappa / 2 * ln(J) * ppart(J-1)
+        else:
+            raise ValueError(f"Helmholtz energy not implemented for model {model_type}")

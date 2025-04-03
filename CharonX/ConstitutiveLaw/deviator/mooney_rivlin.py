@@ -18,10 +18,8 @@ class MooneyRivlinDeviator(BaseDeviator):
     
     Attributes
     ----------
-    mu : float
-        Primary shear modulus (Pa)
-    mu_quad : float
-        Secondary shear modulus (Pa)
+    mu : float Primary shear modulus (Pa)
+    mu_quad : float Secondary shear modulus (Pa)
     """
     
     def required_parameters(self):
@@ -29,8 +27,7 @@ class MooneyRivlinDeviator(BaseDeviator):
         
         Returns
         -------
-        list
-            List with "mu" and "mu_quad"
+        list List with "mu" and "mu_quad"
         """
         return ["mu", "mu_quad"]
     
@@ -41,10 +38,8 @@ class MooneyRivlinDeviator(BaseDeviator):
         ----------
         params : dict
             Dictionary containing:
-            mu : float
-                Primary shear modulus (Pa)
-            mu_quad : float
-                Secondary shear modulus (Pa)
+            mu : float Primary shear modulus (Pa)
+            mu_quad : float Secondary shear modulus (Pa)
         """
         super().__init__(params)
         
@@ -63,23 +58,12 @@ class MooneyRivlinDeviator(BaseDeviator):
         
         Parameters
         ----------
-        u : Function
-            Displacement field
-        v : Function
-            Velocity field (unused)
-        J : Function
-            Jacobian of the deformation
-        T : Function
-            Current temperature (unused)
-        T0 : Function
-            Initial temperature (unused)
-        kinematic : Kinematic
-            Kinematic handler object
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        kinematic : Kinematic Kinematic handler object
             
         Returns
         -------
-        Function
-            Deviatoric stress tensor
+        ufl.core.expr.Expr Deviatoric stress tensor
         """
         B = kinematic.B_3D(u)
         term1 = self.mu / J**(5./3) * dev(B)

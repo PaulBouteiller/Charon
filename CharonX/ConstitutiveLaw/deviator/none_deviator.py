@@ -22,8 +22,7 @@ class NoneDeviator(BaseDeviator):
         
         Returns
         -------
-        list
-            Empty list (no parameters required)
+        list Empty list (no parameters required)
         """
         return []
     
@@ -32,8 +31,7 @@ class NoneDeviator(BaseDeviator):
         
         Parameters
         ----------
-        params : dict
-            Unused dictionary (no parameters needed)
+        params : dict Unused dictionary (no parameters needed)
         """
         super().__init__(params)
     
@@ -42,20 +40,10 @@ class NoneDeviator(BaseDeviator):
         
         Parameters
         ----------
-        u : Function
-            Displacement field
-        v : Function
-            Velocity field
-        J : Function
-            Jacobian of the deformation
-        T : Function
-            Current temperature
-        T0 : Function
-            Initial temperature
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        Function
-            Zero tensor (3x3)
+        Function Zero tensor (3x3)
         """
         return 0 * Identity(3)

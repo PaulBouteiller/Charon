@@ -7,22 +7,19 @@ Created on Wed Apr  2 11:23:08 2025
 """
 """Jones-Wilkins-Lee (JWL) equation of state for detonation products."""
 
-from math import exp, sqrt
+from ufl import exp, sqrt
 from .base_eos import BaseEOS
 
-class JWL_EOS(BaseEOS):
+class JWLEOS(BaseEOS):
     """Jones-Wilkins-Lee (JWL) equation of state for detonation products.
     
     This EOS is commonly used for modeling the expansion of explosive detonation products.
     
     Attributes
     ----------
-    A, B : float
-        Energy coefficients
-    R1, R2 : float
-        Rate coefficients
-    w : float
-        Fraction of the energy coefficient
+    A, B : float Energy coefficients
+    R1, R2 : float Rate coefficients
+    w : float Fraction of the energy coefficient
     """
     
     def required_parameters(self):
@@ -30,8 +27,7 @@ class JWL_EOS(BaseEOS):
         
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["A", "R1", "B", "R2", "w"]
     
@@ -42,16 +38,11 @@ class JWL_EOS(BaseEOS):
         ----------
         params : dict
             Dictionary containing:
-            A : float
-                First energy coefficient
-            R1 : float
-                First rate coefficient
-            B : float
-                Second energy coefficient
-            R2 : float
-                Second rate coefficient
-            w : float
-                Fraction of the energy coefficient
+            A : float First energy coefficient
+            R1 : float First rate coefficient
+            B : float Second energy coefficient
+            R2 : float Second rate coefficient
+            w : float Fraction of the energy coefficient
         """
         super().__init__(params)
         
@@ -74,13 +65,11 @@ class JWL_EOS(BaseEOS):
         
         Parameters
         ----------
-        rho_0 : float
-            Initial density
+        rho_0 : float Initial density
             
         Returns
         -------
-        float
-            Wave speed
+        float Wave speed
         """
         return sqrt((self.A * self.R1 * exp(-self.R1) + self.B * self.R2 * exp(-self.R2)) / rho_0)
     
@@ -91,16 +80,10 @@ class JWL_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        material : Material
-            Material properties (needed for rho_0 and C_mass)
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function
-            Pressure
+        ufl.algebra.Sum Pressure
         """
         return self.A * exp(-self.R1 * J) + self.B * exp(-self.R2 * J) + self.w * material.rho_0 / J * material.C_mass * T

@@ -1,13 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  2 11:33:41 2025
+from abc import ABC, abstractmethod
 
-@author: bouteillerp
-"""
-"""Base class for all deviatoric stress models."""
-
-class BaseDeviator:
+class BaseDeviator(ABC):
     """Base class for all deviatoric stress models.
     
     This abstract class defines the common interface that all deviatoric
@@ -19,59 +12,42 @@ class BaseDeviator:
         
         Parameters
         ----------
-        params : dict
-            Parameters for the deviatoric model
+        params : dict Parameters for the deviatoric model
         """
         self._validate_params(params)
         
     def _validate_params(self, params):
-        """Validate that all required parameters are provided.
-        
-        Parameters
-        ----------
-        params : dict
-            Parameters to validate
-            
-        Raises
-        ------
-        ValueError
-            If required parameters are missing
-        """
+        """Validate that all required parameters are provided."""
         required_params = self.required_parameters()
         missing_params = [param for param in required_params if param not in params]
         
         if missing_params:
             raise ValueError(f"Missing required parameters for {self.__class__.__name__}: {missing_params}")
     
+    @abstractmethod
     def required_parameters(self):
         """Return the list of required parameters for this deviatoric model.
         
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
-        raise NotImplementedError("Subclasses must implement this method")
+        pass
     
-    def calculate_stress(self, u, v, J, T, T0):
+    @abstractmethod
+    def calculate_stress(self, u, v, J, T, T0, kinematic):
         """Calculate the deviatoric stress tensor.
         
         Parameters
         ----------
-        u : Function
-            Displacement field
-        v : Function
-            Velocity field
-        J : Function
-            Jacobian of the deformation
-        T : Function
-            Current temperature
-        T0 : Function
-            Initial temperature
-            
+        u : dolfinx.fem.Function Displacement field
+        v : dolfinx.fem.Function Velocity field
+        J : dolfinx.fem.Function Jacobian of the deformation
+        T : dolfinx.fem.Function Current temperature
+        T0 : dolfinx.fem.Function Initial temperature
+        kinematic : Kinematic Kinematic handler for tensor operations
         Returns
         -------
-        Function
-            Deviatoric stress tensor
+        ufl.core.expr.Expr Deviatoric stress tensor
         """
-        raise NotImplementedError("Subclasses must implement this method")
+        pass

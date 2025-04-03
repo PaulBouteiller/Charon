@@ -18,10 +18,8 @@ class AnisotropicDeviator(BaseDeviator):
     
     Attributes
     ----------
-    C : array
-        Stiffness tensor in Voigt notation
-    f_func_coeffs : list or None
-        Coefficients for optional stiffness modulation functions
+    C : array Stiffness tensor in Voigt notation
+    f_func_coeffs : list or None Coefficients for optional stiffness modulation functions
     """
     
     def required_parameters(self):
@@ -29,8 +27,7 @@ class AnisotropicDeviator(BaseDeviator):
         
         Returns
         -------
-        list
-            List with "C" (required) and "f_func" (optional)
+        list List with "C" (required) and "f_func" (optional)
         """
         return ["C"]
     
@@ -41,10 +38,8 @@ class AnisotropicDeviator(BaseDeviator):
         ----------
         params : dict
             Dictionary containing:
-            C : array
-                Stiffness tensor in Voigt notation
-            f_func : list, optional
-                Coefficients for stiffness modulation functions
+            C : array Stiffness tensor in Voigt notation
+            f_func : list, optional Coefficients for stiffness modulation functions
         """
         super().__init__(params)
         
@@ -57,23 +52,12 @@ class AnisotropicDeviator(BaseDeviator):
         
         Parameters
         ----------
-        u : Function
-            Displacement field
-        v : Function
-            Velocity field (unused)
-        J : Function
-            Jacobian of the deformation
-        T : Function
-            Current temperature (unused)
-        T0 : Function
-            Initial temperature (unused)
-        kinematic : Kinematic
-            Kinematic handler object
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        kinematic : Kinematic Kinematic handler object
             
         Returns
         -------
-        Function
-            Deviatoric stress tensor
+        Function Deviatoric stress tensor
         """
         RigLin = self.C
         

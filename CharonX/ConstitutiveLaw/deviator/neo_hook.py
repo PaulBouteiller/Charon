@@ -20,8 +20,7 @@ class NeoHookDeviator(BaseDeviator):
     
     Attributes
     ----------
-    mu : float
-        Shear modulus (Pa)
+    mu : float Shear modulus (Pa)
     """
     
     def required_parameters(self):
@@ -29,8 +28,7 @@ class NeoHookDeviator(BaseDeviator):
         
         Returns
         -------
-        list
-            List with "mu"
+        list List with "mu"
         """
         return ["mu"]
     
@@ -39,14 +37,10 @@ class NeoHookDeviator(BaseDeviator):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            mu : float
-                Shear modulus (Pa)
+        params : dict Dictionary containing:
+                        mu : float Shear modulus (Pa)
         """
         super().__init__(params)
-        
-        # Store parameters
         self.mu = params["mu"]
         print(f"Shear modulus: {self.mu}")
     
@@ -57,23 +51,25 @@ class NeoHookDeviator(BaseDeviator):
         
         Parameters
         ----------
-        u : Function
-            Displacement field
-        v : Function
-            Velocity field (unused)
-        J : Function
-            Jacobian of the deformation
-        T : Function
-            Current temperature (unused)
-        T0 : Function
-            Initial temperature (unused)
-        kinematic : Kinematic
-            Kinematic handler object
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        kinematic : Kinematic Kinematic handler object
             
         Returns
         -------
-        Function
-            Deviatoric stress tensor
+        ufl.core.expr.Expr Deviatoric stress tensor
         """
         B = kinematic.B_3D(u)
         return self.mu / J**(5./3) * dev(B)
+    
+    def isochoric_helmholtz_energy(self, u, J, kinematic):
+        """Calculate the isochoric Helmholtz free energy for Neo-Hookean model.
+        
+        Parameters
+        ----------
+        u, J, kinematic : See Helmholtz_energy method in ConstitutiveLaw.py for details.
+            
+        Returns
+        -------
+        Isochoric Helmholtz free energy
+        """
+        return self.mu * (kinematic.BBarI(u) - 3)

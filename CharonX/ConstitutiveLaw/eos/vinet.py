@@ -7,10 +7,11 @@ Created on Wed Apr  2 13:23:51 2025
 """
 """Vinet equation of state for solids."""
 
-from math import exp, sqrt
+
+from ufl import exp, sqrt
 from .base_eos import BaseEOS
 
-class Vinet_EOS(BaseEOS):
+class VinetEOS(BaseEOS):
     """Vinet equation of state for solids.
     
     The Vinet EOS is well-suited for highly compressed materials
@@ -79,13 +80,11 @@ class Vinet_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function Pressure
+        Expression Pressure
         """
         K0 = self.iso_T_K0 + self.T_dep_K0 * (T - T0)
         K1 = self.iso_T_K1 + self.T_dep_K1 * (T - T0)

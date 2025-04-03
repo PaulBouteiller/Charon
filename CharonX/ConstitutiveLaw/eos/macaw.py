@@ -7,24 +7,20 @@ Created on Wed Apr  2 11:23:34 2025
 """
 """MACAW equation of state for materials under extreme conditions."""
 
-from math import exp, sqrt
+from ufl import exp, sqrt
 from .base_eos import BaseEOS
 
-class MACAW_EOS(BaseEOS):
+class MACAWEOS(BaseEOS):
     """MACAW equation of state for materials under extreme conditions.
     
     This is a sophisticated model for materials under high pressures and temperatures.
     
     Attributes
     ----------
-    A, B, C : float
-        Cold curve parameters
-    cvinf, a0, vinf : float
-        Thermal parameters
-    n, theta0, Gamma0, Gammainf, m : float
-        Thermal and anharmonic parameters
-    rho0 : float
-        Reference density
+    A, B, C : float Cold curve parameters
+    cvinf, a0, vinf : float Thermal parameters
+    n, theta0, Gamma0, Gammainf, m : float Thermal and anharmonic parameters
+    rho0 : float Reference density
     """
     
     def required_parameters(self):
@@ -32,8 +28,7 @@ class MACAW_EOS(BaseEOS):
         
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["A", "B", "C", "eta", "vinf", "rho0", "theta0", "a0", "m", "n", 
                 "Gammainf", "Gamma0", "cvinf"]
@@ -43,8 +38,7 @@ class MACAW_EOS(BaseEOS):
         
         Parameters
         ----------
-        params : dict
-            Dictionary with MACAW parameters
+        params : dict Dictionary with MACAW parameters
         """
         super().__init__(params)
         
@@ -82,13 +76,11 @@ class MACAW_EOS(BaseEOS):
         
         Parameters
         ----------
-        rho_0 : float
-            Initial density
+        rho_0 : float Initial density
             
         Returns
         -------
-        float
-            Wave speed
+        float Wave speed
         """
         kappa = self.A * (self.B - 1./2 * self.C + (self.B + self.C)**2)
         print(f"Cold compressibility modulus: {kappa}")
@@ -102,14 +94,11 @@ class MACAW_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
-        material : Material Material properties
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function Pressure
+        Expression Pressure
         """
         def thetav(theta0, v, vinf, gamma0, gammainf, m):
             """Helper function for MACAW thermal calculations."""
@@ -119,7 +108,7 @@ class MACAW_EOS(BaseEOS):
             return theta
 
         def dthetadv(theta0, v, vinf, gamma0, gammainf, m):
-            """Derivative of thetav with respect to v."""
+            """Derivative of theta with respect to v."""
             eta=v/vinf
             th=thetav(theta0, v, vinf, gamma0, gammainf, m)
             dtheta=-(th/eta)*(gamma0+(gammainf-gamma0)/(1.+(eta**m)))
@@ -132,7 +121,7 @@ class MACAW_EOS(BaseEOS):
             return a
 
         def dadv(a0, vinf, v, n):
-            """Derivative of av with respect to v."""
+            """Derivative of a with respect to v."""
             eta=v/vinf
             da=(n/eta)*a0*(eta**n)/((1.+eta**n)**2)
             return da/vinf

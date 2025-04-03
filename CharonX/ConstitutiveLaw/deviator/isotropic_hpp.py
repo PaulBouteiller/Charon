@@ -7,7 +7,7 @@ Created on Wed Apr  2 11:35:18 2025
 """
 """Isotropic linear elastic deviatoric stress model (small strain)."""
 
-from ufl import sym, dev
+from ufl import sym, dev, tr, dot
 from .base_deviator import BaseDeviator
 
 class IsotropicHPPDeviator(BaseDeviator):
@@ -20,12 +20,9 @@ class IsotropicHPPDeviator(BaseDeviator):
     
     Attributes
     ----------
-    mu : float
-        Shear modulus (Pa)
-    E : float, optional
-        Young's modulus (Pa)
-    nu : float, optional
-        Poisson's ratio
+    mu : float Shear modulus (Pa)
+    E : float, optional Young's modulus (Pa)
+    nu : float, optional Poisson's ratio
     """
     
     def required_parameters(self):
@@ -33,8 +30,7 @@ class IsotropicHPPDeviator(BaseDeviator):
         
         Returns
         -------
-        list
-            List with either "mu" or both "E" and "nu"
+        list List with either "mu" or both "E" and "nu"
         """
         return ["mu"] if "mu" in self.params else ["E", "nu"]
     
@@ -45,13 +41,10 @@ class IsotropicHPPDeviator(BaseDeviator):
         ----------
         params : dict
             Dictionary containing either:
-            mu : float
-                Shear modulus (Pa)
+            mu : float Shear modulus (Pa)
             OR:
-            E : float
-                Young's modulus (Pa)
-            nu : float
-                Poisson's ratio
+            E : float Young's modulus (Pa)
+            nu : float Poisson's ratio
         """
         self.params = params  # Store for required_parameters method
         super().__init__(params)
@@ -74,22 +67,29 @@ class IsotropicHPPDeviator(BaseDeviator):
         
         Parameters
         ----------
-        u : Function
-            Displacement field
-        v : Function
-            Velocity field (unused)
-        J : Function
-            Jacobian of the deformation (unused)
-        T : Function
-            Current temperature (unused)
-        T0 : Function
-            Initial temperature (unused)
-        kinematic : Kinematic
-            Kinematic handler object
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        kinematic : Kinematic Kinematic handler object
             
         Returns
         -------
-        Function
-            Deviatoric stress tensor
+        ufl.core.expr.Expr Deviatoric stress tensor
         """
-        return 2 * self.mu * dev(sym(kinematic.grad_3D(u)))
+        # Calculate strain tensor: ε = sym(∇u)
+        epsilon = sym(kinematic.grad_3D(u))
+        
+        # Calculate deviatoric stress: s = 2μ * dev(ε)
+        return 2 * self.mu * dev(epsilon)
+    
+    def isochoric_helmholtz_energy(self, u, kinematic):
+        """Calculate the isochoric Helmholtz free energy for isotropic linear elasticity.
+        
+        Parameters
+        ----------
+        u, J, kinematic : See Helmholtz_energy method in ConstitutiveLaw.py for details.
+            
+        Returns
+        -------
+        Isochoric Helmholtz free energy
+        """
+        dev_eps = dev(sym(kinematic.grad_3D(u)))
+        return self.mu * tr(dot(dev_eps, dev_eps))

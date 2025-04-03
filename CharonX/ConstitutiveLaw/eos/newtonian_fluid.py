@@ -7,10 +7,10 @@ Created on Wed Apr  2 11:25:33 2025
 """
 """Newtonian fluid equation of state."""
 
-from math import sqrt, log
+from ufl import sqrt, ln
 from .base_eos import BaseEOS
 
-class NewtonianFluid_EOS(BaseEOS):
+class NewtonianFluidEOS(BaseEOS):
     """Newtonian fluid equation of state.
     
     This model combines pressure-volume and viscous behavior.
@@ -73,17 +73,14 @@ class NewtonianFluid_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
-        material : Material Material properties
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function Pressure
+        Expression Pressure
         """
         # Thermodynamic pressure
-        thermo_p = -1 / self.chiT * log(J) + self.alpha / self.chiT * (T - T0)
+        thermo_p = -1 / self.chiT * ln(J) + self.alpha / self.chiT * (T - T0)
         
         # Viscous pressure from velocity gradient
         # viscous_p = -self.k * kinematic.div(v)

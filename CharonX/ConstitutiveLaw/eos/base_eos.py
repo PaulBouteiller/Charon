@@ -60,17 +60,15 @@ class BaseEOS:
         """
         raise NotImplementedError("Subclasses must implement this method")
     
-    def pressure(self, J, T, T0):
+    def pressure(self, J, T, T0, material):
         """Calculate the pressure based on the equation of state.
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function Pressure
+        Expression Pressure
         """
         raise NotImplementedError("Subclasses must implement this method")

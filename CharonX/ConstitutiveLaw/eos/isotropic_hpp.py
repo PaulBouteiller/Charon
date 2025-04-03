@@ -8,9 +8,11 @@ Created on Wed Apr  2 11:20:12 2025
 """Isotropic linear elastic equation of state under small strain hypothesis."""
 
 from math import sqrt
+from ufl import sym, tr
 from .base_eos import BaseEOS
+from ...utils.generic_functions import ppart
 
-class IsotropicHPP_EOS(BaseEOS):
+class IsotropicHPPEOS(BaseEOS):
     """Isotropic linear elastic equation of state under small strain hypothesis.
     
     This model implements a simple linear relationship between volume change and pressure.
@@ -81,13 +83,25 @@ class IsotropicHPP_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
             
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function Pressure
         """
         return -self.kappa * (J - 1 - 3 * self.alpha * (T - T0))
+    
+    def volumetric_helmholtz_energy(self, u, J, kinematic):
+        """Calculate the volumetric Helmholtz free energy for isotropic linear elasticity.
+        
+        Parameters
+        ----------
+        u, J, kinematic : See Helmholtz_energy method in ConstitutiveLaw.py for details.
+            
+        Returns
+        -------
+        Volumetric Helmholtz free energy
+        """
+        eps = sym(kinematic.grad_3D(u))
+        E1 = tr(eps)
+        return self.kappa / 2 * E1 * ppart(E1)

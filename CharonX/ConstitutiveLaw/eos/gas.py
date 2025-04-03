@@ -10,7 +10,7 @@ Created on Wed Apr  2 11:24:51 2025
 from math import sqrt
 from .base_eos import BaseEOS
 
-class GP_EOS(BaseEOS):
+class GPEOS(BaseEOS):
     """Ideal gas equation of state.
     
     This implements the classic ideal gas law: P = (γ-1) * ρ * e
@@ -68,12 +68,9 @@ class GP_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        material : Material Material properties
-            
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
         Returns
         -------
-        float or Function  Pressure
+        Expression Pressure
         """
         return (self.gamma - 1) * material.rho_0 / J * material.C_mass * T

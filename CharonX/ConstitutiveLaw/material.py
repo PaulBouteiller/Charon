@@ -3,18 +3,12 @@ Created on Wed Apr  2 11:14:17 2025
 
 @author: bouteillerp
 """
+from .eos import (IsotropicHPPEOS, UEOS, VinetEOS, JWLEOS, MACAWEOS,
+                  MGEOS, xMGEOS, PMGEOS, GPEOS, NewtonianFluidEOS, TabulatedEOS)
 
-# Dans material.py
-
-from .eos import (
-    IsotropicHPP_EOS, U_EOS, Vinet_EOS, JWL_EOS, MACAW_EOS,
-    MG_EOS, xMG_EOS, PMG_EOS, GP_EOS, NewtonianFluid_EOS, Tabulated_EOS
-)
-
-from .deviator import (
-    None_deviatoric, IsotropicHPP_deviatoric, MooneyRivlin_deviatoric,
-    NeoHook_Transverse_deviatoric, Lu_Transverse_deviatoric, Anisotropic_deviatoric
-)
+from .deviator import (NoneDeviator, IsotropicHPPDeviator, MooneyRivlinDeviator,
+                       NeoHookTransverseDeviator, LuTransverseDeviator, 
+                       AnisotropicDeviator, NeoHookDeviator)
 
 
 class Material:
@@ -40,8 +34,7 @@ class Material:
         dev_type : str or None Type of deviatoric behavior (e.g., "IsotropicHPP", "NeoHook", None)
         eos_params : dict Parameters for the equation of state model
         deviator_params : dict Parameters for the deviatoric behavior model
-        **kwargs : dict
-            Additional parameters (e.g., activation energy for chemical reactions)
+        **kwargs : dict Additional parameters (e.g., activation energy for chemical reactions)
         """
         # Store basic properties
         self.rho_0 = rho_0
@@ -61,47 +54,26 @@ class Material:
         self.kin_pref = kwargs.get("kin_pref", None)
         
         # Log material properties
-        self._log_material_properties()
+        print(f"Thermal capacity: {self.C_mass}")
+        print(f"Initial density: {self.rho_0}")
+        print(f"Wave speed: {self.celerity}")
     
     def _create_eos_model(self, eos_type, params):
         """Create the appropriate equation of state model.
         
         Parameters
         ----------
-        eos_type : str
-            Type of equation of state
-        params : dict
-            Parameters for the equation of state model
+        eos_type : str Type of equation of state
+        params : dict Parameters for the equation of state model
             
         Returns
         -------
-        EOS
-            Equation of state object
-            
-        Raises
-        ------
-        ValueError
-            If the equation of state type is unknown
+        EOS Equation of state object
         """
-        eos_classes = {
-            "IsotropicHPP": IsotropicHPP_EOS,
-            "U1": U_EOS,
-            "U2": U_EOS,
-            "U3": U_EOS,
-            "U4": U_EOS,
-            "U5": U_EOS,
-            "U7": U_EOS,
-            "U8": U_EOS,
-            "Vinet": Vinet_EOS,
-            "JWL": JWL_EOS,
-            "MACAW": MACAW_EOS,
-            "MG": MG_EOS,
-            "xMG": xMG_EOS,
-            "PMG": PMG_EOS,
-            "GP": GP_EOS,
-            "NewtonianFluid": NewtonianFluid_EOS,
-            "Tabulated": Tabulated_EOS
-        }
+        eos_classes = {"IsotropicHPP": IsotropicHPPEOS, "U1": UEOS, "U5": UEOS, "U8": UEOS,
+                       "Vinet": VinetEOS, "JWL": JWLEOS, "MACAW": MACAWEOS,
+                       "MG": MGEOS, "xMG": xMGEOS, "PMG": PMGEOS, "GP": GPEOS,
+                       "NewtonianFluid": NewtonianFluidEOS, "Tabulated": TabulatedEOS}
         
         if eos_type not in eos_classes:
             raise ValueError(f"Unknown equation of state: {eos_type}")
@@ -113,41 +85,25 @@ class Material:
         
         Parameters
         ----------
-        dev_type : str or None
-            Type of deviatoric behavior
-        params : dict
-            Parameters for the deviatoric behavior model
+        dev_type : str or None Type of deviatoric behavior
+        params : dict Parameters for the deviatoric behavior model
             
         Returns
         -------
-        DeviatoricModel
-            Deviatoric behavior object or None
-            
-        Raises
-        ------
-        ValueError
-            If the deviatoric type is unknown
+        DeviatoricModel Deviatoric behavior object or None
         """
         if dev_type is None:
-            return None_deviatoric(params)
+            return NoneDeviator(params)
             
-        deviatoric_classes = {
-            "IsotropicHPP": IsotropicHPP_deviatoric,
-            "NeoHook": IsotropicHPP_deviatoric,
-            "Hypoelastic": IsotropicHPP_deviatoric,
-            "MooneyRivlin": MooneyRivlin_deviatoric,
-            "NeoHook_Transverse": NeoHook_Transverse_deviatoric,
-            "Lu_Transverse": Lu_Transverse_deviatoric,
-            "Anisotropic": Anisotropic_deviatoric
-        }
+        deviatoric_classes = {"IsotropicHPP": IsotropicHPPDeviator,
+                              "NeoHook": NeoHookDeviator,
+                              "Hypoelastic": IsotropicHPPDeviator,
+                              "MooneyRivlin": MooneyRivlinDeviator,
+                              "NeoHook_Transverse": NeoHookTransverseDeviator,
+                              "Lu_Transverse": LuTransverseDeviator,
+                              "Anisotropic": AnisotropicDeviator}
         
         if dev_type not in deviatoric_classes:
             raise ValueError(f"Unknown deviatoric behavior: {dev_type}")
         
         return deviatoric_classes[dev_type](params)
-    
-    def _log_material_properties(self):
-        """Log important material properties for reference."""
-        print(f"Thermal capacity: {self.C_mass}")
-        print(f"Initial density: {self.rho_0}")
-        print(f"Wave speed: {self.celerity}")

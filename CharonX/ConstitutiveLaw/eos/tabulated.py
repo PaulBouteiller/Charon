@@ -66,7 +66,7 @@ def Dataframe_to_array(df):
     P_list = jax_numpy.array(df.values)
     return T_list, J_list, P_list
 
-class Tabulated_EOS(BaseEOS):
+class TabulatedEOS(BaseEOS):
     """Tabulated equation of state using interpolation.
     
     This model uses pre-computed tables of pressure values for different

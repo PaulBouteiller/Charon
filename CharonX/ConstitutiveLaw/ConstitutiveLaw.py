@@ -11,10 +11,10 @@ from .deviator import Deviator
 from .plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
 from .damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
 
-from ufl import dot, Identity, dev, sym, tr, ln
+from ufl import dot, Identity, dev
 from numpy import array, zeros
 from dolfinx.fem import functionspace, Function
-from ..utils.generic_functions import ppart, npart
+from ..utils.generic_functions import npart
 
 class ConstitutiveLaw:
     """Manages the constitutive relations for mechanical simulations.
@@ -198,17 +198,12 @@ class ConstitutiveLaw:
         ----------
         u, v, T, T0, J : Function See stress_3D method for details.
         material : Material Material properties.
-        relative_density : float or Function, optional
-            Relative initial density, default is 1.
-            
+        relative_density : float or Function, optional Relative initial density, default is 1.
         Returns
         -------
         tuple (pressure, pseudo_pressure, deviatoric_stress)
         """
-        # Calculate pressure component from equation of state
         pressure = self.eos.set_eos(J * relative_density, T, T0, material)
-        
-        # Calculate deviatoric component based on material model
         deviatoric = self._calculate_deviatoric_stress(u, v, J, T, T0, material)
         
         # Calculate pseudo-pressure for stabilization if enabled
@@ -231,12 +226,11 @@ class ConstitutiveLaw:
             
         Returns
         -------
-        Function
-            Deviatoric stress tensor.
+        Function Deviatoric stress tensor.
         """
         # Select appropriate deviatoric model based on material type
         if material.dev_type == "Hypoelastic":
-            deviatoric = self.deviator.set_deviator(u, v, J, material.devia.mu)
+            deviatoric = self.deviator.set_hypoelastic_deviator(u, v, J, material.devia.mu)
         elif self.plastic_model == "Finite_Plasticity":
             deviatoric = material.devia.mu / J**(5./3) * dev(self.plastic.Be_trial())
         elif self.plastic_model == "J2_JAX":
@@ -312,57 +306,30 @@ class ConstitutiveLaw:
             self.eHelm = self.Helmholtz_energy(u, J, self.material)
             self.damage.set_NL_energy(self.eHelm) 
             
-    def Helmholtz_energy(self, u, J, mat):
-        """
-        Renvoie l'énergie libre volumique de Helmholtz
-
-        Parameters
-        ----------
-        u : Function, champ de déplacement.
-        J : Expression, jacobien de la transformation.
-        mat : Objet de la classe material, matériau à l'étude.
-        """
-        if mat.eos_type == "IsotropicHPP":
-            eps = sym(self.kinematic.grad_3D(u))
-            E1 = tr(eps)
-            psi_vol = mat.eos.kappa / 2 * E1 * ppart(E1)
-        elif mat.eos_type == "U5":
-            psi_vol = mat.eos.kappa * (J * ln(J) - J + 1)
-        elif mat.eos_type == "U8":
-            psi_vol = mat.eos.kappa / 2 * ln(J) * ppart(J-1)
-        else:
-            raise ValueError("Phase field analysis has not been implemented for this eos")
-        if mat.dev_type == "IsotropicHPP": 
-            psi_iso_vol = self.psi_isovol_HPP(u, mat.devia.mu)
-        elif mat.dev_type == "NeoHook": 
-            psi_iso_vol = self.psi_isovol_NeoHook(u, mat.devia.mu)
-        elif mat.dev_type == None:
-            psi_iso_vol = 0        
-        else:
-            raise ValueError("Phase field analysis has not been implemented for this deviatoric law")
-            
-        return psi_vol + psi_iso_vol
-            
-    def psi_isovol_HPP(self, u, mu):
-        """
-        Renvoie l'énergie libre isovolume de Helmholtz du modèle élastique
-        linéaire dans l'hypothèse des petites perturbations.
-        Parameters
-        ----------
-        u : Function, champ de déplacement.
-        mu : Float, cooefficient de cisaillement
-        """
-        dev_eps = dev(sym(self.kinematic.grad_3D(u)))
-        return 0
-        # return  mu * tr(dot(dev_eps, dev_eps))
+def Helmholtz_energy(self, u, J, mat):
+    """Return the Helmholtz free energy.
     
-    def psi_isovol_NeoHook(self, u, mu):
-        """
-        Renvoie l'énergie libre isovolume de Helmholtz du modèle hyper-élastique
-        Néo-Hookéen
-        Parameters
-        ----------
-        u : Function, champ de déplacement.
-        mu : Float, cooefficient de cisaillement
-        """
-        return mu * (self.kinematic.BBarI(u) - 3)
+    This method delegates the calculation to the appropriate 
+    EOS and deviator models.
+    
+    Parameters
+    ----------
+    u : Function Displacement field
+    J : Expression Jacobian of the transformation
+    mat : Material Material to study
+        
+    Returns
+    -------
+    Helmholtz free energy
+    """
+    # Get volumetric energy from EOS
+    try:
+        psi_vol = mat.eos.volumetric_helmholtz_energy(u, J, self.kinematic, mat.eos_type)
+    except:
+        raise ValueError("Phase field analysis has not been implemented for this eos")
+    # Get isochoric energy from deviator
+    try:
+        psi_iso_vol = mat.devia.isochoric_helmholtz_energy(u, self.kinematic)
+    except:
+        raise ValueError("Phase field analysis has not been implemented for this deviatoric law")
+    return psi_vol + psi_iso_vol

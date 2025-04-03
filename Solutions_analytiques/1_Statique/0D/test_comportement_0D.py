@@ -28,12 +28,12 @@ from numerical_analytical_comparison import comparison
 model = CartesianUD
 
 ###### Materiau ######
-eos_type = "Tabulated"
-devia_type = "IsotropicHPP"
+eos_type = "JWL"
+devia_type = "NeoHook"
 Mat = set_material(eos_type, devia_type)
 
 ###### Chargement ######
-varepsilon = -0.5
+varepsilon = -0.3
 T0 = 1e3
    
 class IsotropicBeam(model):
