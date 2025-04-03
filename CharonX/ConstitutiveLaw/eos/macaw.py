@@ -94,7 +94,7 @@ class MACAW_EOS(BaseEOS):
         print(f"Cold compressibility modulus: {kappa}")
         return sqrt(kappa / rho_0)
     
-    def pressure(self, J, T, material):
+    def pressure(self, J, T, T0, material):
         """Calculate pressure using the MACAW EOS.
         
         This method implements the complex MACAW EOS that combines
@@ -102,17 +102,14 @@ class MACAW_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        material : Material
-            Material properties
+        J : float or Function Jacobian of the deformation
+        T : float or Function Current temperature
+        T0 : float or Function Initial temperature
+        material : Material Material properties
             
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function Pressure
         """
         def thetav(theta0, v, vinf, gamma0, gammainf, m):
             """Helper function for MACAW thermal calculations."""

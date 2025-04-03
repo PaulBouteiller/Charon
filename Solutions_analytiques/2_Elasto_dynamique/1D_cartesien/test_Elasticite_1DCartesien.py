@@ -1,3 +1,32 @@
+"""
+Test de validation pour l'élasticité 1D en coordonnées cartésiennes
+
+Ce script implémente et exécute un test de validation pour les équations
+d'élasticité linéaire en 1D dans un système de coordonnées cartésiennes.
+Il compare la solution numérique obtenue avec CharonX à la solution analytique.
+
+Cas test:
+---------
+- Barre élastique homogène avec conditions aux limites imposées
+- Propagation d'onde longitudinale (compression/traction)
+- Comparaison des déplacements, vitesses et contraintes
+
+Théorie:
+--------
+L'équation d'onde 1D en élasticité linéaire s'écrit:
+    ρ·∂²u/∂t² = ∂/∂x(E·∂u/∂x)
+
+Pour un matériau homogène (E constant), l'équation se simplifie en:
+    ∂²u/∂t² = c²·∂²u/∂x²
+
+où c = √(E/ρ) est la vitesse des ondes élastiques.
+
+La solution analytique pour une onde progressive est de la forme:
+    u(x,t) = f(x - c·t) + g(x + c·t)
+
+où f et g représentent respectivement les ondes se propageant vers la droite et vers la gauche.
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest

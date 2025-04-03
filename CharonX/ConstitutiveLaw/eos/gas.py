@@ -18,19 +18,15 @@ class GP_EOS(BaseEOS):
     
     Attributes
     ----------
-    gamma : float
-        Polytropic coefficient
-    e_max : float
-        Estimated maximum specific internal energy
+    gamma : float Polytropic coefficient
+    e_max : float Estimated maximum specific internal energy
     """
     
     def required_parameters(self):
         """Return the list of required parameters.
-        
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["gamma", "e_max"]
     
@@ -39,12 +35,9 @@ class GP_EOS(BaseEOS):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            gamma : float
-                Polytropic coefficient
-            e_max : float
-                Estimated maximum specific internal energy
+        params : dict Dictionary containing:
+                        gamma : float Polytropic coefficient
+                        e_max : float Estimated maximum specific internal energy
         """
         super().__init__(params)
         
@@ -58,38 +51,29 @@ class GP_EOS(BaseEOS):
     
     def celerity(self, rho_0):
         """Calculate estimated sound speed in gas.
-        
         Parameters
         ----------
-        rho_0 : float
-            Initial density
-            
+        rho_0 : float Initial density
         Returns
         -------
-        float
-            Estimated sound speed
+        float Estimated sound speed
         """
         return sqrt(self.gamma * (self.gamma - 1) * self.e_max)
     
-    def pressure(self, J, T, material):
+    def pressure(self, J, T, T0, material):
         """Calculate pressure using the ideal gas law.
-        
         P = (gamma - 1) * rho_0 / J * C_mass * T
         
         where C_mass*T is equivalent to the specific internal energy.
         
         Parameters
         ----------
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        material : Material
-            Material properties
+        J : float or Function Jacobian of the deformation
+        T : float or Function Current temperature
+        material : Material Material properties
             
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function  Pressure
         """
         return (self.gamma - 1) * material.rho_0 / J * material.C_mass * T

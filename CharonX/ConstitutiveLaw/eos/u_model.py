@@ -19,10 +19,8 @@ class U_EOS(BaseEOS):
     
     Attributes
     ----------
-    kappa : float
-        Bulk modulus (Pa)
-    alpha : float
-        Thermal expansion coefficient (1/K)
+    kappa : float Bulk modulus (Pa)
+    alpha : float Thermal expansion coefficient (1/K)
     """
     
     def required_parameters(self):
@@ -30,8 +28,7 @@ class U_EOS(BaseEOS):
         
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["kappa", "alpha"]
     
@@ -40,12 +37,9 @@ class U_EOS(BaseEOS):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            kappa : float
-                Bulk modulus (Pa)
-            alpha : float
-                Thermal expansion coefficient (1/K)
+        params : dict Dictionary containing:
+                        kappa : float Bulk modulus (Pa)
+                        alpha : float Thermal expansion coefficient (1/K)
         """
         super().__init__(params)
         
@@ -62,17 +56,15 @@ class U_EOS(BaseEOS):
         
         Parameters
         ----------
-        rho_0 : float
-            Initial density
+        rho_0 : float Initial density
             
         Returns
         -------
-        float
-            Wave speed
+        float Wave speed
         """
         return sqrt(self.kappa / rho_0)
     
-    def pressure(self, J, T, T0, model_type="U5"):
+    def pressure(self, J, T, T0, material, model_type="U5"):
         """Calculate pressure using hyperelastic U-model.
         
         Available models:
@@ -82,19 +74,14 @@ class U_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        T0 : float or Function
-            Initial temperature
-        model_type : str, optional
-            U-model variant to use (U1, U5, U8, etc.), by default "U5"
+        J : float or Function Jacobian of the deformation
+        T : float or Function Current temperature
+        T0 : float or Function Initial temperature
+        model_type : str, optional U-model variant to use (U1, U5, U8, etc.), by default "U5"
             
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function  Pressure
         """
         if model_type == "U1":
             return -self.kappa * (J - 1 - 3 * self.alpha * (T - T0))

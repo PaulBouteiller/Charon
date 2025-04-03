@@ -6,8 +6,8 @@ Created on Wed Apr  2 11:37:27 2025
 @author: bouteillerp
 """
 """General anisotropic hyperelastic deviatoric stress model."""
-
-from ufl import as_tensor, as_matrix, dev, inv, symetrized_tensor_product, inner, dot, Identity
+from ...utils.tensor_operations import symetrized_tensor_product
+from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from .base_deviator import BaseDeviator
 
 class AnisotropicDeviator(BaseDeviator):

@@ -23,18 +23,32 @@ from .newtonian_fluid import NewtonianFluid_EOS
 from .tabulated import Tabulated_EOS, has_tabulated_eos
 
 # For backward compatibility
-__all__ = [
-    'BaseEOS',
-    'IsotropicHPP_EOS',
-    'U_EOS',
-    'Vinet_EOS',
-    'JWL_EOS',
-    'MACAW_EOS',
-    'MG_EOS',
-    'xMG_EOS',
-    'PMG_EOS',
-    'GP_EOS',
-    'NewtonianFluid_EOS',
-    'Tabulated_EOS',
-    'has_tabulated_eos'
-]
+# __all__ = [
+#     'BaseEOS',
+#     'EOS',  # Ajoutez cette ligne
+#     'IsotropicHPP_EOS',
+#     'U_EOS',
+#     'Vinet_EOS',
+#     'JWL_EOS',
+#     'MACAW_EOS',
+#     'MG_EOS',
+#     'xMG_EOS',
+#     'PMG_EOS',
+#     'GP_EOS',
+#     'NewtonianFluid_EOS',
+#     'Tabulated_EOS',
+#     'has_tabulated_eos'
+# ]
+
+class EOS:
+    """Bridge class for compatibility with existing code."""
+    
+    def __init__(self, kinematic, quadrature):
+        pass
+        # self.kin = kinematic
+        # self.quad = quadrature
+    
+    def set_eos(self, J, T, T0, mat):
+        # Délègue au modèle EOS approprié dans le matériau
+        pressure = mat.eos.pressure(J, T, T0, mat)
+        return pressure

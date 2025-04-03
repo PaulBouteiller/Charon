@@ -17,12 +17,9 @@ class NewtonianFluid_EOS(BaseEOS):
     
     Attributes
     ----------
-    k : float
-        Volumetric viscosity
-    alpha : float
-        Thermal conductivity
-    chiT : float
-        Isothermal compressibility
+    k : float Volumetric viscosity
+    alpha : float Thermal conductivity
+    chiT : float Isothermal compressibility
     """
     
     def required_parameters(self):
@@ -30,8 +27,7 @@ class NewtonianFluid_EOS(BaseEOS):
         
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["k", "alpha", "chiT"]
     
@@ -40,14 +36,10 @@ class NewtonianFluid_EOS(BaseEOS):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            k : float
-                Volumetric viscosity
-            alpha : float
-                Thermal conductivity
-            chiT : float
-                Isothermal compressibility
+        params : dict Dictionary containing:
+                        k : float Volumetric viscosity
+                        alpha : float Thermal conductivity
+                        chiT : float Isothermal compressibility
         """
         super().__init__(params)
         
@@ -66,43 +58,35 @@ class NewtonianFluid_EOS(BaseEOS):
         
         Parameters
         ----------
-        rho_0 : float
-            Initial density
+        rho_0 : float Initial density
             
         Returns
         -------
-        float
-            Sound speed
+        float Sound speed
         """
         return sqrt(1 / (self.chiT * rho_0))
     
-    def pressure(self, v, J, T, T0, kinematic):
+    def pressure(self, J, T, T0, material):
         """Calculate pressure for a Newtonian fluid.
         
         The total pressure includes both thermodynamic and viscous components.
         
         Parameters
         ----------
-        v : Function
-            Velocity field
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        T0 : float or Function
-            Initial temperature
-        kinematic : Kinematic
-            Kinematic handler object
+        J : float or Function Jacobian of the deformation
+        T : float or Function Current temperature
+        T0 : float or Function Initial temperature
+        material : Material Material properties
             
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function Pressure
         """
         # Thermodynamic pressure
         thermo_p = -1 / self.chiT * log(J) + self.alpha / self.chiT * (T - T0)
         
         # Viscous pressure from velocity gradient
-        viscous_p = -self.k * kinematic.div(v)
+        # viscous_p = -self.k * kinematic.div(v)
+        viscous_p = 0
         
         return thermo_p + viscous_p

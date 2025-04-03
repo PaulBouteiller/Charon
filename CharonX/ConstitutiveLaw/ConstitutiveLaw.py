@@ -206,7 +206,7 @@ class ConstitutiveLaw:
         tuple (pressure, pseudo_pressure, deviatoric_stress)
         """
         # Calculate pressure component from equation of state
-        pressure = self.eos.set_eos(v, J * relative_density, T, T0, material)
+        pressure = self.eos.set_eos(J * relative_density, T, T0, material)
         
         # Calculate deviatoric component based on material model
         deviatoric = self._calculate_deviatoric_stress(u, v, J, T, T0, material)

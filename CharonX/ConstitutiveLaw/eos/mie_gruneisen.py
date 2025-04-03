@@ -17,14 +17,10 @@ class MG_EOS(BaseEOS):
     
     Attributes
     ----------
-    C : float
-        Linear coefficient
-    D : float
-        Quadratic coefficient
-    S : float
-        Cubic coefficient
-    gamma0 : float
-        Grüneisen coefficient
+    C : float Linear coefficient
+    D : float Quadratic coefficient
+    S : float Cubic coefficient
+    gamma0 : float Grüneisen coefficient
     """
     
     def required_parameters(self):
@@ -32,8 +28,7 @@ class MG_EOS(BaseEOS):
         
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["C", "D", "S", "gamma0"]
     
@@ -42,16 +37,11 @@ class MG_EOS(BaseEOS):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            C : float
-                Linear coefficient
-            D : float
-                Quadratic coefficient
-            S : float
-                Cubic coefficient
-            gamma0 : float
-                Grüneisen coefficient
+        params : dict Dictionary containing:
+                    C : float Linear coefficient
+                    D : float Quadratic coefficient
+                    S : float Cubic coefficient
+                    gamma0 : float Grüneisen coefficient
         """
         super().__init__(params)
         
@@ -72,13 +62,11 @@ class MG_EOS(BaseEOS):
         
         Parameters
         ----------
-        rho_0 : float
-            Initial density
+        rho_0 : float Initial density
             
         Returns
         -------
-        float
-            Wave speed
+        float Wave speed
         """
         return sqrt(self.C / rho_0)
     
@@ -91,19 +79,14 @@ class MG_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        T0 : float or Function
-            Initial temperature
-        material : Material
-            Material properties
+        J : float or Function Jacobian of the deformation
+        T : float or Function Current temperature
+        T0 : float or Function Initial temperature
+        material : Material Material properties
             
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function Pressure
         """
         mu = 1/J - 1
         return self.C * mu + self.D * mu**2 + self.S * mu**3 + material.rho_0 / J * self.gamma0 * (T - T0)
@@ -116,33 +99,25 @@ class xMG_EOS(BaseEOS):
     
     Attributes
     ----------
-    c0 : float
-        Sound speed at zero pressure
-    gamma0 : float
-        Grüneisen coefficient
-    s1, s2, s3 : float
-        Empirical parameters
-    b : float
-        Volumetric parameter
+    c0 : float Sound speed at zero pressure
+    gamma0 : float Grüneisen coefficient
+    s1, s2, s3 : float Empirical parameters
+    b : float Volumetric parameter
     """
     
     def required_parameters(self):
         """Return the list of required parameters.
-        
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["c0", "gamma0", "s1", "s2", "s3", "b"]
     
     def __init__(self, params):
         """Initialize the extended Mie-Grüneisen EOS.
-        
         Parameters
         ----------
-        params : dict
-            Dictionary with extended Mie-Grüneisen parameters
+        params : dict Dictionary with extended Mie-Grüneisen parameters
         """
         super().__init__(params)
         
@@ -164,16 +139,12 @@ class xMG_EOS(BaseEOS):
     
     def celerity(self, rho_0):
         """Return the specified sound speed.
-        
         Parameters
         ----------
-        rho_0 : float
-            Initial density (unused, kept for interface consistency)
-            
+        rho_0 : float Initial density (unused, kept for interface consistency)
         Returns
         -------
-        float
-            Sound speed
+        float Sound speed
         """
         return self.c0
     
@@ -185,19 +156,13 @@ class xMG_EOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function
-            Jacobian of the deformation
-        T : float or Function
-            Current temperature
-        T0 : float or Function
-            Initial temperature
-        material : Material
-            Material properties
-            
+        J : float or Function Jacobian of the deformation
+        T : float or Function Current temperature
+        T0 : float or Function Initial temperature
+        material : Material Material properties
         Returns
         -------
-        float or Function
-            Pressure
+        float or Function Pressure
         """
         from ..utils.generic_functions import ppart, npart
         
@@ -214,39 +179,31 @@ class xMG_EOS(BaseEOS):
 
 
 class PMG_EOS(BaseEOS):
-    """Polynomial Mie-Grüneisen equation of state.
+    """Puff Mie-Grüneisen equation of state.
     
     This variant uses a polynomial form for the reference curve.
     
     Attributes
     ----------
-    Pa : float
-        Atmospheric pressure
-    Gamma0 : float
-        Grüneisen coefficient
-    D, S, H : float
-        Polynomial coefficients
-    c0 : float
-        Sound speed
+    Pa : float Atmospheric pressure
+    Gamma0 : float Grüneisen coefficient
+    D, S, H : float Polynomial coefficients
+    c0 : float Sound speed
     """
     
     def required_parameters(self):
-        """Return the list of required parameters.
-        
+        """Return the list of required parameters. 
         Returns
         -------
-        list
-            List of parameter names
+        list List of parameter names
         """
         return ["Pa", "Gamma0", "D", "S", "H", "c0"]
     
     def __init__(self, params):
         """Initialize the polynomial Mie-Grüneisen EOS.
-        
         Parameters
         ----------
-        params : dict
-            Dictionary with polynomial Mie-Grüneisen parameters
+        params : dict Dictionary with polynomial Mie-Grüneisen parameters
         """
         super().__init__(params)
         
@@ -268,15 +225,11 @@ class PMG_EOS(BaseEOS):
     
     def celerity(self, rho_0):
         """Return the specified sound speed.
-        
         Parameters
         ----------
-        rho_0 : float
-            Initial density (unused, kept for interface consistency)
-            
+        rho_0 : float Initial density (unused, kept for interface consistency)
         Returns
         -------
-        float
-            Sound speed
+        float Sound speed
         """
         return self.c0

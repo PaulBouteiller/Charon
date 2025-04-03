@@ -11,6 +11,12 @@ from .eos import (
     MG_EOS, xMG_EOS, PMG_EOS, GP_EOS, NewtonianFluid_EOS, Tabulated_EOS
 )
 
+from .deviator import (
+    None_deviatoric, IsotropicHPP_deviatoric, MooneyRivlin_deviatoric,
+    NeoHook_Transverse_deviatoric, Lu_Transverse_deviatoric, Anisotropic_deviatoric
+)
+
+
 class Material:
     """Base class for all material models.
     

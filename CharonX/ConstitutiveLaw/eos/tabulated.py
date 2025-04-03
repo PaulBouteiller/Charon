@@ -51,8 +51,7 @@ def Dataframe_to_array(df):
     
     Parameters
     ----------
-    df : pandas.DataFrame
-        DataFrame with temperature rows, J columns, and pressure values
+    df : pandas.DataFrame DataFrame with temperature rows, J columns, and pressure values
         
     Returns
     -------
@@ -94,9 +93,8 @@ class Tabulated_EOS(BaseEOS):
         
         Parameters
         ----------
-        params : dict
-            Parameters including either Dataframe (pandas DataFrame with tabulated data)
-            or T, J, P arrays for manual specification
+        params : dict Parameters including either Dataframe (pandas DataFrame with tabulated data)
+                        or T, J, P arrays for manual specification
         """
         if not has_tabulated_eos:
             raise RuntimeError("Tabulated EOS requires JAX to be installed")
@@ -148,29 +146,24 @@ class Tabulated_EOS(BaseEOS):
         
         Parameters
         ----------
-        rho_0 : float
-            Initial density (unused, kept for interface consistency)
+        rho_0 : float Initial density (unused, kept for interface consistency)
             
         Returns
         -------
-        float
-            Wave speed
+        float Wave speed
         """
         return self.c0
         
-    def pressure(self, T, J):
+    def pressure(self, J, T, T0, material):
         """Calculate pressure using interpolation from tabulated data.
         
         Parameters
         ----------
-        T : ndarray
-            Temperature values
-        J : ndarray
-            Jacobian values
+        T : ndarray Temperature values
+        J : ndarray Jacobian values
             
         Returns
         -------
-        ndarray
-            Interpolated pressure values
+        ndarray Interpolated pressure values
         """
         return self.tabulated_interpolator(jax_numpy.array(T), jax_numpy.array(J))
