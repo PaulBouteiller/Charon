@@ -1,18 +1,31 @@
 """
-Created on Mon Sep  2 14:40:23 2024
+Module d'analyse des résultats pour le test de compression cylindrique.
 
-@author: bouteillerp
+Ce module permet de comparer les résultats numériques de la simulation de compression
+d'un cylindre avec la solution analytique de Lamé pour un cylindre à paroi épaisse.
+
+Fonctions:
+    validation_analytique(Pint, Pext, Rint, Rext): Compare la solution numérique avec la solution analytique
+        - Pint: Pression interne appliquée
+        - Pext: Pression externe appliquée
+        - Rint: Rayon interne du cylindre
+        - Rext: Rayon externe du cylindre
+
+La fonction calcule l'erreur relative entre les solutions et trace un graphique de comparaison.
+Une assertion vérifie que l'erreur est inférieure à un seuil acceptable (0.1%).
+
+Auteur: bouteillerp
+Date de création: 2 Septembre 2024
 """
-
 import matplotlib.pyplot as plt
 from numpy import linspace, array
 from pandas import read_csv
-from materiau import *
+from materiau import E, nu
 
 def validation_analytique(Pint, Pext, Rint, Rext):
     u_csv = read_csv("Compression_cylindrique_1D-results/U.csv")
     resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
-    r_result = resultat[0]
+    # r_result = resultat[0]
     solution_numerique = -resultat[-1]
     
     

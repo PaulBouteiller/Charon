@@ -1,7 +1,23 @@
 """
-Created on Mon Jul 24 16:37:39 2023
-@author: bouteillerp
-Traction simple en cartesién 1D à la solution analytique"""
+Test de traction simple en coordonnées cartésiennes 1D.
+
+Ce script simule un essai de traction uniaxiale sur une barre 1D et compare
+les résultats numériques avec la solution analytique.
+
+Paramètres géométriques:
+    - Longueur de la barre: 1
+    - Discrétisation: 2 éléments
+
+Chargement:
+    - Déplacement imposé (Umax): 1e-3 (0.1% de déformation)
+
+La solution analytique utilise les expressions développées dans le module
+Traction_1D_cartesien_solution_analytique pour différents modèles constitutifs.
+Une comparaison est effectuée entre la force calculée numériquement et analytiquement.
+
+Auteur: bouteillerp
+Date de création: 24 Juillet 2023
+"""
 from CharonX import *
 import matplotlib.pyplot as plt
 import numpy as np

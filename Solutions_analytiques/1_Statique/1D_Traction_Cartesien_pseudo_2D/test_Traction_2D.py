@@ -1,8 +1,29 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de traction uniaxiale sur un rectangle en déformation plane (pseudo-1D).
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane"""
+Ce script simule un essai de traction uniaxiale sur une plaque rectangulaire
+en conditions de déformation plane, avec des conditions aux limites imposant
+un état de déformation homogène équivalent à un problème 1D.
+
+Paramètres géométriques:
+    - Longueur: 1
+    - Largeur: 0.5
+    - Discrétisation: maillage 20×20 (quadrilatères)
+
+Chargement:
+    - Déplacement imposé (Umax): 0.002 (0.2% de déformation)
+
+Conditions aux limites:
+    - Blocage latéral sur les côtés gauche et droite
+    - Blocage vertical en bas et en haut
+    - Déplacement horizontal imposé sur le côté droit
+
+Une comparaison est effectuée entre la force calculée numériquement et la solution analytique
+dérivée de la théorie 1D, corrigée pour tenir compte de l'état de déformation plane.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 
 from CharonX import *
 import matplotlib.pyplot as plt
@@ -37,7 +58,7 @@ class Plate(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4], ["x", "y", "x", "y"], [0, 0, Longueur, Largeur])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4], ["x", "y", "x", "y"], [0, 0, Longueur, Largeur])
         
     def set_boundary_condition(self):
         self.bcs.add_Ux(region=1)
@@ -79,7 +100,6 @@ class Plate(model):
             plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
-            plt.savefig("../../../Notice/fig/1D_Traction_pseudo_2D.pdf", bbox_inches = 'tight')
             plt.show()
             
 def test_Traction2D():

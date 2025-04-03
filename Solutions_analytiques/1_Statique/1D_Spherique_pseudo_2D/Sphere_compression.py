@@ -1,11 +1,29 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de compression d'une sphère creuse en axisymétrique (pseudo-2D).
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane"""
+Ce script simule la compression d'une sphère creuse soumise à une pression externe
+en utilisant un modèle axisymétrique, puis compare la solution numérique avec la
+solution analytique.
 
+Paramètres géométriques:
+    - Rayon interne (Rint): 9
+    - Rayon externe (Rext): 11
+    - Maillage: 40 éléments circonférentiels, 10 éléments radiaux
+
+Chargement:
+    - Pression externe (Pext): 10
+
+Conditions aux limites:
+    - Déplacement vertical bloqué sur l'axe de symétrie
+    - Déplacement radial bloqué sur l'axe de symétrie
+    - Pression sur la face externe
+
+Une comparaison est effectuée entre le champ de déplacement radial calculé
+numériquement et la solution analytique pour un domaine sphérique creux.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import time
 import matplotlib.pyplot as plt

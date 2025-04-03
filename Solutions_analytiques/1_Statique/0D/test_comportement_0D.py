@@ -1,9 +1,21 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Mon Jul 24 16:37:39 2023
-@author: bouteillerp
-Traction simple en cartesién 1D à la solution analytique"""
+Test de comportement mécanique 0D pour différents modèles constitutifs.
+
+Ce script teste le comportement mécanique d'un matériau en imposant une déformation
+volumétrique (traction/compression) et en comparant les résultats numériques aux
+solutions analytiques.
+
+La simulation utilise:
+    - Modèle: CartesianUD (1D cartésien)
+    - Matériau: défini par les paramètres eos_type et devia_type
+    - Chargement: déformation imposée varepsilon
+    - Analyse: statique, isotherme
+    
+Le test vérifie la cohérence entre les contraintes calculées numériquement et analytiquement.
+
+Auteur: bouteillerp
+Date de création: 24 Juillet 2023
+"""
 from CharonX import *
 
 import pytest

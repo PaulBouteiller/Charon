@@ -1,8 +1,32 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de compression d'une sphère anisotrope en coordonnées sphériques 1D.
 
-@author: bouteillerp
-Experience de compression d'une sphère anisotrope"""
+Ce script simule la compression d'une sphère composée d'un matériau anisotrope
+(TATB) et compare les résultats numériques avec des solutions analytiques pour
+la pression et les contraintes déviatoriques.
+
+Paramètres géométriques:
+    - Rayon interne (Rint): 0 (sphère pleine)
+    - Rayon externe (Rext): 1
+    - Discrétisation: 1 élément radial
+
+Matériau:
+    - Équation d'état: Vinet (K0=14e3, K1=6)
+    - Comportement déviatorique: Anisotropic avec tenseur de rigidité spécifié
+    - Densité: 1.9e-3
+
+Chargement:
+    - Déplacement radial imposé (1% de déformation) sur la surface externe
+
+Le script trace l'évolution de la pression et des composantes du déviateur en fonction
+de la dilatation volumique (J), et compare avec les solutions analytiques. 
+
+Remarque: Ce test vérifie l'implémentation correcte de l'anisotropie dans le modèle
+sphérique et la cohérence avec l'équation d'état Vinet.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -51,7 +75,7 @@ class AnisotropicBall(model):
             return "Test"
     
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [Rint, Rext])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [Rint, Rext])
         
     def set_boundary_condition(self):
         Umax = 1e-2

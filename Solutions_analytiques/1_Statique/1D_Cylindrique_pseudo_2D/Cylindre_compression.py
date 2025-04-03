@@ -1,9 +1,30 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de compression d'un cylindre creux en axisymétrique (pseudo-2D).
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane"""
+Ce script simule la compression d'un cylindre creux soumis à des pressions interne et externe
+en utilisant un modèle axisymétrique, puis compare la solution numérique avec la solution
+analytique de Lamé.
 
+Paramètres géométriques:
+    - Rayon interne (Rint): 9
+    - Rayon externe (Rext): 11
+    - Hauteur du cylindre: 1
+    - Discrétisation: maillage 20×10 (quadrilatères)
+
+Chargement:
+    - Pression interne (Pint): -5
+    - Pression externe (Pext): -10
+
+Conditions aux limites:
+    - Déplacement vertical bloqué sur les faces supérieure et inférieure
+    - Pressions sur les faces internes et externes
+
+Une vérification est effectuée pour comparer le champ de déplacement radial calculé
+numériquement avec la solution analytique.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import time
 import matplotlib.pyplot as plt
@@ -47,23 +68,19 @@ class Cylindre_axi(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4], ["z", "r", "r", "z"], [0, Rint, Rext, hauteur])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4], ["z", "r", "r", "z"], [0, Rint, Rext, hauteur])
         # self.mark_boundary([1], ["z"], [0])
         
     def set_boundary_condition(self):
         self.bcs.add_Uz(region=1)
         self.bcs.add_Uz(region=4)
-        
-    # def set_boundary_condition(self):
-    #     self.bcs.add_clamped(region=1)
-        
+
     def set_loading(self):
         self.loading.add_Fr(-Pint * self.load, self.u_, self.ds(2))
         self.loading.add_Fr(Pext * self.load, self.u_, self.ds(3))
         
     def csv_output(self):
         return {"U" : ["Boundary", 1]}
-        # return {"U" : True}
         
     def set_output(self):
         return {'U': True}

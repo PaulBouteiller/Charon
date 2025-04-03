@@ -1,9 +1,18 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Mon Sep  2 14:44:02 2024
+Définition des propriétés matérielles pour les tests de cylindre.
 
-@author: bouteillerp
+Ce module définit les constantes matérielles utilisées dans les tests de
+compression de cylindre à paroi épaisse.
+
+Propriétés du matériau:
+    - Module d'Young (E): 210e3 MPa
+    - Coefficient de Poisson (nu): 0.3
+    
+Ces propriétés sont utilisées pour les dictionnaires d'équation d'état (dico_eos)
+et de comportement déviatorique (dico_devia) nécessaires à la définition du matériau.
+
+Auteur: bouteillerp
+Date de création: 2 Septembre 2024
 """
 ###### Modèle mécanique ######
 E = 210e3

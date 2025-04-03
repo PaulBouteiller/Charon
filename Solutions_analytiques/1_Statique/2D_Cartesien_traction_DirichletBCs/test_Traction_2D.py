@@ -1,11 +1,29 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de traction 2D avec conditions aux limites de Dirichlet.
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane"""
+Ce script simule un essai de traction uniaxiale sur une plaque rectangulaire
+en conditions de déformation plane avec des déplacements imposés sur les bords.
 
+Paramètres géométriques:
+    - Longueur: 1
+    - Largeur: 0.5
+    - Discrétisation: maillage 20×20 (quadrilatères)
+
+Chargement:
+    - Déplacement imposé (Umax): 0.002 (0.2% de déformation)
+
+Conditions aux limites:
+    - Déplacement horizontal bloqué sur le bord gauche
+    - Déplacement vertical bloqué sur le bord inférieur
+    - Déplacement horizontal imposé sur le bord droit
+
+Le script calcule la force résultante et la compare avec la solution analytique
+pour un problème de déformation plane (correction par le facteur 1/(1-nu²)).
+Une assertion vérifie que l'erreur relative est inférieure à 1%.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import time
 import matplotlib.pyplot as plt
@@ -37,7 +55,7 @@ class Plate(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3], ["x", "y", "x"], [0, 0, Longueur])
+        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "x"], [0, 0, Longueur])
         
     def set_boundary_condition(self):
         self.bcs.add_Ux(region=1)
@@ -80,7 +98,6 @@ class Plate(model):
             plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
-            plt.savefig("../../../Notice/fig/Traction_2D_Dirichlet.pdf", bbox_inches = 'tight')
             plt.show()
             
 def test_Traction2D():

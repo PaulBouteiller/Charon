@@ -1,7 +1,29 @@
 """
-Created on Mon Jul 24 16:37:39 2023
-@author: bouteillerp
-Traction simple en cartesién 1D à la solution analytique"""
+Test de traction simple en coordonnées cartésiennes 1D pour un matériau anisotrope.
+
+Ce script simule un essai de traction uniaxiale sur une barre 1D composée d'un matériau
+anisotrope et visualise les résultats.
+
+Paramètres géométriques:
+    - Longueur de la barre: 1
+    - Discrétisation: 2 éléments
+
+Chargement:
+    - Déplacement imposé (Umax): 1e-2 (1% de déformation)
+
+Modèles de matériau:
+    - Équation d'état: U1 (kappa = 175e3)
+    - Comportement déviatorique: 
+        * Lu_Transverse (anisotropie transverse définie par des paramètres)
+        * Anisotropic (matrice de rigidité complète)
+            - Isotrope
+            - Isotrope_transverse (fibres orientées à un angle spécifié)
+
+Le script trace la courbe force-déplacement pour le matériau anisotrope spécifié.
+
+Auteur: bouteillerp
+Date de création: 24 Juillet 2023
+"""
 from CharonX import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -80,7 +102,7 @@ class IsotropicBeam(model):
             return "Test"
             
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [0, Longueur])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [0, Longueur])
 
     def set_boundary_condition(self):
         self.bcs.add_U(region=1)
@@ -106,7 +128,7 @@ class IsotropicBeam(model):
             plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
-            plt.savefig("../../../Notice/fig/Traction_1D"+str(eos_type)+str(devia_type)+".pdf", bbox_inches = 'tight')
+            # plt.savefig("../../../Notice/fig/Traction_1D"+str(eos_type)+str(devia_type)+".pdf", bbox_inches = 'tight')
             plt.show()
 
 def test_Traction_1D():

@@ -1,10 +1,24 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de compression d'une sphère creuse en coordonnées sphériques 1D.
 
-@author: bouteillerp
-Experience de compression d'une sphère les paramètres retenues sont identiques à ceux
-utilisés par Jeremy Bleyer:
-https://comet-fenics.readthedocs.io/en/latest/demo/elasticity/axisymmetric_elasticity.html """
+Ce script simule la compression d'une sphère creuse soumise à une pression externe,
+puis compare la solution numérique au champ de déplacement radial analytique.
+
+Paramètres géométriques:
+    - Rayon interne (Rint): 9
+    - Rayon externe (Rext): Rint + e
+    - Épaisseur (e): 2
+    - Discrétisation (Nx): 10 éléments radiaux
+
+Chargement:
+    - Pression appliquée (p_applied): 10 (en externe)
+
+La solution analytique est basée sur les équations d'élasticité linéaire en coordonnées sphériques.
+Une assertion vérifie que l'erreur relative entre les solutions est inférieure à 0.1%.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -35,7 +49,7 @@ class IsotropicBall(model):
             return "Test"
     
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [Rint, Rext])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [Rint, Rext])
         
     def set_loading(self):
         self.loading.add_F(-p_applied * self.load, self.u_, self.ds(2))
@@ -66,7 +80,6 @@ class IsotropicBall(model):
             plt.xlabel(r"$r$ (mm)", size = 18)
             plt.ylabel(r"Déplacement radial (mm)", size = 18)
             plt.legend()
-            plt.savefig("../../../Notice/fig/Spheric_compression.pdf", bbox_inches = 'tight')
             plt.show()
 
 def test_Compression_1D():

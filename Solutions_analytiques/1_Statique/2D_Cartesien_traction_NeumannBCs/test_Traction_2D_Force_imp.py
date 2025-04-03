@@ -1,10 +1,30 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de traction 2D avec conditions aux limites de Neumann.
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane, condition aux limites 
-en efforts"""
+Ce script simule un essai de traction uniaxiale sur une plaque rectangulaire
+en conditions de déformation plane avec des forces imposées sur les bords.
 
+Paramètres géométriques:
+    - Longueur: 1
+    - Largeur: 0.5
+    - Discrétisation: maillage 20×20 (quadrilatères)
+
+Chargement:
+    - Force surfacique imposée (f_surf): 1e3
+    - Nombre de pas: 20
+
+Conditions aux limites:
+    - Déplacement horizontal bloqué sur le bord gauche
+    - Déplacement vertical bloqué sur le bord inférieur
+    - Force horizontale imposée sur le bord droit
+
+Le script calcule la contrainte résultante et la compare avec la valeur
+imposée (f_surf) pour vérifier la cohérence de l'implémentation des
+conditions aux limites de Neumann.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import time
 import matplotlib.pyplot as plt
@@ -38,7 +58,7 @@ class Plate(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3], ["x", "y", "x"], [0, 0, Longueur])
+        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "x"], [0, 0, Longueur])
         
     def set_boundary_condition(self):
         self.bcs.add_Ux(region=1)

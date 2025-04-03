@@ -1,8 +1,26 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de traction uniaxiale sur un cube 3D (pseudo-1D).
 
-@author: bouteillerp
-Essai de traction uni-axial sur un cube 3D
+Ce script simule un essai de traction uniaxiale sur un cube 3D avec des conditions
+aux limites imposant un état de déformation homogène équivalent à un problème 1D.
+
+Paramètres géométriques:
+    - Dimensions du cube: 0.5 × 2.0 × 2.0
+    - Discrétisation: maillage 10×10×10
+
+Chargement:
+    - Déformation imposée (eps): 0.01 (1% de déformation)
+
+Conditions aux limites:
+    - Blocage des déplacements normaux sur toutes les faces, sauf:
+    - Déplacement imposé dans la direction Z sur la face supérieure
+
+Une comparaison est effectuée entre la force calculée numériquement et la solution analytique
+pour un problème de traction uniaxiale 1D, en tenant compte de l'influence des conditions
+aux limites 3D.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
 """
 from CharonX import *
 import time
@@ -37,7 +55,7 @@ class Cube3D(model):
                                           [Nx, Ny, Nz])
     
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4, 5, 6], ["x", "x", "y", "y", "z", "z"], [0, Longueur, 0, Largeur, 0, hauteur])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4, 5, 6], ["x", "x", "y", "y", "z", "z"], [0, Longueur, 0, Largeur, 0, hauteur])
 
     def set_boundary_condition(self):
         self.bcs.add_Ux(region=1)
@@ -78,7 +96,6 @@ class Cube3D(model):
             plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
-            plt.savefig("../../../Notice/fig/1D_Traction_pseudo_3D.pdf", bbox_inches = 'tight')
             plt.show()
 
 def test_Traction_3D():

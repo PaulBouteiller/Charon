@@ -1,9 +1,31 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de compression d'un cylindre creux en 2D axisymétrique.
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane"""
+Ce script simule la compression d'un cylindre creux soumis à des pressions interne
+et externe en utilisant un modèle axisymétrique, puis compare la solution numérique
+avec la solution analytique de Lamé.
 
+Paramètres géométriques:
+    - Rayon interne (Rint): 9
+    - Rayon externe (Rext): 11
+    - Hauteur du cylindre: 1
+    - Discrétisation: maillage 10×5 (triangles)
+
+Chargement:
+    - Pression interne (Pint): -5
+    - Pression externe (Pext): -10
+
+Conditions aux limites:
+    - Déplacement vertical bloqué sur la face inférieure
+
+Une comparaison est effectuée entre le champ de déplacement radial calculé
+numériquement et la solution analytique via le module depouillement.py.
+L'erreur relative entre les deux solutions est calculée pour vérifier la précision
+du modèle numérique.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import time
 import pytest
@@ -43,7 +65,7 @@ class Cylindre_axi(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4], ["z", "r", "r", "z"], [0, Rint, Rext, hauteur])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4], ["z", "r", "r", "z"], [0, Rint, Rext, hauteur])
         
     def set_boundary_condition(self):
         self.bcs.add_Uz(region=1)

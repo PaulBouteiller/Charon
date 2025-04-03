@@ -1,8 +1,25 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de compression d'un cylindre en coordonnées cylindriques 1D.
 
-@author: bouteillerp
-Experience de compression d'un cylindre comparaion à la solution analytique"""
+Ce script simule la compression d'un cylindre creux soumis à des pressions interne et externe,
+puis compare la solution numérique au champ de déplacement radial analytique.
+
+Paramètres géométriques:
+    - Rayon interne (Rint): 9
+    - Rayon externe (Rext): Rint + e
+    - Épaisseur (e): 2
+    - Discrétisation (Nx): 20 éléments radiaux
+
+Chargement:
+    - Pression interne (Pint): -5
+    - Pression externe (Pext): -10
+
+La solution analytique utilise les équations de Lamé pour un cylindre à paroi épaisse.
+Une assertion vérifie que l'erreur relative entre les solutions est inférieure à 0.1%.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
+"""
 from CharonX import *
 import time
 import pytest
@@ -37,7 +54,7 @@ class IsotropicCyl(model):
             return "Test"
             
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [Rint, Rext])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [Rint, Rext])
 
     def set_loading(self):
         self.loading.add_F(-Pint * self.load, self.u_, self.ds(1))

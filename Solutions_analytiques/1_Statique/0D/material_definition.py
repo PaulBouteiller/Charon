@@ -1,7 +1,19 @@
 """
-Created on Thu Feb  8 14:04:05 2024
+Module de définition des matériaux pour différentes équations d'état et lois de comportement.
 
-@author: bouteillerp
+Ce module permet de créer des instances de matériaux (Material) en définissant leurs propriétés
+selon le type d'équation d'état et de loi déviatorique choisis.
+
+Fonctions:
+    set_material(eos_type, devia_type): Crée et retourne un objet Material configuré selon les paramètres spécifiés.
+        - eos_type: Type d'équation d'état (U1, U5, U8, Tabulated, Vinet, MG, JWL, MACAW)
+        - devia_type: Type de loi déviatorique (None, IsotropicHPP, NeoHook, MooneyRivlin)
+
+Remarque: Les valeurs des paramètres sont définies dans la fonction pour chaque type d'équation
+d'état et de loi déviatorique.
+
+Auteur: bouteillerp
+Date de création: 8 Février 2024
 """
 
 from CharonX import Material

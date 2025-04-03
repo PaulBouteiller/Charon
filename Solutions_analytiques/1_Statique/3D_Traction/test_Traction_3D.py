@@ -1,8 +1,28 @@
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de traction uniaxiale sur un cube 3D avec matériau isotrope.
 
-@author: bouteillerp
-Essai de traction uni-axial sur un cube 3D
+Ce script simule un essai de traction uniaxiale sur un cube 3D et compare
+les résultats numériques avec la solution analytique.
+
+Paramètres géométriques:
+    - Dimensions du cube: 0.5 × 2.0 × 2.0
+    - Discrétisation: maillage 10×10×10
+
+Chargement:
+    - Déformation imposée (eps): 0.005 (0.5% de déformation)
+
+Conditions aux limites:
+    - Déplacement horizontal bloqué sur la face gauche
+    - Déplacement vertical bloqué sur la face inférieure
+    - Déplacement selon Z bloqué sur la face arrière
+    - Déplacement selon Z imposé sur la face avant
+
+Le script calcule la force résultante et la compare avec la solution analytique
+pour un problème de traction uniaxiale 3D. Une assertion vérifie que l'erreur
+relative est inférieure à 1%.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
 """
 from CharonX import *
 import matplotlib.pyplot as plt
@@ -34,7 +54,7 @@ class Cube3D(model):
                                           [Nx, Ny, Nz])
     
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4], ["x", "y", "z", "z"], [0, 0, 0, h])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4], ["x", "y", "z", "z"], [0, 0, 0, h])
 
     def set_boundary_condition(self):
         self.bcs.add_Ux(region=1)

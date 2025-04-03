@@ -1,13 +1,28 @@
 """
-Created on Thu Feb  8 14:07:58 2024
+Module de comparaison entre solutions numériques et analytiques pour différents modèles.
 
-@author: bouteillerp
+Ce module permet de comparer les résultats numériques obtenus par simulation avec les solutions
+analytiques pour différentes équations d'état et lois déviatoriques.
+
+Fonctions:
+    comparison(mat, varepsilon, T): Compare les résultats numériques et analytiques pour un matériau donné.
+        - mat: Instance de Material à tester
+        - varepsilon: Déformation appliquée
+        - T: Température
+    
+La fonction trace des graphiques de comparaison et calcule l'erreur relative entre les solutions
+numériques et analytiques. Une assertion vérifie que l'erreur est inférieure à un seuil (1e-3).
+
+Auteur: bouteillerp
+Date de création: 8 Février 2024
 """
 
 from numpy import array
 from pandas import read_csv
-from material_definition import *
-from Analytique_EOS_deviateur import *
+# from material_definition import *
+from Analytique_EOS_deviateur import (p1,p5, p8, Vinet, MG, JWL, MACAW, 
+                                      tabulated, HPP_devia, NeoHookean,
+                                      MooneyRivlin)
 import matplotlib.pyplot as plt
 
 def comparison(mat, varepsilon, T):

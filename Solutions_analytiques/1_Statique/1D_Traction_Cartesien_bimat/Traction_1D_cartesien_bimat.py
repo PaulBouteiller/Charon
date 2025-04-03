@@ -1,7 +1,29 @@
 """
-Created on Mon Jul 24 16:37:39 2023
-@author: bouteillerp
-Traction simple en cartesién 1D à la solution analytique"""
+Test de traction sur une barre composite 1D (deux matériaux).
+
+Ce script simule un essai de traction uniaxiale sur une barre 1D composée de
+deux matériaux différents (acier et aluminium) et compare la solution numérique
+avec la solution analytique.
+
+Paramètres géométriques:
+    - Longueur totale de la barre: 1
+    - Discrétisation: 20 éléments
+    - Deux moitiés égales de matériaux différents
+
+Chargement:
+    - Déplacement imposé (Umax): 1e-2 (1% de déformation)
+
+Matériaux:
+    - Acier: Module d'Young E
+    - Aluminium: Module d'Young E/ratio (ratio = 3)
+    - Même coefficient de Poisson pour les deux matériaux
+
+Solution analytique basée sur la continuité des contraintes à l'interface
+et la répartition des déformations proportionnellement à l'inverse du module d'Young.
+
+Auteur: bouteillerp
+Date de création: 24 Juillet 2023
+"""
 from CharonX import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -51,7 +73,7 @@ class IsotropicBeam(model):
             return "Test"
             
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [0, Longueur])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [0, Longueur])
 
     def set_boundary_condition(self):
         self.bcs.add_U(region=1)
@@ -75,7 +97,7 @@ class IsotropicBeam(model):
         return {'U':True} 
         
     def final_output(self):
-        u_csv = read_csv("Traction_1D-results/Displacement0.csv")
+        u_csv = read_csv("Traction_1D-results/U.csv")
         resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
         x_result = resultat[0]
         half_n_node = len(x_result)//2
@@ -93,7 +115,6 @@ class IsotropicBeam(model):
             plt.xlim(0, 1)
             plt.xlabel(r"Position (mm)", size = 18)
             plt.ylabel(r"Déplacement (mm)", size = 18)
-            plt.savefig("../../../Notice/fig/Traction_bimat.pdf", bbox_inches = 'tight')
             # plt.show()
 
 def test_Traction_1D():

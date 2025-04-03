@@ -1,10 +1,32 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Mar 11 09:36:05 2022
+Test de traction 3D sur un matériau orthotrope selon différentes directions.
 
-@author: bouteillerp
-Essai de traction uni-axial sur un cube 3D
+Ce script simule des essais de traction uniaxiale sur un cube 3D composé d'un matériau
+orthotrope selon trois directions principales (fibre, normale transverse, normale hors-plan)
+et compare les résultats numériques avec les solutions analytiques.
+
+Paramètres géométriques:
+    - Dimensions du cube: 1 × 1 × 1
+    - Discrétisation: maillage 5×5×5
+
+Matériau orthotrope:
+    - Modules d'Young: EL=12827, ET=633, EN=1344
+    - Modules de cisaillement: muLT=766, muLN=703, muTN=337
+    - Coefficients de Poisson: nuLT=0.466, nuLN=0.478, nuTN=0.371
+    - Équation d'état: Vinet avec kappa_eq calculé à partir de la matrice de rigidité
+
+Tests de traction:
+    - Direction "Fibre": parallèle à la direction des fibres (EL)
+    - Direction "maty": perpendiculaire aux fibres, dans le plan (ET)
+    - Direction "matz": direction normale au plan (EN)
+
+Le script trace les courbes force-déplacement pour les trois directions et
+effectue une comparaison avec les solutions analytiques basées sur les modules d'Young.
+Il trace également l'évolution de la pression en fonction de la densité pour vérifier
+la cohérence de l'équation d'état.
+
+Auteur: bouteillerp
+Date de création: 11 Mars 2022
 """
 from CharonX import *
 import time
@@ -76,7 +98,7 @@ class Cube3D(model):
                                           [Nx, Ny, Nz])
     
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4, 5, 6, ], ["x", "y", "z", "x", "y", "z"], [0, 0, 0, Longueur, Largeur, hauteur])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4, 5, 6, ], ["x", "y", "z", "x", "y", "z"], [0, 0, 0, Longueur, Largeur, hauteur])
 
     def set_boundary_condition(self):
         self.bcs.add_Ux(region=1)

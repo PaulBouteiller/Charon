@@ -1,7 +1,24 @@
 """
-Created on Wed Jan 31 13:28:36 2024
+Implémentation de différentes équations d'état (EOS) et lois de comportement déviatorique.
 
-@author: bouteillerp
+Ce module contient des fonctions analytiques permettant de calculer la pression hydrostatique
+et les contraintes déviatoriques pour différents modèles constitutifs en mécanique des solides.
+
+Équations d'état implémentées:
+    - Différentes formes d'EOS hyperélastiques (p1-p8)
+    - Vinet
+    - Mie-Grüneisen (MG)
+    - JWL (Jones-Wilkins-Lee)
+    - MACAW
+    - Formulation tabulée
+
+Modèles déviatoriques implémentés:
+    - Hyperélastique isotrope (HPP_devia)
+    - Néo-Hookéen (NeoHookean)
+    - Mooney-Rivlin (MooneyRivlin)
+
+Auteur: bouteillerp
+Date de création: 31 Janvier 2024
 """
 from math import log, exp
 

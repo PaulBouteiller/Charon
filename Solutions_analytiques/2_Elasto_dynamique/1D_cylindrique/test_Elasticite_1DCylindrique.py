@@ -21,12 +21,12 @@ dico_eos = {"E":E, "nu" : nu, "alpha" : 12e-6}
 dico_devia = {"E":E, "nu" : nu}
 eos_type = "IsotropicHPP"
 
-iso_T_K0 = 175e3
-T_dep_K0 = 0
-iso_T_K1 = 0
-T_dep_K1 = 0
-dico_eos = {"iso_T_K0": iso_T_K0, "T_dep_K0" : T_dep_K0, "iso_T_K1": iso_T_K1, "T_dep_K1" : T_dep_K1}
-eos_type = "Vinet"
+# iso_T_K0 = 175e3
+# T_dep_K0 = 0
+# iso_T_K1 = 0
+# T_dep_K1 = 0
+# dico_eos = {"iso_T_K0": iso_T_K0, "T_dep_K0" : T_dep_K0, "iso_T_K1": iso_T_K1, "T_dep_K1" : T_dep_K1}
+# eos_type = "Vinet"
 
 Acier = Material(rho, C, eos_type, "IsotropicHPP", dico_eos, dico_devia)
 
@@ -38,7 +38,7 @@ R_ext = R_int + e
 
 ###### Temps simulation ######
 Tfin = 6e-4
-pas_de_temps = Tfin/6000
+pas_de_temps = Tfin/12000
 magnitude = -1e4
 T_unload = Tfin
 
@@ -54,7 +54,7 @@ class Isotropic_ball(model):
         model.__init__(self, material, isotherm = True)
           
     def define_mesh(self):
-        Nx = 1000
+        Nx = 2000
         return create_interval(MPI.COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
     
     def prefix(self):
@@ -64,7 +64,7 @@ class Isotropic_ball(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["r", "r"], [R_int, R_ext])
+        self.mesh_manager.mark_boundary([1, 2], ["r", "r"], [R_int, R_ext])
         
     def set_loading(self):
         chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
@@ -86,6 +86,7 @@ class Isotropic_ball(model):
 def test_Elasticite():
     pb = Isotropic_ball(Acier)
     Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+    # Solve(pb, compteur = sortie, TFin=Tfin)
 test_Elasticite()
 main_analytique(R_int, R_ext, lmbda, mu, rho, magnitude, t_etude, num_points= 4000)
 plt.legend()

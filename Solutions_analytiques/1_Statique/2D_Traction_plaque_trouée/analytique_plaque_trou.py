@@ -1,9 +1,25 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed Feb  7 15:19:52 2024
+Solution analytique pour une plaque trouée soumise à une traction.
 
-@author: bouteillerp
+Ce module implémente la solution analytique de Kirsch pour le champ de déplacement
+dans une plaque infinie avec un trou circulaire soumise à une contrainte de traction
+uniforme à l'infini.
+
+Fonctions:
+    prefactor(nu, E, sig_infty): Calcule le préfacteur commun aux expressions de déplacement
+    ur(a, r, nu, E, sig_infty, theta): Calcule le déplacement radial
+    utheta(a, r, nu, E, sig_infty, theta): Calcule le déplacement tangentiel
+
+Paramètres:
+    - a: Rayon du trou
+    - r: Distance radiale depuis le centre du trou
+    - nu: Coefficient de Poisson
+    - E: Module d'Young
+    - sig_infty: Contrainte appliquée à l'infini
+    - theta: Angle (en radians) par rapport à l'axe horizontal
+
+Auteur: bouteillerp
+Date de création: 7 Février 2024
 """
 from math import cos, sin
 

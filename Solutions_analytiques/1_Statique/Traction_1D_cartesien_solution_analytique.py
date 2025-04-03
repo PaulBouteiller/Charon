@@ -1,11 +1,21 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Thu Sep  7 09:06:27 2023
+Solution analytique pour un problème de traction uniaxiale en coordonnées cartésiennes 1D.
 
-@author: bouteillerp
+Ce module fournit des fonctions permettant de calculer les champs de contraintes et de déformations
+pour différents modèles constitutifs en hyperélasticité (IsotropicHPP, NeoHook).
+
+Fonctions:
+    J(eps): Calcule le jacobien de la transformation (déterminent du gradient de déformation)
+    eps_vector(eps): Retourne le vecteur de déformation pour une traction 1D
+    dev_eps_vector(eps): Calcule le vecteur déviateur des déformations
+    dev_B_vector(eps): Calcule le vecteur déviateur du tenseur de Cauchy-Green gauche
+    p(eps, kappa, eos_type): Calcule la pression hydrostatique selon l'équation d'état
+    s(eps, mu, devia_type): Calcule la partie déviatorique du tenseur des contraintes
+    sigma_xx(eps, kappa, mu, eos_type, devia_type): Calcule la contrainte axiale totale
+
+Auteur: bouteillerp
+Date de création: 7 Septembre 2023
 """
-
 
 from numpy import array
 

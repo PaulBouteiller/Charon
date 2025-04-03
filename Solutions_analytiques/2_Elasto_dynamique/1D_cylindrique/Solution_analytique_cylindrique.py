@@ -52,7 +52,7 @@ def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points):
     
     y0 = [0.0]
     sol = solve_ivp(ode_g, xi_span, y0, t_eval=xi_eval, vectorized=False, 
-                    method='RK45', rtol=1e-8, atol=1e-8)
+                    method='BDF', rtol=1e-8, atol=1e-8)
     
     return sol.t, sol.y[0]
 

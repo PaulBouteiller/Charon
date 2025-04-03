@@ -401,7 +401,7 @@ class Problem:
         self.mesh_manager = MeshManager(self.mesh, self.name)
         self.h = self.mesh_manager.h
         self.dim = self.mesh_manager.dim
-
+        self.fdim = self.mesh_manager.fdim
 
         # MeshFunctions and Measures for different domains and boundaries
         # self.set_mesh_functions()
