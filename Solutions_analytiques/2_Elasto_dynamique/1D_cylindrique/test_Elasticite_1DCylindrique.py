@@ -1,3 +1,28 @@
+"""
+Test de validation pour l'élasticité 1D en coordonnées cylindriques
+
+Ce script implémente et exécute un test de validation pour les équations
+d'élasticité linéaire en 1D dans un système de coordonnées cylindriques.
+Il compare la solution numérique obtenue avec CharonX à la solution analytique.
+
+Cas test:
+---------
+- Cylindre creux avec rayon intérieur R_int = 5 mm et rayon extérieur R_ext = 10 mm
+- Application d'une pression échelon sur la surface extérieure
+- Propagation d'onde radiale vers l'intérieur avec atténuation géométrique
+- Comparaison des contraintes radiales numériques et analytiques
+
+Théorie:
+--------
+L'équation d'onde en coordonnées cylindriques inclut des termes supplémentaires
+liés à la courbure géométrique, ce qui conduit à une atténuation de l'onde en 1/√r
+lors de sa propagation vers le centre.
+
+La solution analytique est implémentée dans le module Solution_analytique_cylindrique.py.
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -93,5 +118,5 @@ plt.legend()
 plt.xlabel('r (mm)')
 plt.ylabel(r'$\sigma_{rr}$ (MPa)')
 plt.xlim(R_int, R_ext)
-plt.savefig(f"../../../Notice/fig/Compression_cylindrique_dynamique.pdf", bbox_inches = 'tight')
+# plt.savefig(f"../../../Notice/fig/Compression_cylindrique_dynamique.pdf", bbox_inches = 'tight')
 plt.show()

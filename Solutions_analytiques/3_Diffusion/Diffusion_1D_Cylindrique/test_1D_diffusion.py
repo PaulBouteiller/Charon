@@ -1,3 +1,39 @@
+"""
+Test de validation pour la diffusion thermique 1D en coordonnées cylindriques
+
+Ce script implémente et exécute un test de validation pour l'équation de diffusion
+thermique en 1D dans un système de coordonnées cylindriques. Il compare
+la solution numérique obtenue avec CharonX à une solution analytique.
+
+Cas test:
+---------
+- Cylindre creux avec rayon intérieur R_int = 1 μm et rayon extérieur R_ext = 211 μm
+- Température initiale discontinue: T = 800K dans un intervalle central,
+  T = 300K ailleurs
+- Conditions aux limites: aucune condition imposée (diffusion libre)
+- Comparaison des profils de température numériques et analytiques à différents instants
+
+Théorie:
+--------
+L'équation de diffusion thermique en coordonnées cylindriques s'écrit:
+    ∂T/∂t = D·[∂²T/∂r² + (1/r)·∂T/∂r]
+
+où D = λ/(ρ·C) est le coefficient de diffusion thermique.
+
+Note: Ce test utilise actuellement une solution analytique cartésienne (fonction d'erreur)
+comme approximation, qui est valable lorsque r est suffisamment grand comparé à
+la région de discontinuité initiale.
+
+Paramètres matériaux:
+--------------------
+- Conductivité thermique: λ = 240 W/(m·K)
+- Capacité thermique massique: C = 500 J/(kg·K)
+- Masse volumique: ρ = 7.8×10⁻³ kg/mm³
+- Coefficient de diffusion: D = λ/(ρ·C) ≈ 6.15×10⁻² m²/s
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 from scipy.special import erf

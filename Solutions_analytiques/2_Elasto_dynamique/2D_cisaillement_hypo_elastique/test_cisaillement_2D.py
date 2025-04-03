@@ -1,3 +1,34 @@
+"""
+Test de validation pour le modèle hypoélastique en cisaillement 2D
+
+Ce script implémente et exécute un test de validation pour le comportement
+hypoélastique en cisaillement 2D. Il simule un essai de cisaillement alterné
+et exporte les déviateurs de contraintes normalisés pour comparaison avec
+la solution analytique.
+
+Cas test:
+---------
+- Élément quadrilatéral unique soumis à un chargement cyclique
+- Le chargement consiste en 4 phases:
+  1. Déplacement vertical imposé (0-1s)
+  2. Déplacement horizontal imposé (1-2s)
+  3. Déplacement vertical inversé (2-3s)
+  4. Déplacement horizontal inversé (3-4s)
+- Amplitude des déplacements imposés: variable (0.006, 0.06 ou 0.6)
+- Export des déviateurs de contraintes normalisés par le module de cisaillement μ
+
+Théorie:
+--------
+Le modèle hypoélastique relie le taux de déformation au taux de contrainte
+déviatorique. Lors d'un chargement cyclique, ce modèle peut présenter une
+dérive des contraintes (contraintes résiduelles) qui dépend de l'amplitude
+des déformations imposées.
+
+La solution analytique est implémentée dans le module trace_sol_analytique.py.
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import pytest
 

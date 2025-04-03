@@ -1,9 +1,16 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Thu Feb  8 15:18:29 2024
+Test de validation pour la compression d'une sphère creuse
 
-@author: bouteillerp
+Ce script exécute la simulation de la compression dynamique d'une sphère creuse
+et compare les résultats obtenus avec un modèle 1D en coordonnées sphériques
+et un modèle 2D axisymétrique.
+
+Le test vérifie que les deux approches de modélisation produisent des résultats
+cohérents pour le déplacement radial, confirmant ainsi la validité de l'approche
+1D pour ce type de problème.
+
+Auteur: bouteillerp
+Créé le: Thu Feb 8 15:18:29 2024
 """
 from Sphere_compression import *
 

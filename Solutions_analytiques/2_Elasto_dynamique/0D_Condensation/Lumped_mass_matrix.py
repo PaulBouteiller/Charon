@@ -1,6 +1,34 @@
+"""
+Test de validation pour la condensation de masse en 0D, 1D, 2D et 3D
+
+Ce script implémente et exécute des tests pour la condensation de masse
+(lumped mass matrix) dans différentes dimensions spatiales. La condensation
+de masse consiste à remplacer la matrice de masse cohérente par une matrice
+diagonale, ce qui simplifie la résolution des équations dynamiques.
+
+Cas tests:
+---------
+- Condensation de masse en 1D cartésien
+- Condensation de masse en 2D axisymétrique
+- Condensation de masse en 2D plan
+- Condensation de masse en 3D
+
+Pour chaque cas, le script vérifie que la masse totale calculée avec
+la matrice condensée correspond à la masse théorique.
+
+Note théorique:
+--------------
+Pour le cas axisymétrique, la masse théorique est calculée par:
+    m_tot = ∫_{R_int}^{R_ext} ρ·r·dr
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import pytest
 from sympy import Symbol, integrate
+from dolfinx.fem.petsc import assemble_vector
+from dolfinx.fem import form
 # sys.path.append("../")
 ###### Modèle géométrique ######
 rho = 2
@@ -22,7 +50,7 @@ class Mesh_1D(CartesianUD):
         return create_interval(MPI.COMM_WORLD, 1, [np.array(0), np.array(1)])
         
     def set_boundary(self):
-        self.mark_boundary([1], ["x"], [0])
+        self.mesh_manager.mark_boundary([1], ["x"], [0])
 
 pb_1D = Mesh_1D(DummyMat)
 mass_array = assemble_diagonal_mass_matrix(pb_1D.m_form, pb_1D.u.function_space)
@@ -42,7 +70,7 @@ class Mesh_Axi(Axisymetric):
         return create_rectangle(MPI.COMM_WORLD, [(R_int, 0), (R_ext, 1)], [1, 1], CellType.quadrilateral) 
     
     def set_boundary(self):
-        self.mark_boundary([1], ["x"], [0])
+        self.mesh_manager.mark_boundary([1], ["x"], [0])
         
 pb_axi = Mesh_Axi(DummyMat)
 mass_array = assemble_diagonal_mass_matrix(pb_axi.m_form, pb_axi.u.function_space)
@@ -66,7 +94,7 @@ class Mesh_2D_Plan(Plane_strain):
         return create_rectangle(MPI.COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral) 
     
     def set_boundary(self):
-        self.mark_boundary([1], ["x"], [0])
+        self.mesh_manager.mark_boundary([1], ["x"], [0])
         
 pb_2D = Mesh_2D_Plan(DummyMat)
 mass_array = assemble_diagonal_mass_matrix(pb_2D.m_form, pb_2D.u.function_space)
@@ -82,7 +110,7 @@ class Mesh_3D_Plan(Tridimensionnal):
         return create_box(MPI.COMM_WORLD, [np.array([0,0,0]), np.array([1, 1, 1])], [1, 1, 1], CellType.hexahedron)
     
     def set_boundary(self):
-        self.mark_boundary([1], ["x"], [0])
+        self.mesh_manager.mark_boundary([1], ["x"], [0])
         
 pb_3D = Mesh_3D_Plan(DummyMat)
 mass_array = assemble_diagonal_mass_matrix(pb_3D.m_form, pb_3D.u.function_space)

@@ -1,3 +1,31 @@
+"""
+Test de validation pour l'élasticité 1D dans un bi-matériau en coordonnées cartésiennes
+
+Ce script implémente et exécute un test de validation pour la propagation d'ondes 
+élastiques à travers l'interface entre deux matériaux différents en coordonnées cartésiennes 1D.
+Il compare la solution numérique obtenue avec CharonX à la solution analytique.
+
+Cas test:
+---------
+- Barre élastique avec deux matériaux (acier et aluminium)
+- Interface située au milieu de la barre (x = 25 mm)
+- Chargement en créneau sur l'extrémité gauche
+- Propagation, réflexion et transmission d'onde à l'interface
+- Comparaison des contraintes numériques et analytiques à différents instants
+
+Théorie:
+--------
+Lors de la rencontre d'une onde avec une interface entre deux matériaux d'impédances
+acoustiques Z₁ et Z₂ différentes, une partie de l'onde est réfléchie et une partie est
+transmise selon les coefficients:
+    R = (Z₂ - Z₁)/(Z₁ + Z₂)    (coefficient de réflexion)
+    T = 2·Z₂/(Z₁ + Z₂)         (coefficient de transmission)
+
+La solution analytique complète est implémentée dans le module Solution_analytique.py.
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -66,7 +94,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
         
     def set_loading(self):
 
@@ -118,7 +146,6 @@ class Isotropic_beam(model):
         plt.xlabel(r"Position (mm)", size = 18)
         plt.ylabel(r"Contrainte (MPa)", size = 18)
         plt.legend()
-        plt.savefig(f"../../../Notice/fig/Reflexion_bimat.pdf", bbox_inches = 'tight')
         
 
 def test_Elasticite():

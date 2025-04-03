@@ -1,9 +1,37 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Thu Feb 23 16:45:40 2023
+Test de validation pour la diffusion thermique 2D en déformation plane
 
-@author: bouteillerp
+Ce script implémente et exécute un test de validation pour l'équation de diffusion
+thermique en 2D. Il simule la diffusion d'une source de chaleur localisée
+dans un domaine carré, avec deux configurations possibles: une source carrée ou circulaire.
+
+Cas test:
+---------
+- Domaine carré de dimensions 210×210 μm²
+- Température initiale: T = 800K dans une région centrale (carrée ou circulaire),
+  T = 300K ailleurs
+- Conditions aux limites: température fixée à 300K sur le bord gauche du domaine
+- Évolution du champ de température pendant 1 μs
+
+Théorie:
+--------
+L'équation de diffusion thermique en 2D s'écrit:
+    ∂T/∂t = D·[∂²T/∂x² + ∂²T/∂y²]
+
+où D = λ/(ρ·C) est le coefficient de diffusion thermique.
+
+Pour une source circulaire, la solution analytique fait intervenir des fonctions
+de Bessel. Ce test se limite à une vérification qualitative de la diffusion.
+
+Paramètres matériaux:
+--------------------
+- Conductivité thermique: λ = 240 W/(m·K)
+- Capacité thermique massique: C = 1000 J/(kg·K)
+- Masse volumique: ρ = 2.785×10³ kg/m³
+- Coefficient de diffusion: D = λ/(ρ·C) ≈ 8.62×10⁻⁵ m²/s
+
+Auteur: bouteillerp
+Créé le: Thu Feb 23 16:45:40 2023
 """
 from CharonX import *
 import matplotlib.pyplot as plt 

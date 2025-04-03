@@ -1,3 +1,39 @@
+"""
+Test de validation pour la diffusion thermique 1D en coordonnées cartésiennes
+
+Ce script implémente et exécute un test de validation pour l'équation de diffusion
+thermique en 1D dans un système de coordonnées cartésiennes. Il compare
+la solution numérique obtenue avec CharonX à la solution analytique de type
+fonction d'erreur (erf).
+
+Cas test:
+---------
+- Barre unidimensionnelle de longueur L = 210 μm
+- Température initiale discontinue: T = 800K dans un intervalle central de 10 μm,
+  T = 300K ailleurs
+- Conditions aux limites: aucune condition imposée (diffusion libre)
+- Comparaison des profils de température numériques et analytiques à différents instants
+
+Théorie:
+--------
+L'équation de diffusion thermique en 1D s'écrit:
+    ∂T/∂t = D·∂²T/∂x²
+
+où D = λ/(ρ·C) est le coefficient de diffusion thermique.
+
+La solution analytique pour une discontinuité initiale utilise la fonction d'erreur:
+    T(x,t) = (T_chaud-T_froid)·[erf((x+point_droit)/√(4Dt)) - erf((x+point_gauche)/√(4Dt))]/2 + T_froid
+
+Paramètres matériaux:
+--------------------
+- Conductivité thermique: λ = 240 W/(m·K)
+- Capacité thermique massique: C = 1000 J/(kg·K)
+- Masse volumique: ρ = 2.785×10³ kg/m³
+- Coefficient de diffusion: D = λ/(ρ·C) ≈ 8.62×10⁻⁵ m²/s
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 from scipy.special import erf
@@ -43,7 +79,7 @@ class Isotropic_beam(model):
         model.__init__(self, material, analysis = "Pure_diffusion",  adiabatic = False, Thermal_material = AcierTherm)
           
     def define_mesh(self):
-        Nx = 100000
+        Nx = 1000
         return create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
     
     def prefix(self):
@@ -53,7 +89,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
         
     def set_initial_temperature(self):
         x = SpatialCoordinate(self.mesh)
@@ -87,8 +123,8 @@ class Isotropic_beam(model):
         t_list = np.linspace(1e-12, Tfin, n_sortie+1)
         pas_espace = np.linspace(bord_gauche, bord_droit, len_vec)
         compteur = 0
-        for i in range(len(t_list)):
-            list_T_erf =[analytical_T(x, t_list[i], Tfroid, TChaud) for x in pas_espace]
+        for i, t in enumerate(t_list):
+            list_T_erf =[analytical_T(x, t, Tfroid, TChaud) for x in pas_espace]
             diff_tot = list_T_erf - self.T_vector[i]
             int_discret = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(list_T_erf[j]) for j in range(len_vec))
             print("La difference est de", int_discret)
@@ -103,14 +139,13 @@ class Isotropic_beam(model):
                     label_CHARON = None
                 plt.plot(pas_espace, list_T_erf, linestyle = "-", color = "red", label = label_analytical)
                 plt.plot(pas_espace, self.T_vector[i], linestyle = "--", color = "blue", label=label_CHARON)
-                print("cette sortie correspond au temps", (t_list[i]))
+                print("cette sortie correspond au temps", (t))
             compteur+=1
         plt.xlim(bord_gauche/4, bord_droit/4)
         plt.ylim(Tfroid, TChaud*1.02)
         plt.xlabel(r"$x$", size = 18)
         plt.ylabel(r"Temperature (K)", size = 18)
         plt.legend()
-        plt.savefig("../../../Notice/fig/diffusion_1D.pdf", bbox_inches = 'tight')
         plt.show()
         
 def test_Diffusion():

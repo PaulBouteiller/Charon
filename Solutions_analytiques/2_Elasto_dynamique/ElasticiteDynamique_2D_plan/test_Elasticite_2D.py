@@ -1,3 +1,22 @@
+"""
+Test de validation pour l'élasticité dynamique en déformation plane 2D
+
+Ce script implémente et exécute un test de validation pour les équations
+d'élasticité linéaire en déformation plane 2D.
+
+Cas test:
+---------
+- Rectangle avec longueur 50 mm et largeur 1 mm
+- Condition aux limites de déplacement vertical nul sur le bord inférieur
+- Application d'un chargement en créneau sur le bord gauche
+- Propagation d'onde dans le domaine 2D
+
+Ce test sert principalement à vérifier le comportement du code en 2D
+et à évaluer les performances de calcul.
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -49,7 +68,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, Largeur])
+        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, Largeur])
         
     def set_boundary_condition(self):
         self.bcs.add_Uy(region=2)

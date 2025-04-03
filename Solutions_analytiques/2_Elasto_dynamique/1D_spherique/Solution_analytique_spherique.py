@@ -1,3 +1,23 @@
+"""
+Solution analytique pour la propagation d'ondes en coordonnées sphériques
+
+Ce module implémente la solution analytique pour la propagation d'ondes élastiques
+en coordonnées sphériques, en particulier pour le cas d'une sphère creuse soumise
+à une pression externe échelon.
+
+La solution est basée sur la résolution d'une équation différentielle ordinaire (ODE)
+pour la fonction g(ξ) qui est liée au déplacement radial. Les contraintes radiales
+sont ensuite calculées à partir de cette solution.
+
+Fonctions principales:
+    - sigma_ext: Fonction échelon représentant la pression externe
+    - solve_g: Résout l'ODE pour g(ξ)
+    - compute_sigma_rr: Calcule la contrainte radiale
+    - main_analytique: Fonction principale résolvant le problème complet
+
+Author: bouteillerp
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -8,33 +28,34 @@ def sigma_ext(t, amplitude):
     """
     return amplitude if t >= 0.0 else 0.0
 
-def solve_g(R_out, cp, lambd, mu, amplitude, 
-            tmax, num_points=2000):
+def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points=2000):
     """
-    Résout l'ODE pour g(xi) :
+    Résout l'ODE pour g(xi) en coordonnées sphériques :
       (lambda + 2mu)/R_out * g'(xi) + (lambda - 2mu)/R_out^2 * g(xi) = sigma_ext(xi - R_out/cp)
-    On pose:
-      c = (lambda + 2mu)
-      d = (lambda - 2mu)
-    => c/R_out * g'(xi) + d/R_out^2 * g(xi) = sigma_ext(...)
-    => g'(xi) = [R_out/c] * [sigma_ext(...) - d/R_out^2 * g(xi)]
     
-    On intègre de xi=0 à xi=tmax + R_out/cp (approx).
+    Cette équation provient de la transformation de l'équation d'onde en coordonnées sphériques
+    en utilisant la variable xi = t + r/cp.
     
-    Paramètres:
-    -----------
-    R_out : rayon externe
-    cp    : vitesse onde P = sqrt((lambda+2mu)/rho)
-    lambd : lambda (module de Lamé)
-    mu    : mu (module de cisaillement)
-    amplitude : amplitude du créneau de contrainte
-    tmax      : temps max pour la simulation
-    num_points: nombre de points pour solve_ivp
-    
-    Retourne:
-    ---------
-    xi_vals : tableau des xi
-    g_vals  : tableau des g(xi) solution de l'ODE
+    Parameters
+    ----------
+    R_out : float
+        Rayon externe de la sphère.
+    cp : float
+        Vitesse des ondes P = sqrt((lambda+2mu)/rho).
+    lambd, mu : float
+        Coefficients de Lamé du matériau.
+    amplitude : float
+        Amplitude de l'échelon de contrainte.
+    tmax : float
+        Temps maximal pour la simulation.
+    num_points : int, optional
+        Nombre de points pour solve_ivp. Par défaut 2000.
+        
+    Returns
+    -------
+    tuple
+        (xi_vals, g_vals) où xi_vals est le tableau des xi et g_vals est le tableau 
+        des g(xi) solution de l'ODE.
     """
     c = lambd + 2.0*mu
     d = lambd - 2.0*mu

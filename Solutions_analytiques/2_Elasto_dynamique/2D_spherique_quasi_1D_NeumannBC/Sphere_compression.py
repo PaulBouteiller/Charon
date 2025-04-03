@@ -1,11 +1,19 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Mar 11 09:36:05 2022
+Simulation de compression dynamique d'une sphère creuse
 
-@author: bouteillerp
-Traction uniaxiale sur une plaque en déformation plane"""
+Ce script implémente la simulation de la compression dynamique d'une sphère creuse
+soumise à une pression externe. Il compare les résultats obtenus avec un modèle 1D
+en coordonnées sphériques et un modèle 2D axisymétrique.
 
+Cas test:
+---------
+- Sphère creuse avec rayon intérieur R_int = 8 mm et rayon extérieur R_ext = 11 mm
+- Application d'une pression échelon sur la surface extérieure
+- Comparaison des déplacements radiaux entre les modèles 1D et 2D
+
+Auteur: bouteillerp
+Créé le: Fri Mar 11 09:36:05 2022
+"""
 from CharonX import *
 import matplotlib.pyplot as plt
 ###### Modèle mécanique ######

@@ -1,3 +1,21 @@
+"""
+Test de validation pour l'élasticité dynamique en 3D
+
+Ce script implémente et exécute un test de validation pour les équations
+d'élasticité linéaire en 3D.
+
+Cas test:
+---------
+- Parallélépipède rectangle avec dimensions L=50, b=4, h=4 mm
+- Application d'un chargement en créneau sur la face x=0
+- Propagation d'onde dans le domaine 3D
+
+Ce test sert principalement à vérifier le comportement du code en 3D
+et à évaluer les performances de calcul pour des problèmes tridimensionnels.
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -46,7 +64,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3, 4], ["x", "y", "z"], [0, 0, 0])
+        self.mesh_manager.mark_boundary([1, 2, 3, 4], ["x", "y", "z"], [0, 0, 0])
 
     # def set_boundary_condition(self):
     #     self.bcs.add_Uy(region=2)

@@ -1,7 +1,22 @@
 """
-Created on Wed Jan 15 15:17:40 2025
+Solution analytique pour la propagation d'ondes en coordonnées cylindriques
 
-@author: bouteillerp
+Ce module implémente la solution analytique pour la propagation d'ondes élastiques
+en coordonnées cylindriques, en particulier pour le cas d'un cylindre creux soumis
+à une pression externe échelon.
+
+La solution est basée sur la résolution d'une équation différentielle ordinaire (ODE)
+pour la fonction g(ξ) qui est liée au déplacement radial. Les contraintes radiales
+sont ensuite calculées à partir de cette solution.
+
+Fonctions principales:
+    - sigma_ext: Fonction échelon représentant la pression externe
+    - solve_g: Résout l'ODE pour g(ξ)
+    - compute_sigma_rr: Calcule la contrainte radiale
+    - main_analytique: Fonction principale résolvant le problème complet
+
+Author: bouteillerp
+Created on: Wed Jan 15 15:17:40 2025
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,9 +74,30 @@ def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points):
 def compute_sigma_rr(r_vals, t_vals, R_out, cp, lambd, mu, xi_vals, g_vals):
     """
     Calcule la contrainte radiale sigma_rr(r,t) en coordonnées cylindriques:
-    sigma_rr = (lambda+2mu)/r * (g'(xi)/cp) + (lambda-2mu)/(2r^2) * g(xi)
+    sigma_rr = (lambda+2mu)/r^(1/2) * (g'(xi)) + (lambda-2mu)/(2r^(3/2)) * g(xi)
     
     La différence principale avec le cas sphérique est le facteur 1/2 dans le second terme
+    et la dépendance en 1/sqrt(r) plutôt qu'en 1/r pour le cas sphérique.
+    
+    Parameters
+    ----------
+    r_vals : array-like
+        Liste des positions radiales.
+    t_vals : array-like
+        Liste des temps.
+    R_out : float
+        Rayon externe du cylindre.
+    cp : float
+        Vitesse des ondes P.
+    lambd, mu : float
+        Coefficients de Lamé du matériau.
+    xi_vals, g_vals : array-like
+        Résultats de la fonction solve_g.
+        
+    Returns
+    -------
+    numpy.ndarray
+        Matrice des contraintes radiales aux positions et temps demandés.
     """
     from scipy.interpolate import interp1d
     

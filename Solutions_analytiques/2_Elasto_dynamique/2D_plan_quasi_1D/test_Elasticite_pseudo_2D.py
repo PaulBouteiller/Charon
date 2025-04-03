@@ -1,3 +1,27 @@
+"""
+Test de validation pour l'élasticité en déformation plane quasi-1D
+
+Ce script implémente et exécute un test de validation pour les équations
+d'élasticité linéaire en déformation plane dans une configuration géométrique
+qui permet une comparaison avec une solution 1D.
+
+Cas test:
+---------
+- Rectangle très allongé (rapport longueur/largeur = 50/0.05)
+- Conditions aux limites de déplacement vertical nul sur les bords supérieur et inférieur
+- Application d'un chargement en créneau sur le bord gauche
+- Propagation d'onde longitudinale (compression/traction)
+- Comparaison avec la solution analytique 1D cartésienne
+
+Théorie:
+--------
+En déformation plane avec un domaine très allongé et des conditions aux limites
+appropriées, le comportement de l'onde est essentiellement 1D dans la direction
+longitudinale, permettant ainsi une comparaison avec la solution analytique 1D.
+
+Auteur: bouteillerp
+"""
+
 from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
@@ -56,7 +80,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, Largeur])
+        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, Largeur])
         
     def set_boundary_condition(self):
         self.bcs.add_Uy(region=2)
@@ -89,7 +113,7 @@ class Isotropic_beam(model):
         self.t_output_list.append(t)
         
     def final_output(self):
-        df = read_csv("Test_elasticite-results/Stress0.csv")
+        df = read_csv("Test_elasticite-results/Sig.csv")
         resultat = [df[colonne].to_numpy() for colonne in df.columns]
         n_sortie = (len(resultat)-2)//3
         sigma_xx = [resultat[3 * i + 2] for i in range((len(resultat)-2)//3)]
@@ -103,7 +127,6 @@ class Isotropic_beam(model):
         plt.xlabel(r"Position (mm)", size = 18)
         plt.ylabel(r"Contrainte (MPa)", size = 18)
         plt.legend()
-        plt.savefig(f"../../../Notice/fig/Elastodynamique_quasi_1D.pdf", bbox_inches = 'tight')
 
 def test_Elasticite():
     pb = Isotropic_beam(Acier)

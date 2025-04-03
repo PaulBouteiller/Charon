@@ -96,7 +96,6 @@ class Cube3D(model):
             plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
-            plt.savefig("../../../Notice/fig/Traction_3D.pdf", bbox_inches = 'tight')
             plt.show()
 
 def test_Traction_3D():
