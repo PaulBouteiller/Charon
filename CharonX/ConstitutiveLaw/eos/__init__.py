@@ -45,7 +45,7 @@ class EOS:
     def __init__(self):
         pass
     
-    def set_eos(self, J, T, T0, mat):
+    def set_eos(self, J, T, T0, mat, quadrature):
         # Délègue au modèle EOS approprié dans le matériau
-        pressure = mat.eos.pressure(J, T, T0, mat)
+        pressure = mat.eos.pressure(J, T, T0, mat, quadrature)
         return pressure

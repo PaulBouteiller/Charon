@@ -159,11 +159,11 @@ class Solve:
             
     def update_pressure(self):
         if not self.pb.multiphase_analysis:
-            self.pb.constitutive.p.x.array[:] = self.pb.constitutive.eos.tabulated_pressure(self.pb.material.eos)
+            self.pb.constitutive.p.x.array[:] = self.pb.material.eos.update_pressure()
         if self.pb.multiphase_analysis:
             for i, mat in enumerate(self.pb.material):
                 if mat.eos_type == "Tabulated":
-                    self.pb.constitutive.p_list[i].x.array[:] = self.pb.constitutive.eos.tabulated_pressure(mat.eos)        
+                    self.pb.constitutive.p_list[i].x.array[:] = self.pb.material.eos.update_pressure()        
             
 
     def staggered_solve(self):

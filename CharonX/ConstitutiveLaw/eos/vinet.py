@@ -71,7 +71,7 @@ class VinetEOS(BaseEOS):
         """
         return sqrt(self.iso_T_K0 / rho_0)
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the Vinet EOS.
         
         P = 3 * K0 * J^(-2/3) * (1 - J^(1/3)) * exp(3/2 * (K1 - 1) * (1 - J^(1/3)))
@@ -81,6 +81,7 @@ class VinetEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

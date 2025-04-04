@@ -60,12 +60,16 @@ class BaseEOS:
         """
         raise NotImplementedError("Subclasses must implement this method")
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate the pressure based on the equation of state.
         
         Parameters
         ----------
-        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        J : Function Jacobian of the deformation
+        T : Function Current temperature
+        T0 : Function Initial temperature
+        material : Material Material properties
+        quadrature : QuadratureHandler Handler for quadrature spaces
             
         Returns
         -------

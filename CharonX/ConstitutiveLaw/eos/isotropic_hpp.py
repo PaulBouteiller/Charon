@@ -76,7 +76,7 @@ class IsotropicHPPEOS(BaseEOS):
         """
         return sqrt(self.E / rho_0)
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the linear elastic model.
         
         P = -kappa * (J - 1 - 3 * alpha * (T - T0))
@@ -84,6 +84,7 @@ class IsotropicHPPEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

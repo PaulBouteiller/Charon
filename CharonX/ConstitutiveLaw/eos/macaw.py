@@ -86,7 +86,7 @@ class MACAWEOS(BaseEOS):
         print(f"Cold compressibility modulus: {kappa}")
         return sqrt(kappa / rho_0)
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the MACAW EOS.
         
         This method implements the complex MACAW EOS that combines
@@ -95,6 +95,7 @@ class MACAWEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

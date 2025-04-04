@@ -70,7 +70,7 @@ class MGEOS(BaseEOS):
         """
         return sqrt(self.C / rho_0)
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the Mie-Grüneisen EOS.
         
         P = C * μ + D * μ² + S * μ³ + rho_0 / J * gamma0 * (T - T0)
@@ -79,10 +79,8 @@ class MGEOS(BaseEOS):
         
         Parameters
         ----------
-        J : float or Function Jacobian of the deformation
-        T : float or Function Current temperature
-        T0 : float or Function Initial temperature
-        material : Material Material properties
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------
@@ -148,7 +146,7 @@ class xMGEOS(BaseEOS):
         """
         return self.c0
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the extended Mie-Grüneisen EOS.
         
         This variant has a more complex reference curve and includes
@@ -157,6 +155,7 @@ class xMGEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

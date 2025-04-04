@@ -8,21 +8,19 @@ Created on Wed Apr  2 11:26:06 2025
 """Tabulated equation of state using interpolation."""
 
 import importlib.util
+from dolfinx.fem import Function, Expression
 
 def optional_import(module_name, as_name=None):
     """Attempt to import an optional module.
     
     Parameters
     ----------
-    module_name : str
-        Name of the module to import
-    as_name : str, optional
-        Name to import the module as
+    module_name : str Name of the module to import
+    as_name : str, optional Name to import the module as
         
     Returns
     -------
-    module or None
-        The imported module or None if import failed
+    module or None The imported module or None if import failed
     """
     try:
         spec = importlib.util.find_spec(module_name)
@@ -55,8 +53,7 @@ def Dataframe_to_array(df):
         
     Returns
     -------
-    tuple
-        (T_list, J_list, P_list) as numpy arrays
+    tuple (T_list, J_list, P_list) as numpy arrays
     """
     if not has_tabulated_eos:
         raise RuntimeError("JAX is required for tabulated EOS functionality")
@@ -154,16 +151,27 @@ class TabulatedEOS(BaseEOS):
         """
         return self.c0
         
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using interpolation from tabulated data.
         
-        Parameters
-        ----------
-        T : ndarray Temperature values
-        J : ndarray Jacobian values
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------
         ndarray Interpolated pressure values
         """
-        return self.tabulated_interpolator(jax_numpy.array(T.x.array), jax_numpy.array(J.x.array))
+        V = quadrature.quadrature_space(["Scalar"])
+        self.J_func = Function(V)
+        self.J_expr = Expression(J, V.element.interpolation_points())
+        self.J_func.interpolate(self.J_expr)
+        self.T = T
+        p = Function(V)
+        pressures = self.tabulated_interpolator(jax_numpy.array(T.x.array), jax_numpy.array(self.J_func .x.array))
+        p.x.array[:] = pressures
+        return p
+    
+    def update_pressure(self):
+        self.J_func.interpolate(self.J_expr)
+        p = self.tabulated_interpolator(jax_numpy.array(self.T.x.array), jax_numpy.array(self.J_func.x.array))
+        return p  

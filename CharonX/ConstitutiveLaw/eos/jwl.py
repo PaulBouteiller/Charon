@@ -73,7 +73,7 @@ class JWLEOS(BaseEOS):
         """
         return sqrt((self.A * self.R1 * exp(-self.R1) + self.B * self.R2 * exp(-self.R2)) / rho_0)
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the JWL EOS.
         
         P = A * exp(-R1 * J) + B * exp(-R2 * J) + w * rho_0 / J * C_mass * T
@@ -81,6 +81,7 @@ class JWLEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

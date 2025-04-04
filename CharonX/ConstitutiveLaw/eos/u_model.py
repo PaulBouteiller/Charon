@@ -64,7 +64,7 @@ class UEOS(BaseEOS):
         """
         return sqrt(self.kappa / rho_0)
     
-    def pressure(self, J, T, T0, material, model_type="U5"):
+    def pressure(self, J, T, T0, material, quadrature, model_type="U5"):
         """Calculate pressure using hyperelastic U-model.
         
         Available models:
@@ -75,6 +75,7 @@ class UEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

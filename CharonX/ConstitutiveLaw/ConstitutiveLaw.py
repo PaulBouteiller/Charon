@@ -45,7 +45,7 @@ class ConstitutiveLaw:
         self.damage_model = damage_model
         self.multiphase = multiphase
         self.kinematic = kinematic
-        
+        self.quadrature = quadrature
         self.set_damping(damping)
         self.eos = EOS()
         self.deviator = Deviator(kinematic, name, quadrature, material)
@@ -193,7 +193,7 @@ class ConstitutiveLaw:
         -------
         tuple (pressure, pseudo_pressure, deviatoric_stress)
         """
-        pressure = self.eos.set_eos(J * relative_density, T, T0, material)
+        pressure = self.eos.set_eos(J * relative_density, T, T0, material, self.quadrature)
         deviatoric = self._calculate_deviatoric_stress(u, v, J, T, T0, material)
         
         # Calculate pseudo-pressure for stabilization if enabled

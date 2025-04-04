@@ -66,7 +66,7 @@ class NewtonianFluidEOS(BaseEOS):
         """
         return sqrt(1 / (self.chiT * rho_0))
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure for a Newtonian fluid.
         
         The total pressure includes both thermodynamic and viscous components.
@@ -74,6 +74,7 @@ class NewtonianFluidEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

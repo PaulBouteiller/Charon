@@ -60,7 +60,7 @@ class GPEOS(BaseEOS):
         """
         return sqrt(self.gamma * (self.gamma - 1) * self.e_max)
     
-    def pressure(self, J, T, T0, material):
+    def pressure(self, J, T, T0, material, quadrature):
         """Calculate pressure using the ideal gas law.
         P = (gamma - 1) * rho_0 / J * C_mass * T
         
@@ -69,6 +69,7 @@ class GPEOS(BaseEOS):
         Parameters
         ----------
         J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
         Returns
         -------
         Expression Pressure
