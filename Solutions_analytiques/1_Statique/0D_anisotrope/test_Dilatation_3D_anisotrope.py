@@ -12,6 +12,7 @@ import time
 import matplotlib.pyplot as plt
 import pytest
 from pandas import read_csv
+from math import exp
 
 ######## Modèle mécanique ########
 model = Tridimensionnal
@@ -153,7 +154,7 @@ class Cube3D(model):
 
         plt.scatter(self.J_list, pressure, marker = "x", color = "red", label="Present")
         plt.plot(self.J_list, p_analytique, linestyle = "--", color = "green",label="Vinet")
-        plt.plot(self.J_list, p_HPP, linestyle = "--", color = "black",label="SPH")
+        plt.plot(self.J_list, p_HPP, linestyle = "--", color = "black",label="HPP")
         plt.xlabel(r"Volumetric compression $J$", fontsize = 18)
         plt.ylabel(r"Pressure $p$ (MPa)", fontsize = 18)
         plt.legend()

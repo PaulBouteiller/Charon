@@ -28,7 +28,7 @@ from numerical_analytical_comparison import comparison
 model = CartesianUD
 
 ###### Materiau ######
-eos_type = "JWL"
+eos_type = "Tabulated"
 devia_type = "NeoHook"
 Mat = set_material(eos_type, devia_type)
 

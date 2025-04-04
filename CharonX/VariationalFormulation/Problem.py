@@ -719,7 +719,7 @@ class Problem:
         
     def set_boundary(self):
         print("Warning no boundary has been tagged inside CHARONX")
-        self.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
+        self.mesh_manager.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
     
     def set_loading(self):
         pass

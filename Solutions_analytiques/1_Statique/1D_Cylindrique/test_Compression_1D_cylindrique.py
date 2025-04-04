@@ -1,7 +1,7 @@
 """
 Test de compression d'un cylindre en coordonnées cylindriques 1D.
 
-Ce script simule la compression d'un cylindre creux soumis à des pressions interne et externe,
+Ce script simule la compression d'un cylindre creux soumis �  des pressions interne et externe,
 puis compare la solution numérique au champ de déplacement radial analytique.
 
 Paramètres géométriques:
@@ -14,8 +14,8 @@ Chargement:
     - Pression interne (Pint): -5
     - Pression externe (Pext): -10
 
-La solution analytique utilise les équations de Lamé pour un cylindre à paroi épaisse.
-Une assertion vérifie que l'erreur relative entre les solutions est inférieure à 0.1%.
+La solution analytique utilise les équations de Lamé pour un cylindre �  paroi épaisse.
+Une assertion vérifie que l'erreur relative entre les solutions est inférieure �  0.1%.
 
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
@@ -25,7 +25,7 @@ import time
 import pytest
 from depouillement import validation_analytique
 import sys
-sys.path.append("../")
+sys.path.append("../../")
 from Generic_isotropic_material import *
 
 model = CylindricalUD

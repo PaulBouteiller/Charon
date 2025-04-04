@@ -22,31 +22,28 @@ from .gas import GPEOS
 from .newtonian_fluid import NewtonianFluidEOS
 from .tabulated import TabulatedEOS, has_tabulated_eos
 
-# For backward compatibility
 __all__ = [
     'BaseEOS',
-    'EOS',  # Ajoutez cette ligne
+    'EOS',
     'IsotropicHPPEOS',
-    'U_EOS',
-    'Vinet_EOS',
-    'JWL_EOS',
-    'MACAW_EOS',
-    'MG_EOS',
-    'xMG_EOS',
-    'PMG_EOS',
-    'GP_EOS',
-    'NewtonianFluid_EOS',
-    'Tabulated_EOS',
+    'UEOS',
+    'VinetEOS',
+    'JWLEOS',
+    'MACAWEOS',
+    'MGEOS',
+    'xMGEOS',
+    'PMGEOS',
+    'GPEOS',
+    'NewtonianFluidEOS',
+    'TabulatedEOS',
     'has_tabulated_eos'
 ]
 
 class EOS:
     """Bridge class for compatibility with existing code."""
     
-    def __init__(self, kinematic, quadrature):
+    def __init__(self):
         pass
-        # self.kin = kinematic
-        # self.quad = quadrature
     
     def set_eos(self, J, T, T0, mat):
         # Délègue au modèle EOS approprié dans le matériau

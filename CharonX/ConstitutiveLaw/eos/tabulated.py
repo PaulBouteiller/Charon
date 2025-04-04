@@ -166,4 +166,4 @@ class TabulatedEOS(BaseEOS):
         -------
         ndarray Interpolated pressure values
         """
-        return self.tabulated_interpolator(jax_numpy.array(T), jax_numpy.array(J))
+        return self.tabulated_interpolator(jax_numpy.array(T.x.array), jax_numpy.array(J.x.array))

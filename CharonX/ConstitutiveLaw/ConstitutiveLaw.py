@@ -47,7 +47,7 @@ class ConstitutiveLaw:
         self.kinematic = kinematic
         
         self.set_damping(damping)
-        self.eos = EOS(kinematic, quadrature)
+        self.eos = EOS()
         self.deviator = Deviator(kinematic, name, quadrature, material)
 
         self.name = name

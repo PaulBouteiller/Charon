@@ -20,7 +20,9 @@ Date de création: 2 Septembre 2024
 import matplotlib.pyplot as plt
 from numpy import linspace, array
 from pandas import read_csv
-from materiau import E, nu
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import E, nu
 
 def validation_analytique(Pint, Pext, Rint, Rext):
     u_csv = read_csv("Compression_cylindrique_1D-results/U.csv")
