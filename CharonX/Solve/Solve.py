@@ -56,7 +56,7 @@ class Solve:
             self.Nitermax=2000
                 
         if self.pb.is_hypoelastic:
-                self.hypo_elastic_solver = HypoElasticSolve(self.pb.constitutive.deviator, self.dt)
+                self.hypo_elastic_solver = HypoElasticSolve(self.pb.material.devia, self.dt)
                 
         if self.pb.damage_analysis:
             self.damage_solver = self.damage_solver_selector(self.pb.constitutive.damage_model)\

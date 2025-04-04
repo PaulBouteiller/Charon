@@ -12,8 +12,6 @@ from .plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGurson
 from .damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
 
 from ufl import dot, Identity, dev
-from numpy import array, zeros
-from dolfinx.fem import functionspace, Function
 from ..utils.generic_functions import npart
 
 class ConstitutiveLaw:
@@ -25,7 +23,7 @@ class ConstitutiveLaw:
     """
     
     def __init__(self, u, material, plastic_model, damage_model, multiphase, 
-                 name, kinematic, quadrature, damping, is_hypo, relative_rho_0):
+                 name, kinematic, quadrature, damping, is_hypo, relative_rho_0, h):
         """
         Parameters
         ----------
@@ -42,6 +40,7 @@ class ConstitutiveLaw:
         """
         self.material = material
         self.mesh = u.function_space.mesh
+        self.h = h
         self.plastic_model = plastic_model
         self.damage_model = damage_model
         self.multiphase = multiphase
@@ -49,7 +48,7 @@ class ConstitutiveLaw:
         
         self.set_damping(damping)
         self.eos = EOS(kinematic, quadrature)
-        self.deviator = Deviator(kinematic, name, quadrature, is_hypo)
+        self.deviator = Deviator(kinematic, name, quadrature, material)
 
         self.name = name
         self.relative_rho_0 = relative_rho_0
@@ -88,21 +87,12 @@ class ConstitutiveLaw:
         The calculation depends on the model type (Cartesian, cylindrical, etc.)
         and includes linear and quadratic viscosity terms.
         """
-        V = functionspace(self.mesh, ("DG", 0))
-        h_loc = Function(V)                
-        tdim = self.mesh.topology.dim
-        num_cells = self.mesh.topology.index_map(tdim).size_local
-        h_local = zeros(num_cells)
-        for i in range(num_cells):
-            h_local[i] = self.mesh.h(tdim, array([i]))
-        h_loc.x.array[:] = h_local
-        
         div_v  = self.kinematic.div(velocity)
-        lin_Q = self.Klin * material.rho_0 * material.celerity * h_loc * npart(div_v)
+        lin_Q = self.Klin * material.rho_0 * material.celerity * self.h * npart(div_v)
         if self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]: 
-            quad_Q = self.Kquad * material.rho_0 * h_loc**2 * npart(div_v) * div_v 
+            quad_Q = self.Kquad * material.rho_0 * self.h**2 * npart(div_v) * div_v 
         elif self.name in ["PlaneStrain", "Axisymetric", "Tridimensionnal"]:
-            quad_Q = self.Kquad * material.rho_0 * h_loc**2 * dot(npart(div_v), div_v)
+            quad_Q = self.Kquad * material.rho_0 * self.h**2 * dot(npart(div_v), div_v)
         if self.correction :
             lin_Q *= 1/jacobian
             quad_Q *= 1 / jacobian**2
@@ -230,7 +220,7 @@ class ConstitutiveLaw:
         """
         # Select appropriate deviatoric model based on material type
         if material.dev_type == "Hypoelastic":
-            deviatoric = self.deviator.set_hypoelastic_deviator(u, v, J, material.devia.mu)
+            deviatoric = self.deviator.set_hypoelastic_deviator(u, v, J, material)
         elif self.plastic_model == "Finite_Plasticity":
             deviatoric = material.devia.mu / J**(5./3) * dev(self.plastic.Be_trial())
         elif self.plastic_model == "J2_JAX":

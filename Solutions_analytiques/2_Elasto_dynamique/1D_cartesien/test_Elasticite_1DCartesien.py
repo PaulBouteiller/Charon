@@ -74,7 +74,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
+        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
         
     def set_loading(self):
         T_unload = largeur_creneau/wave_speed
@@ -110,7 +110,6 @@ class Isotropic_beam(model):
         plt.xlabel(r"Position (mm)", size = 18)
         plt.ylabel(r"Contrainte (MPa)", size = 18)
         plt.legend()
-        plt.savefig(f"../../../Notice/fig/Elasticite_1D_cartesien.pdf", bbox_inches = 'tight')
 
 def test_Elasticite():
     pb = Isotropic_beam(Acier)

@@ -65,7 +65,7 @@ class Isotropic_beam(model):
             return "Test"
         
     def set_boundary(self):
-        self.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, 1])
+        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, 1])
         self.evol_1 = True
         self.evol_2 = True
         self.evol_3 = True
@@ -93,7 +93,7 @@ class Isotropic_beam(model):
             self.v.x.array[:] = np.array([0, 0, 0, 0, 0, 0, 0, 0])
             self.evol_5 = False
         if t<4.2:
-            self.u.vector.array += pas_de_temps * self.v.x.array
+            self.u.x.array[:] += pas_de_temps * self.v.x.array
 
         
     def csv_output(self):
@@ -109,9 +109,9 @@ class Isotropic_beam(model):
     def query_output(self, t):
         mu = self.material.devia.mu
         self.t_list.append(t)
-        self.devia_list_xx.append(self.constitutive.deviator.s.vector.array[0]/mu)
-        self.devia_list_yy.append(self.constitutive.deviator.s.vector.array[1]/mu)
-        self.devia_list_xy.append(self.constitutive.deviator.s.vector.array[2]/mu)
+        self.devia_list_xx.append(self.material.devia.s.x.array[0]/mu)
+        self.devia_list_yy.append(self.material.devia.s.x.array[1]/mu)
+        self.devia_list_xy.append(self.material.devia.s.x.array[2]/mu)
         
     def final_output(self):
         def numpy_to_csv(arr, filename):

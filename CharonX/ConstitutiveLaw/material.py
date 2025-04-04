@@ -8,7 +8,7 @@ from .eos import (IsotropicHPPEOS, UEOS, VinetEOS, JWLEOS, MACAWEOS,
 
 from .deviator import (NoneDeviator, IsotropicHPPDeviator, MooneyRivlinDeviator,
                        NeoHookTransverseDeviator, LuTransverseDeviator, 
-                       AnisotropicDeviator, NeoHookDeviator)
+                       AnisotropicDeviator, NeoHookDeviator, HypoelasticDeviator)
 
 
 class Material:
@@ -97,7 +97,7 @@ class Material:
             
         deviatoric_classes = {"IsotropicHPP": IsotropicHPPDeviator,
                               "NeoHook": NeoHookDeviator,
-                              "Hypoelastic": IsotropicHPPDeviator,
+                              "Hypoelastic": HypoelasticDeviator,
                               "MooneyRivlin": MooneyRivlinDeviator,
                               "NeoHook_Transverse": NeoHookTransverseDeviator,
                               "Lu_Transverse": LuTransverseDeviator,

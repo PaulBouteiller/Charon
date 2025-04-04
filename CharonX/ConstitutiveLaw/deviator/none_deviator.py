@@ -35,7 +35,7 @@ class NoneDeviator(BaseDeviator):
         """
         super().__init__(params)
     
-    def calculate_stress(self, u, v, J, T, T0):
+    def calculate_stress(self, u, v, J, T, T0, kinematic):
         """Calculate the deviatoric stress tensor (always zero).
         
         Parameters

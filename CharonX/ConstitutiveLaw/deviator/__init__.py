@@ -11,31 +11,30 @@ from .newtonian_fluid import NewtonianFluidDeviator
 #Anisotropic deviator
 from .transverse_isotropic import NeoHookTransverseDeviator, LuTransverseDeviator
 from .anisotropic import AnisotropicDeviator
-
-from ufl import (tr, sym, dev, Identity, dot, inner, skew)
-from dolfinx.fem import Function, Expression
-
-__all__ = [
-    'BaseDeviator',
-    'Deviator',
-    'NoneDeviator',
-    'NewtonianFluidDeviator',
-    'IsotropicHPPDeviator', 
-    'NeoHookDeviator',
-    'MooneyRivlinDeviator',
-    'NeoHookTransverseDeviator',
-    'LuTransverseDeviator',
-    'AnisotropicDeviator'
-]
+#Hypoelastic deviator
+from .hypoelastic import HypoelasticDeviator
+__all__ = ['BaseDeviator', 'Deviator', 'NoneDeviator', 'NewtonianFluidDeviator',
+           'IsotropicHPPDeviator', 'NeoHookDeviator', 'MooneyRivlinDeviator',
+           'NeoHookTransverseDeviator', 'LuTransverseDeviator',
+           'AnisotropicDeviator', 'HypoelasticDeviator']
 
 class Deviator:
     """Main interface for deviatoric stress calculations.
     
-    This class handles calculations for deviatoric stress components
-    and dispatches to appropriate specialized models.
+    This class acts as a facade to the underlying specialized deviatoric models,
+    delegating calculations to the appropriate implementation based on the
+    material type and simulation settings.
+    
+    Attributes
+    ----------
+    kin : Kinematic Kinematic handler for tensor operations
+    model : str Model name (e.g., "CartesianUD", "PlaneStrain")
+    is_hypo : bool Whether to use hypoelastic formulation
+    hypo_deviator : HypoelasticDeviator, optional
+            Instance of hypoelastic deviator if is_hypo is True
     """
     
-    def __init__(self, kinematic, model, quadrature, is_hypo):
+    def __init__(self, kinematic, model, quadrature, material):
         """Initialize the deviator interface.
         
         Parameters
@@ -47,52 +46,41 @@ class Deviator:
         """
         self.kin = kinematic
         self.model = model
-        self.is_hypo = is_hypo
-        
-        if is_hypo:
-            self.set_hypoelastic_deviator_function_space(model, quadrature)
-    
-    def set_hypoelastic_deviator_function_space(self, quadrature):
-        """Set up function spaces for hypoelastic formulation."""
-        if self.model == "CartesianUD":
-            self.V_s = quadrature.quadrature_space(["Scalar"])
-        elif self.model in ["CylindricalUD", "SphericalUD"]:
-            self.V_s = quadrature.quadrature_space(["Vector", 2])
-        elif self.model == "PlaneStrain":
-            self.V_s = quadrature.quadrature_space(["Vector", 3])
-        elif self.model == "Axisymetric":
-            self.V_s = quadrature.quadrature_space(["Vector", 4])
-        elif self.model == "Tridimensionnal":
-            self.V_s = quadrature.quadrature_space(["Tensor", 3, 3])
+        self.is_hypo = material.dev_type == "Hypoelastic"
+        self.quadrature = quadrature
+        if self.is_hypo:
+            material.devia.set_hypoelastic(kinematic, model, quadrature)
     
     def set_elastic_dev(self, u, v, J, T, T0, material):
-        """Dispatch to the appropriate deviator model based on material type."""
+        """Delegate to the appropriate deviator model based on material type.
+        
+        Parameters
+        ----------
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        material : Material Material properties with deviator model
+            
+        Returns
+        -------
+        Function Deviatoric stress tensor
+        """
         return material.devia.calculate_stress(u, v, J, T, T0, self.kin)
     
-    def set_hypoelastic_deviator(self, u, v, J, mu):
-        """Calculate the deviatoric stress for hypoelastic formulation."""
-        self.s = Function(self.V_s, name="Deviator")
-        s_3D = self.kin.reduit_to_3D(self.s, sym=True)
-        L = self.kin.reduit_to_3D(self.kin.Eulerian_gradient(v, u))
-        D = sym(L)
+    def set_hypoelastic_deviator(self, u, v, J, material):
+        """Calculate the deviatoric stress for hypoelastic formulation.
         
-        B = self.kin.B_3D(u)
-
-        # Jaumann rate formulation
-        s_Jaumann_3D = mu/J**(5./3) * (dot(B, D) + dot(D, B) 
-                                      - 2./3 * inner(B,D) * Identity(3)
-                                      - 5./3 * tr(D) * dev(B))
-        s_Jaumann = self.kin.tridim_to_reduit(s_Jaumann_3D, sym=True)
+        This method handles both the initialization of the hypoelastic deviator
+        (if needed) and the calculation of the current stress rate. The actual
+        time integration and stress update is handled by HypoElasticSolver.
         
-        if self.model in ["CartesianUD", "CylindricalUD", "SphericalUD"]:
-            self.dot_s = Expression(s_Jaumann, self.V_s.element.interpolation_points())
-        else:
-            Omega = skew(L)
-            Jaumann_corr = self.kin.tridim_to_reduit(
-                dot(Omega, s_3D) - dot(s_3D, Omega), sym=True
-            )
-            self.dot_s = Expression(
-                s_Jaumann + Jaumann_corr, 
-                self.V_s.element.interpolation_points()
-            )
-        return s_3D
+        Parameters
+        ----------
+        u : Function Displacement field
+        v : Function Velocity field
+        J : Function Jacobian of the transformation
+        mu : float Shear modulus
+            
+        Returns
+        -------
+        Function 3D deviatoric stress tensor
+        """
+        return material.devia.calculate_stress_rate(u, v, J, material)

@@ -204,13 +204,6 @@ class MeshManager:
         self.fdim = self.dim - 1
         self.h = self.calculate_mesh_size()
         
-    # def set_mesh_functions(self):
-    #     """
-    #     Définition de la dimension du maillage et des arrêtes
-    #     """
-    #     self.dim = self.mesh.topology.dim
-    #     self.fdim = self.dim - 1
-        
     def mark_boundary(self, flag_list, coord_list, localisation_list, tol = finfo(float).eps):
         """
         Permet le marquage simple des bords pour des pavés/maillage 1D
@@ -362,7 +355,6 @@ class Problem:
     l'appel de cette classe. Voir la notice pour la définition des différents mots clés.
     """
     def __init__(self, material, initial_mesh = None, **kwargs):
-        # Define mesh
         if initial_mesh == None:
             self.mesh = self.define_mesh()
         else:
@@ -404,12 +396,10 @@ class Problem:
         self.fdim = self.mesh_manager.fdim
 
         # MeshFunctions and Measures for different domains and boundaries
-        # self.set_mesh_functions()
         self.set_boundary()
         self.set_measures()
         self.r = self.mesh_manager.r
         self.facet_tag = self.mesh_manager.facet_tag
-        # self.flag_list = self.mesh_manager.flag_list
         
         #Anisotropy
         self.set_anisotropy()
@@ -457,7 +447,7 @@ class Problem:
                                             self.damage_model, self.multiphase,
                                             self.name, self.kinematic, self.quad,
                                             self.damping, self.is_hypoelastic,
-                                            self.relative_rho_field_init_list)
+                                            self.relative_rho_field_init_list, self.h)
             
         # Set Damage object
         if self.damage_analysis:
