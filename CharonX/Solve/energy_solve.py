@@ -16,6 +16,7 @@ Created on Mon Sep 26 17:56:59 2022
 
 @author: bouteillerp
 """
+from ..utils.default_parameters import default_energy_solver_order
 from .TimeIntegrator import first_order_rk1, first_order_rk2, first_order_rk4
 from .hybrid_solver import create_linear_solver
 
@@ -44,7 +45,9 @@ class ExplicitEnergySolver:
         Actualisation explicite du champ de température, il est possible
         d'utiliser d'autres méthodes de Runge-Kutta en cas d'évolution brutale.
         """
-        first_order_rk1(self.T, self.dot_T_expr, self.dot_T_func ,self.dt)
+        order = default_energy_solver_order()
+        order_selector = {1 : first_order_rk1, 2 : first_order_rk2, 4 : first_order_rk4}
+        order_selector.get(order)(self.T, self.dot_T_expr, self.dot_T_func ,self.dt)
         
 class DiffusionSolver:
     def __init__(self, dt, T, T_, dT, PVol, C_tan, flux_form, T_bcs, kinematic, dx):

@@ -72,6 +72,8 @@ def default_dynamic_parameters():
     dynamic.update({"CFL_ratio": 0.2 / default_fem_degree()})
     
     return dynamic
+
+
 def default_fem_parameters():
     """
     Degré d'interpolation par défaut des champs.
@@ -135,7 +137,18 @@ def default_damage_solver_type():
         - "Tsit5", "Dopri5", "Euler" Solveurs explicites,
     """
     return "Euler"
-    # return "Tsit5"
+
+
+def default_energy_solver_order():
+    """
+    Solveur utilisé pour le modèle de Johnson
+    Returns
+    -------
+    str, nom du solveur parmi :
+        - "Kvaerno3" Solveur implicite
+        - "Tsit5", "Dopri5", "Euler" Solveurs explicites,
+    """
+    return 1
 
 def default_post_processing_parameters():
     post_processing = {}
