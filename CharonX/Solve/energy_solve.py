@@ -17,7 +17,7 @@ Created on Mon Sep 26 17:56:59 2022
 @author: bouteillerp
 """
 from ..utils.default_parameters import default_energy_solver_order
-from .TimeIntegrator import first_order_rk1, first_order_rk2, first_order_rk4
+from .TimeIntegrator import first_order_rk1, first_order_rk2, first_order_rk4, ButcherIntegrator
 from .hybrid_solver import create_linear_solver
 
 from dolfinx.fem import Function, Expression
@@ -39,15 +39,35 @@ class ExplicitEnergySolver:
         self.dot_T = PVol / C_tan
         self.dot_T_expr = Expression(self.dot_T, self.T.function_space.element.interpolation_points())
         self.dot_T_func = Function(self.T.function_space)
+        def derivative_calculator(update_velocity=False):
+            # Le paramètre update_velocity n'est pas utilisé ici, mais est requis par l'interface
+            return self.dot_T_expr
+        
+        # Initialiser l'intégrateur avec les tableaux de Butcher
+        self.integrator = ButcherIntegrator(derivative_calculator)
         
     def energy_solve(self):
-        """ 
-        Actualisation explicite du champ de température, il est possible
-        d'utiliser d'autres méthodes de Runge-Kutta en cas d'évolution brutale.
+        """
+        Actualisation explicite du champ de température
         """
         order = default_energy_solver_order()
-        order_selector = {1 : first_order_rk1, 2 : first_order_rk2, 4 : first_order_rk4}
-        order_selector.get(order)(self.T, self.dot_T_expr, self.dot_T_func ,self.dt)
+        # Mapper les ordres aux schémas disponibles
+        scheme_map = {1: "RK1", 2: "RK2", 4: "RK4"}
+        scheme = scheme_map.get(order, "RK1")  # Par défaut RK1 si l'ordre n'est pas trouvé
+        
+        # Utiliser l'intégrateur avec le tableau de Butcher approprié
+        self.integrator.solve(scheme, self.T, self.dot_T_expr, self.dot_T_func, self.dt)
+        
+    # def energy_solve(self):
+    #     """ 
+    #     Actualisation explicite du champ de température, il est possible
+    #     d'utiliser d'autres méthodes de Runge-Kutta en cas d'évolution brutale.
+    #     """
+    #     order = default_energy_solver_order()
+    #     order_selector = {1 : first_order_rk1, 2 : first_order_rk2, 4 : first_order_rk4}
+    #     order_selector.get(order)(self.T, self.dot_T_expr, self.dot_T_func ,self.dt)
+        
+
         
 class DiffusionSolver:
     def __init__(self, dt, T, T_, dT, PVol, C_tan, flux_form, T_bcs, kinematic, dx):

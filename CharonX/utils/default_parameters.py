@@ -64,8 +64,7 @@ def default_dynamic_parameters():
     dynamic = {}
     
     # Schéma d'intégration temporelle par défaut
-    dynamic.update({"order": 2})
-    
+    dynamic.update({"order": 1})
     # Facteur de sécurité pour le critère CFL
     # CFL ratio est inversement proportionnel au degré polynomial des éléments
     dynamic.update({"CFL_ratio": 0.2 / default_fem_degree()})
@@ -90,7 +89,7 @@ def default_damping_parameters():
     damp = {}
     damp.update({"damping" : True})
     damp.update({"linear_coeff" : 0.1})
-    damp.update({"quad_coeff" : 0.1})
+    damp.update({"quad_coeff" : 1})
     damp.update({"correction" : True})
     return damp
 

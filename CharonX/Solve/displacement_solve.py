@@ -19,11 +19,10 @@ Created on Mon Sep 26 17:51:49 2022
 from dolfinx.fem.petsc import assemble_vector, set_bc
 from dolfinx.fem import Function, form
 from ufl import action
+from numpy import sqrt
 from petsc4py.PETSc import ScatterMode, InsertMode
 from ..utils.default_parameters import default_dynamic_parameters
 from ..utils.solver_utils import petsc_div, dt_update
-
-from .TimeIntegrator import SymplecticIntegrator
 
 class ExplicitDisplacementSolver:
     def __init__(self, u, v, dt, m_form, form, bcs):
@@ -73,18 +72,10 @@ class ExplicitDisplacementSolver:
         set_bc(self.diag_M, self.bcs.bcs_axi)
         self._update_ghost_values(self.diag_M)
         self.local_res = form(-residual_form)
-        # if self.scheme == "LeapFrog":
-        #     self._update_acceleration_velocity(self.dt/2)
-            
-        # Initialisation optionnelle de l'intégrateur symplectique
-        self.use_symplectic_integrator = True  # Peut être activé si nécessaire
-        if self.use_symplectic_integrator:
-            def calculate_acceleration(dt=None, update_velocity=False):
-                if update_velocity:
-                    self._update_acceleration_velocity(dt if dt is not None else self.dt)
-                return self.a
-            
-            self.symplectic_integrator = SymplecticIntegrator(calculate_acceleration)
+        def calculate_acceleration(dt=None):
+            self._update_acceleration_velocity(dt if dt is not None else self.dt)
+            return self.a
+        self.symplectic_integrator = SymplecticIntegrator(calculate_acceleration)
             
         
     def _update_acceleration_velocity(self, dt):
@@ -109,70 +100,85 @@ class ExplicitDisplacementSolver:
         
         res.destroy()
 
-    def _integration_step(self, dt_u_factor, dt_a_factor=None, apply_acceleration=True):
-        """Effectue une étape d'intégration générique.
-        
-        Parameters
-        ----------
-        dt_u_factor : float Facteur de multiplication pour le pas de temps dans la mise à jour du déplacement
-        dt_a_factor : float, optional Facteur de multiplication pour le pas de temps dans la mise à jour de l'accélération
-        apply_acceleration : bool, optional Si True, met à jour l'accélération et la vitesse, par défaut True
-        """
-        # Mise à jour du déplacement
-        dt_update(self.u, self.v, dt_u_factor * self.dt)
-        set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-        self.u.x.petsc_vec.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
-        
-        # Mise à jour de l'accélération et de la vitesse si nécessaire
-        if apply_acceleration and dt_a_factor is not None:
-            self._update_acceleration_velocity(dt_a_factor * self.dt)
-    
-    def _execute_scheme(self, steps):
-        """Exécute un schéma d'intégration générique.
-        
-        Parameters
-        ----------
-        steps : list of tuple Liste de tuples (dt_u_factor, dt_a_factor, apply_acceleration)
-        """
-        for dt_u_factor, dt_a_factor, apply_acceleration in steps:
-            self._integration_step(dt_u_factor, dt_a_factor, apply_acceleration)
-    
-    # def u_solve(self):
-    #     """Résout le problème de déplacement pour un pas de temps en utilisant le schéma sélectionné."""
-    #     if self.scheme == "LeapFrog":
-    #         # Schéma LeapFrog: une seule étape
-    #         self._update_acceleration_velocity(self.dt)
-    #         self._integration_step(1.0, None, False)
-    #     elif self.scheme == "Yoshida":
-    #         # Schéma Yoshida: quatre étapes
-    #         steps = [(self.c1, self.d1, True),
-    #                  (self.c2, self.d2, True),
-    #                  (self.c2, self.d1, True),
-    #                  (self.c1, None, False)]
-    #         self._execute_scheme(steps)
-    
     def u_solve(self):
         """Résout le problème de déplacement pour un pas de temps en utilisant le schéma sélectionné."""
-        if hasattr(self, 'symplectic_integrator') and self.use_symplectic_integrator:
-            # Utilisation de l'intégrateur symplectique si activé
-            self.symplectic_integrator.solve(
-                order=self.order,
-                primary_field=self.u,
-                secondary_field=self.v,
-                tertiary_field=self.a,
-                dt=self.dt,
-                bcs=self.bcs
-            )
-        else:
-            # Implémentation originale inchangée
-            if self.scheme == "LeapFrog":
-                # Schéma LeapFrog: une seule étape
-                self._update_acceleration_velocity(self.dt)
-                self._integration_step(1.0, None, False)
-            elif self.scheme == "Yoshida":
-                # Schéma Yoshida: quatre étapes
-                steps = [(self.c1, self.d1, True),
-                         (self.c2, self.d2, True),
-                         (self.c2, self.d1, True),
-                         (self.c1, None, False)]
-                self._execute_scheme(steps)
+        self.symplectic_integrator.solve(order=self.order, primary_field=self.u,
+                                         secondary_field=self.v, dt=self.dt, bcs=self.bcs)
+        
+class SymplecticIntegrator:
+    """Intégrateur symplectique pour les équations différentielles du second ordre."""
+    
+    def __init__(self, acceleration_calculator):
+        self.derivative_calculator = acceleration_calculator
+        self.methods = self._create_symplectic_methods()
+    
+    def _create_symplectic_methods(self):
+        """Crée une bibliothèque de méthodes symplectiques."""
+        methods = {}
+        # a_i/b_i - coefficients pour la position/vitesse
+        methods["Optimal_Order1"] = {"a_coeffs": [1], "b_coeffs": [1]}
+        
+        # Méthode LeapFrog/Verlet
+        a12 = 1 / sqrt(2)
+        a22 = 1 - a12
+        methods["Optimal_Order2"] = {"a_coeffs": [a12, a22], "b_coeffs": [a12, a22]}
+        
+        # Méthode McLachlan d'ordre 3 optimale
+        a13 = 0.919661523017399857
+        a23 = 1./ (4 * a13) - a13/2
+        a33 = 1 - a13 - a23
+        methods["Optimal_Order3"] = {"a_coeffs": [a13, a23, a33],
+                                     "b_coeffs": [a33, a23, a13]} #Symétrie: b_i = a_{4-i}
+        
+        # ---- Méthode d'ordre 4 optimale (pour T quadratique) ----
+        a14 = 0.5153528374311228364
+        a24 = -0.085782019412973646
+        a34 = 0.4415830236164665242
+        a44 = 0.1288461583653841854
+        
+        b14 = 0.1343961992774310892
+        b24 = -0.2248198030794208058
+        b34 = 0.7563200005156682911
+        b44 = 0.3340036032863214255
+        
+        methods["Optimal_Order4"] = {"a_coeffs": [a14, a24, a34, a44],
+                                     "b_coeffs": [b14, b24, b34, b44]}
+        
+        # ---- Méthode d'ordre 5 optimale (pour T quadratique) ----
+        # Valeurs transcrites directement du tableau 2
+        a15 = 0.339839625839110
+        a25 = -0.088601336903027329
+        a35 = 0.5858564768259621188
+        a45 = -0.603039356536491888
+        a55 = 0.3235807965546976394
+        a65 = 0.4423637942197494587
+        
+        b15 = 0.1193900292875672758
+        b25 = 0.6989273703824752308
+        b35 = -0.1713123582716007754
+        b45 = 0.401269502251353448
+        b55 = 0.0107050818482359840
+        b65 = -0.0589796254980311632
+        
+        methods["Optimal_Order5"] = {"a_coeffs": [a15, a25, a35, a45, a55, a65],
+                                     "b_coeffs": [b15, b25, b35, b45, b55, b65]}
+        
+        return methods
+    
+    def solve(self, order, primary_field, secondary_field, dt, bcs):
+        """Résout une étape de temps avec la méthode symplectique spécifiée."""
+        u, v = primary_field, secondary_field
+        method = self.methods["Optimal_Order"+str(order)]
+        
+        # Format avec listes de coefficients a_i et b_i
+        a_coeffs = method["a_coeffs"]
+        b_coeffs = method["b_coeffs"]
+        for i in range(len(a_coeffs)):
+            # Mise à jour de la vitesse
+            if b_coeffs[i] != 0:
+                self.derivative_calculator(dt=b_coeffs[i]*dt)
+            # Mise à jour de la position
+            if a_coeffs[i] != 0:
+                dt_update(u, v, a_coeffs[i]*dt)
+                set_bc(u.x.petsc_vec, bcs.bcs)
+        return
