@@ -441,6 +441,15 @@ class Problem:
                               (not self.multiphase_analysis and self.material.dev_type == "Hypoelastic")
         self.is_pure_hydro = (self.multiphase_analysis and all(mat.dev_type == None for mat in self.material)) or \
                             (not self.multiphase_analysis and self.material.dev_type == None)
+                            
+        def is_in_list(material, attribut, keyword):
+            is_mult = isinstance(material, list)
+            return (is_mult and any(getattr(mat, attribut) == keyword for mat in material)) or \
+                (not is_mult and getattr(material, attribut) == keyword)
+
+        self.is_tabulated = is_in_list(self.material, "eos_type", "Tabulated")
+        self.is_hypoelastic = is_in_list(self.material, "dev_type", "Hypoelastic")
+        self.is_pure_hydro = is_in_list(self.material, "dev_type", "None")
 
         # Constitutive Law
         self.constitutive = ConstitutiveLaw(self.u, material, self.plastic_model,
@@ -598,12 +607,12 @@ class Problem:
         self.rho = self.rho_0_field_init / self.J_transfo
         self.sig = self.current_stress(self.u, self.v, self.T, self.T0, self.J_transfo)        
         self.D = self.kinematic.Eulerian_gradient(self.v, self.u)
-        if not self.is_pure_hydro:
-            s_expr = self.extract_deviatoric(self.constitutive.s)
+        # if not self.is_pure_hydro:
+        #     s_expr = self.extract_deviatoric(self.constitutive.s)
             # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
             # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
-            self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
-            self.s_func = Function(self.V_devia, name = "Deviateur")    
+            # self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
+            # self.s_func = Function(self.V_devia, name = "Deviateur")    
         
         self.sig_expr = Expression(self.sig, self.V_Sig.element.interpolation_points())
         self.sig_func = Function(self.V_Sig, name = "Stress")
@@ -751,7 +760,7 @@ class Problem:
         self.schema= fem_parameters.get("schema")
         
     def user_defined_displacement(self, t):
-        set_bc(self.u.vector, self.bcs.bcs)
+        set_bc(self.u.x.petsc_vec, self.bcs.bcs)
     
     def set_initial_conditions(self):
         pass

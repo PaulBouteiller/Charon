@@ -46,7 +46,16 @@ class Deviator:
         """
         self.kin = kinematic
         self.model = model
-        self.is_hypo = material.dev_type == "Hypoelastic"
+        
+        def is_in_list(material, attribut, keyword):
+            is_mult = isinstance(material, list)
+            return (is_mult and any(getattr(mat, attribut) == keyword for mat in material)) or \
+                (not is_mult and getattr(material, attribut) == keyword)
+
+        self.is_hypo = is_in_list(material, "dev_type", "Hypoelastic")
+        
+        
+        # self.is_hypo = material.dev_type == "Hypoelastic"
         self.quadrature = quadrature
         if self.is_hypo:
             material.devia.set_hypoelastic(kinematic, model, quadrature)

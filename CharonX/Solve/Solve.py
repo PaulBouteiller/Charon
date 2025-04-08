@@ -9,13 +9,16 @@ from .plastic_solve import PlasticSolve
 from .multiphase_solve import MultiphaseSolver
 from .damage_solve import StaticJohnsonSolve, JohnsonDynViscSolve, JohnsonInerSolve, PhaseFieldSolve
 from .time_stepping import TimeStepping
-from .export_result import ExportResults
+
 from .hypoelastic_solve import HypoElasticSolve
 from ..utils.default_parameters import default_Newton_displacement_solver_parameters
+from ..Export.export_result import ExportResults
 
 from dolfinx.nls.petsc import NewtonSolver
 from dolfinx.fem import petsc
 from tqdm import tqdm
+
+
 
 class Solve:
     def __init__(self, problem, restart = False, **kwargs):
@@ -76,7 +79,7 @@ class Solve:
                     
     def set_time_step(self, **kwargs):
         """
-        Initialise un objet de la classe time stepping.
+        Initialise un objet de la classe TimeStepping.
 
         Parameters
         ----------

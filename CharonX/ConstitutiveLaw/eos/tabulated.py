@@ -136,7 +136,7 @@ class TabulatedEOS(BaseEOS):
         def interpolate_jax(T, J):
             return interpolate_2d(T, J, self.T_list, self.J_list, self.P_list)
         
-        self.tabulated_interpolator = jax.jit(jax.vmap(interpolate_jax, in_axes=(0, 0)))
+        self._tabulated_interpolator = jax.jit(jax.vmap(interpolate_jax, in_axes=(0, 0)))
     
     def celerity(self, rho_0):
         """Return the specified wave speed.
@@ -167,11 +167,11 @@ class TabulatedEOS(BaseEOS):
         self.J_func.interpolate(self.J_expr)
         self.T = T
         p = Function(V)
-        pressures = self.tabulated_interpolator(jax_numpy.array(T.x.array), jax_numpy.array(self.J_func .x.array))
+        pressures = self._tabulated_interpolator(jax_numpy.array(T.x.array), jax_numpy.array(self.J_func .x.array))
         p.x.array[:] = pressures
         return p
     
     def update_pressure(self):
         self.J_func.interpolate(self.J_expr)
-        p = self.tabulated_interpolator(jax_numpy.array(self.T.x.array), jax_numpy.array(self.J_func.x.array))
+        p = self._tabulated_interpolator(jax_numpy.array(self.T.x.array), jax_numpy.array(self.J_func.x.array))
         return p  
