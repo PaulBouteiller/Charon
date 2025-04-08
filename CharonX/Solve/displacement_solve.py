@@ -49,7 +49,7 @@ class ExplicitDisplacementSolver:
             self.c1 = self.d1/2
             self.c2 = (self.d2 + self.d1)/2
 
-        self.set_explicit_function(form, m_form)
+        self._set_explicit_function(form, m_form)
         
     def _update_ghost_values(self, vector):
         """Update ghost values for a PETSc vector.
@@ -61,7 +61,7 @@ class ExplicitDisplacementSolver:
         vector.ghostUpdate(addv=InsertMode.ADD, mode=ScatterMode.REVERSE)
         vector.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
         
-    def set_explicit_function(self, residual_form, m_form):
+    def _set_explicit_function(self, residual_form, m_form):
         """
         Définition du vecteur de masse, issu de la condensation de la matrice de masse
         
@@ -125,8 +125,7 @@ class ExplicitDisplacementSolver:
         
         Parameters
         ----------
-        steps : list of tuple
-            Liste de tuples (dt_u_factor, dt_a_factor, apply_acceleration)
+        steps : list of tuple Liste de tuples (dt_u_factor, dt_a_factor, apply_acceleration)
         """
         for dt_u_factor, dt_a_factor, apply_acceleration in steps:
             self._integration_step(dt_u_factor, dt_a_factor, apply_acceleration)
@@ -135,7 +134,6 @@ class ExplicitDisplacementSolver:
         """Résout le problème de déplacement pour un pas de temps en utilisant le schéma sélectionné."""
         if self.scheme == "LeapFrog":
             # Schéma LeapFrog: une seule étape
-            # Notez que l'ordre est différent ici: d'abord accélération, puis déplacement
             self._update_acceleration_velocity(self.dt)
             self._integration_step(1.0, None, False)
         elif self.scheme == "Yoshida":
