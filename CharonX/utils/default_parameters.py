@@ -40,16 +40,38 @@ def default_T_fem_degree():
     return 1
 
 def default_dynamic_parameters():
-    """
-    Paramètres par du pas de temps CFL et du schema explicit:
-    scheme \in \{ "LeapFrop", "Yoshida"\}
-    """
-    dynamic = {}
-    dynamic.update({"scheme" : "LeapFrog"})
-    # dynamic.update({"scheme" : "Yoshida"})
-    dynamic.update({"CFL_ratio" : 0.2 / default_fem_degree()})
-    return dynamic
+    """Paramètres par défaut pour les simulations dynamiques.
+    
+    Renvoie un dictionnaire contenant les paramètres par défaut pour l'intégration
+    temporelle et le critère CFL.
+    
+    Schémas d'intégration temporelle disponibles:
+    
+    - "LeapFrog" (défaut): Schéma d'ordre 2, symplectique, utilisé pour son efficacité
+      et sa stabilité. Bon compromis entre précision et coût de calcul.
+    
+    - "Yoshida": Schéma symplectique d'ordre 4 avec 3 étapes. Offre une excellente 
+      conservation de l'énergie pour les simulations longues. Plus coûteux mais plus 
+      précis que LeapFrog.
 
+    
+    Returns
+    -------
+    dict
+        Dictionnaire contenant les paramètres dynamiques par défaut
+    """
+    from ..utils.default_parameters import default_fem_degree
+    
+    dynamic = {}
+    
+    # Schéma d'intégration temporelle par défaut
+    dynamic.update({"scheme": "LeapFrog"})
+    
+    # Facteur de sécurité pour le critère CFL
+    # CFL ratio est inversement proportionnel au degré polynomial des éléments
+    dynamic.update({"CFL_ratio": 0.2 / default_fem_degree()})
+    
+    return dynamic
 def default_fem_parameters():
     """
     Degré d'interpolation par défaut des champs.
@@ -66,8 +88,8 @@ def default_damping_parameters():
     """
     damp = {}
     damp.update({"damping" : True})
-    damp.update({"linear_coeff" : 0.3})
-    damp.update({"quad_coeff" : 2})
+    damp.update({"linear_coeff" : 0.1})
+    damp.update({"quad_coeff" : 0.1})
     damp.update({"correction" : True})
     return damp
 

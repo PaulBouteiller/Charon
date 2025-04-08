@@ -178,55 +178,55 @@ def second_order_rk4(f, dot_f, ddot_f_function, ddot_f_expression, dt):
     dt_update(dot_f, ddot_f_function_4, dt / 6)
     
     
-def second_order_rk4_GPT(f, dot_f, ddot_f_function, ddot_f_expression, dt):
-    """
-    Schema de runge kutta d'ordre 4, pour les EDO d'ordre 2, expression donée
-    par chatGPT
+# def second_order_rk4_GPT(f, dot_f, ddot_f_function, ddot_f_expression, dt):
+#     """
+#     Schema de runge kutta d'ordre 4, pour les EDO d'ordre 2, expression donée
+#     par chatGPT
     
-    Parameters
-    ----------
-    f : Function, fonction à actualiser.
-    dot_f : Function, dérivée temporelle de f, vit dans le même espace fonctionnel que f.
-    ddot_f_function : Function, dérivée temporelle seconde de f, 
-                                vit dans le même espace fonctionnel que f.
-    ddot_f_expression : Expression, expression de la dérivée temporelle seconde de f.
-    dt : float, pas de temps.
-    """
+#     Parameters
+#     ----------
+#     f : Function, fonction à actualiser.
+#     dot_f : Function, dérivée temporelle de f, vit dans le même espace fonctionnel que f.
+#     ddot_f_function : Function, dérivée temporelle seconde de f, 
+#                                 vit dans le même espace fonctionnel que f.
+#     ddot_f_expression : Expression, expression de la dérivée temporelle seconde de f.
+#     dt : float, pas de temps.
+#     """
 
-    V_f = f.function_space
-    #Les ddot_f_function correpondent aux k de la notice
-    ddot_f_function_1 = Function(V_f)
-    ddot_f_function_2 = Function(V_f)
-    ddot_f_function_3 = Function(V_f)
-    ddot_f_function_4 = Function(V_f)
+#     V_f = f.function_space
+#     #Les ddot_f_function correpondent aux k de la notice
+#     ddot_f_function_1 = Function(V_f)
+#     ddot_f_function_2 = Function(V_f)
+#     ddot_f_function_3 = Function(V_f)
+#     ddot_f_function_4 = Function(V_f)
     
-    prev_f = f.copy()
-    prev_dot_f = dot_f.copy()
-    ddot_f_function_1.interpolate(ddot_f_expression)
+#     prev_f = f.copy()
+#     prev_dot_f = dot_f.copy()
+#     ddot_f_function_1.interpolate(ddot_f_expression)
     
-    dt_update(f, dot_f, dt/2)
-    dt_update(dot_f, ddot_f_function_1, dt/2)
-    dot_f_function_2 = dot_f.copy()
-    ddot_f_function_2.interpolate(ddot_f_expression)
+#     dt_update(f, dot_f, dt/2)
+#     dt_update(dot_f, ddot_f_function_1, dt/2)
+#     dot_f_function_2 = dot_f.copy()
+#     ddot_f_function_2.interpolate(ddot_f_expression)
     
-    dot_f_function_3 = dt_update(prev_dot_f, ddot_f_function_2, dt/2, new_vec = True)
-    petsc_assign(dot_f, dot_f_function_3)
-    petsc_assign(f, dt_update(prev_f, dot_f_function_2, dt/2, new_vec = True))    
-    ddot_f_function_3.interpolate(ddot_f_expression)
+#     dot_f_function_3 = dt_update(prev_dot_f, ddot_f_function_2, dt/2, new_vec = True)
+#     petsc_assign(dot_f, dot_f_function_3)
+#     petsc_assign(f, dt_update(prev_f, dot_f_function_2, dt/2, new_vec = True))    
+#     ddot_f_function_3.interpolate(ddot_f_expression)
     
-    dot_f_function_4 = dt_update(prev_dot_f, ddot_f_function_3, dt, new_vec = True)
-    petsc_assign(dot_f, dot_f_function_4)
-    petsc_assign(f, dt_update(prev_f, dot_f_function_3, dt, new_vec = True))    
-    ddot_f_function_4.interpolate(ddot_f_expression)
+#     dot_f_function_4 = dt_update(prev_dot_f, ddot_f_function_3, dt, new_vec = True)
+#     petsc_assign(dot_f, dot_f_function_4)
+#     petsc_assign(f, dt_update(prev_f, dot_f_function_3, dt, new_vec = True))    
+#     ddot_f_function_4.interpolate(ddot_f_expression)
     
-    #Phase de mise à jour
-    petsc_assign(f, prev_f)
-    dt_update(f, prev_dot_f, dt / 6)
-    dt_update(f, dot_f_function_2, dt / 3)
-    dt_update(f, dot_f_function_3, dt / 3)
-    dt_update(f, dot_f_function_4, dt / 6)    
-    petsc_assign(dot_f, prev_dot_f)
-    dt_update(dot_f, ddot_f_function_1, dt / 6)
-    dt_update(dot_f, ddot_f_function_2, dt / 3)
-    dt_update(dot_f, ddot_f_function_3, dt / 3)
-    dt_update(dot_f, ddot_f_function_4, dt / 6)   
+#     #Phase de mise à jour
+#     petsc_assign(f, prev_f)
+#     dt_update(f, prev_dot_f, dt / 6)
+#     dt_update(f, dot_f_function_2, dt / 3)
+#     dt_update(f, dot_f_function_3, dt / 3)
+#     dt_update(f, dot_f_function_4, dt / 6)    
+#     petsc_assign(dot_f, prev_dot_f)
+#     dt_update(dot_f, ddot_f_function_1, dt / 6)
+#     dt_update(dot_f, ddot_f_function_2, dt / 3)
+#     dt_update(dot_f, ddot_f_function_3, dt / 3)
+#     dt_update(dot_f, ddot_f_function_4, dt / 6)   

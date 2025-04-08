@@ -33,10 +33,10 @@ class CustomLinearProblem(fem.petsc.LinearProblem):
         fem.petsc.assemble_vector(self._b, self._L)
 
         # Apply boundary conditions to the rhs
-        x0 = [] if u is None else [u.vector]
+        x0 = [] if u is None else [u.x.petsc_vec]
         fem.petsc.apply_lifting(self._b, [self._a], bcs=[self.bcs], x0=x0, scale=1.0)
         self._b.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
-        x0 = None if u is None else u.vector
+        x0 = None if u is None else u.x.petsc_vec
         fem.petsc.set_bc(self._b, self.bcs, x0, scale=1.0)
 
     def assemble_lhs(self):
@@ -73,7 +73,7 @@ class CustomNewtonSolver:
             self.tangent_problem.solve_system()
 
             # update the displacement with the current correction
-            u.vector.axpy(1, self.du.vector)  # u = u + 1*du
+            u.x.petsc_vec.axpy(1, self.du.x.petsc_vec)  # u = u + 1*du
             u.x.scatter_forward()
 
             self.callback(u, *args)

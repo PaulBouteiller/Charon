@@ -21,7 +21,7 @@ from dolfinx.fem import Function, form
 from ufl import action
 from petsc4py.PETSc import ScatterMode, InsertMode
 from ..utils.default_parameters import default_dynamic_parameters
-from ..utils.generic_functions import petsc_div, dt_update
+from ..utils.solver_utils import petsc_div, dt_update
 
 class ExplicitDisplacementSolver:
     def __init__(self, u, v, dt, m_form, form, bcs):
@@ -51,6 +51,16 @@ class ExplicitDisplacementSolver:
 
         self.set_explicit_function(form, m_form)
         
+    def _update_ghost_values(self, vector):
+        """Update ghost values for a PETSc vector.
+        
+        Parameters
+        ----------
+        vector : PETSc.Vec Vector to update
+        """
+        vector.ghostUpdate(addv=InsertMode.ADD, mode=ScatterMode.REVERSE)
+        vector.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
+        
     def set_explicit_function(self, residual_form, m_form):
         """
         Définition du vecteur de masse, issu de la condensation de la matrice de masse
@@ -65,52 +75,73 @@ class ExplicitDisplacementSolver:
         self.diag_M = assemble_vector(form(action(m_form, u1)))    
 
         set_bc(self.diag_M, self.bcs.bcs_axi)
-        self.diag_M.ghostUpdate(addv = InsertMode.ADD, mode = ScatterMode.REVERSE)
-        self.diag_M.ghostUpdate(addv = InsertMode.INSERT, mode = ScatterMode.FORWARD)
-
+        self._update_ghost_values(self.diag_M)
         self.local_res = form(-residual_form)
         if self.scheme == "LeapFrog":
-            self.compute_acceleration_speed(self.dt/2)
-
-    def compute_acceleration_speed(self, dt):
+            self._update_acceleration_velocity(self.dt/2)
+        
+    def _update_acceleration_velocity(self, dt):
+        """Update acceleration and velocity.
+        
+        Parameters
+        ----------
+        dt : float Time step
         """
-        Calcul le résidu puis l'utilise afin de calculer la vitesse et l'accélération
-        """
+        # Assemble residual
         res = assemble_vector(self.local_res)
-        res.ghostUpdate(addv = InsertMode.ADD, mode = ScatterMode.REVERSE)
-        res.ghostUpdate(addv = InsertMode.INSERT, mode = ScatterMode.FORWARD)
+        self._update_ghost_values(res)
+        
+        # Compute acceleration: a = M^(-1) * res
         petsc_div(res, self.diag_M, self.a.x.petsc_vec)
         set_bc(self.a.x.petsc_vec, self.bcs.a_bcs)
+        
+        # Update velocity: v += dt * a
         dt_update(self.v, self.a, dt)
         set_bc(self.v.x.petsc_vec, self.bcs.v_bcs)
-        self.v.x.petsc_vec.ghostUpdate(addv = InsertMode.INSERT, mode = ScatterMode.FORWARD)
+        self.v.x.petsc_vec.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
+        
         res.destroy()
-            
-    def u_solve(self):
+
+    def _integration_step(self, dt_u_factor, dt_a_factor=None, apply_acceleration=True):
+        """Effectue une étape d'intégration générique.
+        
+        Parameters
+        ----------
+        dt_u_factor : float Facteur de multiplication pour le pas de temps dans la mise à jour du déplacement
+        dt_a_factor : float, optional Facteur de multiplication pour le pas de temps dans la mise à jour de l'accélération
+        apply_acceleration : bool, optional Si True, met à jour l'accélération et la vitesse, par défaut True
         """
-        Calcl du déplacement sur une iteration explicite:
-        -actualisation des déplacements
-        -imposition des CLs en déplacements
-        -calcul de l'acceleration et de la vitesse
-        """      
+        # Mise à jour du déplacement
+        dt_update(self.u, self.v, dt_u_factor * self.dt)
+        set_bc(self.u.x.petsc_vec, self.bcs.bcs)
+        self.u.x.petsc_vec.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
+        
+        # Mise à jour de l'accélération et de la vitesse si nécessaire
+        if apply_acceleration and dt_a_factor is not None:
+            self._update_acceleration_velocity(dt_a_factor * self.dt)
+    
+    def _execute_scheme(self, steps):
+        """Exécute un schéma d'intégration générique.
+        
+        Parameters
+        ----------
+        steps : list of tuple
+            Liste de tuples (dt_u_factor, dt_a_factor, apply_acceleration)
+        """
+        for dt_u_factor, dt_a_factor, apply_acceleration in steps:
+            self._integration_step(dt_u_factor, dt_a_factor, apply_acceleration)
+    
+    def u_solve(self):
+        """Résout le problème de déplacement pour un pas de temps en utilisant le schéma sélectionné."""
         if self.scheme == "LeapFrog":
-            # dt_update(self.u, self.v, self.dt)
-            # set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-            # self.u.x.petsc_vec.ghostUpdate(addv = InsertMode.INSERT, mode = ScatterMode.FORWARD)
-            self.compute_acceleration_speed(self.dt)
-            #Debug
-            dt_update(self.u, self.v, self.dt)
-            set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-            self.u.x.petsc_vec.ghostUpdate(addv = InsertMode.INSERT, mode = ScatterMode.FORWARD)
+            # Schéma LeapFrog: une seule étape
+            # Notez que l'ordre est différent ici: d'abord accélération, puis déplacement
+            self._update_acceleration_velocity(self.dt)
+            self._integration_step(1.0, None, False)
         elif self.scheme == "Yoshida":
-            dt_update(self.u, self.v, self.c1 * self.dt)
-            set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-            self.compute_acceleration_speed(self.d1 * self.dt)
-            dt_update(self.u, self.v, self.c2 * self.dt)
-            set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-            self.compute_acceleration_speed(self.d2 * self.dt)
-            dt_update(self.u, self.v, self.c2 * self.dt)
-            set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-            self.compute_acceleration_speed(self.d1 * self.dt)
-            dt_update(self.u, self.v, self.c1 * self.dt)
-            set_bc(self.u.x.petsc_vec, self.bcs.bcs)
+            # Schéma Yoshida: quatre étapes
+            steps = [(self.c1, self.d1, True),
+                     (self.c2, self.d2, True),
+                     (self.c2, self.d1, True),
+                     (self.c1, None, False)]
+            self._execute_scheme(steps)

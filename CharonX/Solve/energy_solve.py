@@ -17,7 +17,7 @@ Created on Mon Sep 26 17:56:59 2022
 @author: bouteillerp
 """
 from .runge_kutta import first_order_rk1, first_order_rk2, first_order_rk4
-# from .hybrid_solver import create_linear_solver
+from .hybrid_solver import create_linear_solver
 
 from dolfinx.fem import Function, Expression
         
