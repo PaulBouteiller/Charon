@@ -1,0 +1,17 @@
+Intellectual Property Notice
+------------------------------
+
+Charon is licensed under the Apache License, Version 2.0 (LICENSE-APACHE
+or http://www.apache.org/licenses/LICENSE-2.0).
+
+Written by CEA and Contributors
+
+(C) Copyright 2000-2025 CEA. All rights reserved.
+(C) CEA: Commissariat à l'Énergie Atomique et aux Énergies Alternatives
+    (https://www.cea.fr)
+
+All content is the property of the respective authors or their employers.
+
+Copyrights and patents in the Charon project are retained by contributors.
+No copyright assignment is required to contribute to Charon
+
