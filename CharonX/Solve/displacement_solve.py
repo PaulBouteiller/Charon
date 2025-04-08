@@ -23,6 +23,8 @@ from petsc4py.PETSc import ScatterMode, InsertMode
 from ..utils.default_parameters import default_dynamic_parameters
 from ..utils.solver_utils import petsc_div, dt_update
 
+from .TimeIntegrator import SymplecticIntegrator
+
 class ExplicitDisplacementSolver:
     def __init__(self, u, v, dt, m_form, form, bcs):
         """
@@ -42,13 +44,7 @@ class ExplicitDisplacementSolver:
         self.a = Function(self.u.function_space, name = "Accelerations")
         self.dt = dt
         self.bcs = bcs
-        self.scheme = default_dynamic_parameters()["scheme"]
-        if self.scheme == "Yoshida":
-            self.d1 = 1 / (2 - 2**(3./2))
-            self.d2 = -2**(3/2) / (2 - 2**(3./2))
-            self.c1 = self.d1/2
-            self.c2 = (self.d2 + self.d1)/2
-
+        self.order =  default_dynamic_parameters()["order"]
         self._set_explicit_function(form, m_form)
         
     def _update_ghost_values(self, vector):
@@ -77,8 +73,19 @@ class ExplicitDisplacementSolver:
         set_bc(self.diag_M, self.bcs.bcs_axi)
         self._update_ghost_values(self.diag_M)
         self.local_res = form(-residual_form)
-        if self.scheme == "LeapFrog":
-            self._update_acceleration_velocity(self.dt/2)
+        # if self.scheme == "LeapFrog":
+        #     self._update_acceleration_velocity(self.dt/2)
+            
+        # Initialisation optionnelle de l'intégrateur symplectique
+        self.use_symplectic_integrator = True  # Peut être activé si nécessaire
+        if self.use_symplectic_integrator:
+            def calculate_acceleration(dt=None, update_velocity=False):
+                if update_velocity:
+                    self._update_acceleration_velocity(dt if dt is not None else self.dt)
+                return self.a
+            
+            self.symplectic_integrator = SymplecticIntegrator(calculate_acceleration)
+            
         
     def _update_acceleration_velocity(self, dt):
         """Update acceleration and velocity.
@@ -130,16 +137,42 @@ class ExplicitDisplacementSolver:
         for dt_u_factor, dt_a_factor, apply_acceleration in steps:
             self._integration_step(dt_u_factor, dt_a_factor, apply_acceleration)
     
+    # def u_solve(self):
+    #     """Résout le problème de déplacement pour un pas de temps en utilisant le schéma sélectionné."""
+    #     if self.scheme == "LeapFrog":
+    #         # Schéma LeapFrog: une seule étape
+    #         self._update_acceleration_velocity(self.dt)
+    #         self._integration_step(1.0, None, False)
+    #     elif self.scheme == "Yoshida":
+    #         # Schéma Yoshida: quatre étapes
+    #         steps = [(self.c1, self.d1, True),
+    #                  (self.c2, self.d2, True),
+    #                  (self.c2, self.d1, True),
+    #                  (self.c1, None, False)]
+    #         self._execute_scheme(steps)
+    
     def u_solve(self):
         """Résout le problème de déplacement pour un pas de temps en utilisant le schéma sélectionné."""
-        if self.scheme == "LeapFrog":
-            # Schéma LeapFrog: une seule étape
-            self._update_acceleration_velocity(self.dt)
-            self._integration_step(1.0, None, False)
-        elif self.scheme == "Yoshida":
-            # Schéma Yoshida: quatre étapes
-            steps = [(self.c1, self.d1, True),
-                     (self.c2, self.d2, True),
-                     (self.c2, self.d1, True),
-                     (self.c1, None, False)]
-            self._execute_scheme(steps)
+        if hasattr(self, 'symplectic_integrator') and self.use_symplectic_integrator:
+            # Utilisation de l'intégrateur symplectique si activé
+            self.symplectic_integrator.solve(
+                order=self.order,
+                primary_field=self.u,
+                secondary_field=self.v,
+                tertiary_field=self.a,
+                dt=self.dt,
+                bcs=self.bcs
+            )
+        else:
+            # Implémentation originale inchangée
+            if self.scheme == "LeapFrog":
+                # Schéma LeapFrog: une seule étape
+                self._update_acceleration_velocity(self.dt)
+                self._integration_step(1.0, None, False)
+            elif self.scheme == "Yoshida":
+                # Schéma Yoshida: quatre étapes
+                steps = [(self.c1, self.d1, True),
+                         (self.c2, self.d2, True),
+                         (self.c2, self.d1, True),
+                         (self.c1, None, False)]
+                self._execute_scheme(steps)

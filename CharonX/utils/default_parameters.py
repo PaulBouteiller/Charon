@@ -60,12 +60,11 @@ def default_dynamic_parameters():
     dict
         Dictionnaire contenant les paramètres dynamiques par défaut
     """
-    from ..utils.default_parameters import default_fem_degree
     
     dynamic = {}
     
     # Schéma d'intégration temporelle par défaut
-    dynamic.update({"scheme": "LeapFrog"})
+    dynamic.update({"order": 2})
     
     # Facteur de sécurité pour le critère CFL
     # CFL ratio est inversement proportionnel au degré polynomial des éléments
