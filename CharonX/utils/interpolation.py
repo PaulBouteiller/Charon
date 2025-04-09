@@ -6,7 +6,7 @@ Created on Wed Apr  9 09:41:08 2025
 @author: bouteillerp
 """
 from dolfinx.fem import Function, Expression
-from ..utils.generic_functions import petsc_assign
+from ..utils.petsc_operations import petsc_assign
 
 def interpolate_to_function(target_function, value):
     """

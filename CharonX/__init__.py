@@ -15,7 +15,6 @@ from .utils.default_parameters import *
 from .utils.tensor_operations import *
 
 from .ConstitutiveLaw.material import *
-from .ConstitutiveLaw.anisotropic_material import *
 from .ConstitutiveLaw.thermal_material import *
 
 from .VariationalFormulation.unidimensional import *

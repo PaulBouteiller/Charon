@@ -22,7 +22,7 @@ from ufl import action
 from numpy import sqrt
 from petsc4py.PETSc import ScatterMode, InsertMode
 from ..utils.default_parameters import default_dynamic_parameters
-from ..utils.solver_utils import petsc_div, dt_update
+from ..utils.petsc_operations import petsc_div, dt_update
 
 class ExplicitDisplacementSolver:
     def __init__(self, u, v, dt, m_form, form, bcs):

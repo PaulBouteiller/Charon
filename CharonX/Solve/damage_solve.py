@@ -17,8 +17,8 @@ Created on Thu Mar 17 13:32:46 2022
 @author: bouteillerp
 
 """
-from ..utils.generic_functions import (set_correction, petsc_assign, ppart,
-                                       over_relaxed_predictor, set_min, petsc_div)
+from ..utils.generic_functions import ppart, over_relaxed_predictor
+from ..utils.petsc_operations import (set_correction, petsc_assign, set_min, petsc_div)
 from ..utils.default_parameters import default_PhaseField_solver_parameters, default_damage_solver_type
 
 from .NL_problem import TAOProblem, SNESProblem

@@ -16,8 +16,9 @@ Created on Wed Apr 12 13:57:33 2023
 
 @author: bouteillerp
 """
-from ..utils.generic_functions import (Heav, dt_update, set_correction, 
-                                 petsc_assign, ppart, higher_order_dt_update)
+from ..utils.generic_functions import Heav, ppart
+from ..utils.petsc_operations import (dt_update, set_correction, 
+                                 petsc_assign , higher_order_dt_update)
 from ufl import tanh, sqrt, exp
 from dolfinx.fem import Function, Expression
 from math import pi

@@ -18,7 +18,7 @@ Created on Mon Sep 26 17:58:18 2022
 """
 from dolfinx.fem import Function
 
-from ..utils.generic_functions import petsc_add, petsc_assign
+from ..utils.petsc_operations import petsc_add, petsc_assign
 
 try:
     from jaxopt import LevenbergMarquardt

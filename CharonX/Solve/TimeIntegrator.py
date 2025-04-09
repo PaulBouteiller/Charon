@@ -10,7 +10,7 @@ symplectiques pour les problèmes d'ordre 2.
 import numpy as np
 from dolfinx.fem import Function
 from petsc4py.PETSc import InsertMode, ScatterMode
-from ..utils.generic_functions import dt_update, petsc_assign
+from ..utils.petsc_operations import dt_update, petsc_assign
 from dolfinx.fem.petsc import set_bc
 from numpy import sqrt
 
@@ -70,8 +70,6 @@ class TimeIntegrator:
             # Si bcs a un attribut bcs et une méthode apply
             bcs.apply(field)
         else:
-            # Sinon, essayer d'appliquer directement
-            from dolfinx.fem.petsc import set_bc
             set_bc(field.x.petsc_vec, bcs)
 
 

@@ -45,7 +45,7 @@ class Thermal:
             if all([self.material[0].C_mass == self.material[i].C_mass for i in range(n_mat)]):
                 self.C_tan = self.partial_C_vol_tan(self.material[0])
             else:
-                self.C_tan = sum(self.multiphase.c[i] * self.partial_C_vol_tan(self.material[i]) for i in range(n_mat))
+                self.C_tan = sum(c * self.partial_C_vol_tan(mat) for c, mat in zip(self.multiphase.c, self.material))
         else:
             self.C_tan = self.partial_C_vol_tan(self.material)
     
@@ -70,7 +70,7 @@ class Thermal:
         grad_dT : Gradient du champ de température test.
         """
         if isinstance(therm_mat, list):
-            return sum(self.multiphase.g[i] * self.partial_thermal_constitutive_law(therm_mat[i]) for i in range(len(therm_mat)))
+            return sum(g * self.partial_thermal_constitutive_law(mat) for g, mat in zip(self.multiphase.g, therm_mat))
         else:
             return self.partial_thermal_constitutive_law(therm_mat, grad_dT)
     
@@ -105,7 +105,7 @@ class Thermal:
     
     def NonLinearFourrier(self, lmbda, a1, a2, grad_dT):
         """
-        Loi de comportement thermique linéaire isotrope
+        Loi de comportement thermique nonlinéaire isotrope
 
         Parameters
         ----------

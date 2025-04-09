@@ -225,9 +225,6 @@ class Problem:
         # Configuration des conditions aux limites et mesures d'intégration
         self._init_boundary_and_measures()
         
-        # Configuration de l'anisotropie
-        self.set_anisotropy()
-        
         # Initialisation de la cinématique et de l'amortissement
         self.kinematic = Kinematic(self.name, self.r, self.n0)
         self.damping = self.set_damping()
@@ -614,18 +611,6 @@ class Problem:
             constant.set_time_dependant_array(load_steps)
         for constant in self.bcs.my_constant_list:
             constant.set_time_dependant_array(load_steps)
-            
-    def set_anisotropy(self):
-        if isinstance(self.material, list):
-            if any(mat.dev_type in ["NeoHook_Transverse", "Lu_Transverse"] for mat in self.material):
-                self.set_anisotropic_direction()
-            else:
-                self.n0 = None
-        else:
-            if self.material.dev_type in ["NeoHook_Transverse", "Lu_Transverse"]:
-                self.set_anisotropic_direction()
-            else:
-                self.n0 = None
         
     def set_boundary(self):
         print("Warning no boundary has been tagged inside CHARONX")

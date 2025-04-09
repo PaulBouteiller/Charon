@@ -20,7 +20,6 @@ from .eos import (IsotropicHPPEOS, UEOS, VinetEOS, JWLEOS, MACAWEOS,
                   MGEOS, xMGEOS, PMGEOS, GPEOS, NewtonianFluidEOS, TabulatedEOS)
 
 from .deviator import (NoneDeviator, IsotropicHPPDeviator, MooneyRivlinDeviator,
-                       NeoHookTransverseDeviator, LuTransverseDeviator, 
                        AnisotropicDeviator, NeoHookDeviator, HypoelasticDeviator)
 
 
@@ -112,8 +111,6 @@ class Material:
                               "NeoHook": NeoHookDeviator,
                               "Hypoelastic": HypoelasticDeviator,
                               "MooneyRivlin": MooneyRivlinDeviator,
-                              "NeoHook_Transverse": NeoHookTransverseDeviator,
-                              "Lu_Transverse": LuTransverseDeviator,
                               "Anisotropic": AnisotropicDeviator}
         
         if dev_type not in deviatoric_classes:

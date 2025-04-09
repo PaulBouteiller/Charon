@@ -17,7 +17,7 @@ Created on Wed Sep  4 18:20:47 2024
 @author: bouteillerp
 """
 from dolfinx.fem import Function
-from ..utils.generic_functions import dt_update
+from ..utils.petsc_operations import dt_update
 
 class HypoElasticSolve:
     def __init__(self, hypo_elast, dt):

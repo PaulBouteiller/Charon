@@ -21,7 +21,7 @@ vont ensuite être utilisés pour intégrer la forme billinéaire de masse.
 """
 from numpy import array, kron
 from basix import make_quadrature, CellType, QuadratureType
-from .default_parameters import default_fem_degree
+# from .default_parameters import default_fem_degree
 from dolfinx.fem import functionspace
 from basix.ufl import quadrature_element as quad_el
 
