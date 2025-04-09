@@ -15,8 +15,31 @@
 Created on Wed Apr  2 11:25:33 2025
 
 @author: bouteillerp
+
+Newtonian Fluid Equation of State
+================================
+
+This module implements an equation of state for Newtonian fluids, combining 
+pressure-volume relations with viscous behavior.
+
+The model includes:
+- Pressure-volume relationship based on isothermal compressibility
+- Thermal expansion effects
+- Sound speed calculation for acoustic phenomena
+
+This equation of state is suitable for:
+- Compressible fluid dynamics
+- Acoustics and wave propagation in fluids
+- Thermal-fluid systems
+- Low to moderate strain rate fluid flows
+
+Classes:
+--------
+NewtonianFluidEOS : Newtonian fluid equation of state
+    Implements pressure-volume-temperature relations for compressible fluids
+    Includes viscous and thermal effects
+    Provides sound speed calculation
 """
-"""Newtonian fluid equation of state."""
 
 from ufl import sqrt, ln
 from .base_eos import BaseEOS

@@ -15,7 +15,32 @@
 Created on Wed Apr  2 11:16:34 2025
 
 @author: bouteillerp
+
+Base Equation of State Framework
+===============================
+
+This module defines the abstract base class for all equation of state (EOS) models.
+It establishes a common interface and validation functionality that all EOS
+implementations must follow.
+
+The framework provides:
+- Parameter validation infrastructure
+- Required method definitions via abstract methods
+- Consistent interface for pressure and wave speed calculations
+- Method requirement enforcement for derived classes
+
+By providing this common foundation, the module ensures that all equation of state
+models operate consistently within the larger constitutive framework, facilitating
+interchangeability and modular design.
+
+Classes:
+--------
+BaseEOS : Abstract base class for equation of state models
+    Defines the required interface for all EOS models
+    Provides validation functionality for parameters
+    Establishes the core method signatures for pressure and wave speed calculations
 """
+
 class BaseEOS:
     """Base class for all equation of state models.
     
@@ -76,11 +101,8 @@ class BaseEOS:
         
         Parameters
         ----------
-        J : Function Jacobian of the deformation
-        T : Function Current temperature
-        T0 : Function Initial temperature
-        material : Material Material properties
-        quadrature : QuadratureHandler Handler for quadrature spaces
+        J, T, T0, material : See stress_3D method in ConstitutiveLaw.py for details.
+        quadrature : QuadratureHandler Handler for quadrature spaces.
             
         Returns
         -------

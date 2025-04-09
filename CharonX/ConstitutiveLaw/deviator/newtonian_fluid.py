@@ -15,8 +15,22 @@
 Created on Wed Apr  2 11:34:38 2025
 
 @author: bouteillerp
+
+Newtonian Fluid Deviatoric Stress Model
+======================================
+
+This module implements the Newtonian fluid model for deviatoric stress. It provides
+the standard viscous stress tensor formulation for Newtonian fluids, where the stress
+is proportional to the rate of deformation.
+
+Classes:
+--------
+NewtonianFluidDeviator : Deviatoric stress model for Newtonian fluids
+    Implements the viscous stress tensor calculation
+    Uses velocity gradient instead of displacement
+    Provides correct finite strain behavior for fluids
 """
-"""Newtonian fluid deviatoric stress model."""
+
 
 from ufl import sym, dev
 from .base_deviator import BaseDeviator
@@ -65,18 +79,8 @@ class NewtonianFluidDeviator(BaseDeviator):
         
         Parameters
         ----------
-        u : Function
-            Displacement field (unused for Newtonian fluids)
-        v : Function
-            Velocity field
-        J : Function
-            Jacobian of the deformation
-        T : Function
-            Current temperature (unused)
-        T0 : Function
-            Initial temperature (unused)
-        kinematic : Kinematic
-            Kinematic handler object
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        kinematic : Kinematic Kinematic handler object
             
         Returns
         -------

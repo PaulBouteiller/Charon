@@ -15,23 +15,73 @@
 Created on Thu Mar 24 09:54:52 2022
 
 @author: bouteillerp
+Plasticity Models for Mechanical Simulations
+============================================
+
+This module implements various plasticity models for mechanical simulations.
+It provides a framework for handling both small strain and finite strain
+plasticity, with support for different hardening mechanisms.
+
+The module includes implementations for:
+- Small strain (HPP) plasticity with isotropic/kinematic hardening
+- Finite strain plasticity with multiplicative decomposition
+- J2 plasticity implementation for both small and finite strain
+- Gurson-Tvergaard-Needleman model for porous plasticity
+
+Classes:
+--------
+Plastic : Base class for all plasticity models
+    Provides common functionality and parameter handling
+    
+HPPPlastic : Small strain (Hypoelastic-Plastic) model
+    Classical small strain J2 plasticity
+    Supports both isotropic and kinematic hardening
+    
+FiniteStrainPlastic : Multiplicative finite strain model
+    Evolutionary equations for elastic left Cauchy-Green tensor
+    
+JAXJ2Plasticity : J2 plasticity with algorithmic tangent
+    Improved numerical performance through consistent tangent
+    
+JAXGursonPlasticity : Gurson model for porous plasticity
+    Models void growth and coalescence
+    Accounts for pressure-dependent yield
 """
 from ..utils.generic_functions import ppart
 
-from ufl import (dot, sqrt, tr, dev, inner, det)
+from ufl import (dot, sqrt, tr, dev, inner, det, exp)
 from dolfinx.fem import functionspace, Function, Expression
-from math import pi, exp
+from math import pi
 
 class Plastic():
+    """Base class for all plasticity models.
+
+    This class provides common functionality for plasticity models,
+    including space initialization, parameter handling, and utility methods.
+    
+    Attributes
+    ----------
+    u : Function Displacement field
+    V : FunctionSpace Function space for displacement
+    kin : Kinematic Kinematic handler for tensor operations
+    mu : float Shear modulus
+    mesh : Mesh Computational mesh
+    mesh_dim : int Topological dimension of mesh
+    name : str Model name
+    plastic_model : str Type of plasticity model
+    quadrature : QuadratureHandler Handler for quadrature integration
+    """
     def __init__(self, u, mu, name, kinematic, quadrature, plastic_model):
-        """
+        """Initialize the plasticity model.
+        
         Parameters
         ----------
-        u : Function, champ de déplacement.
-        mu : Float, coefficient de cisaillement.
-        name : String, nom du modèle mécanique.
-        kinematic : Objet de la classe kinematic.
-        plastic_model : String, HPP_Plasticity, Finite_Plasticity ou None
+        u : Function Displacement field
+        mu : float Shear modulus
+        name : str Model name
+        kinematic : Kinematic Kinematic handler for tensor operations
+        quadrature : QuadratureHandler Handler for quadrature integration
+        plastic_model : str Type of plasticity model
         """
         self.u = u
         self.V = self.u.function_space
@@ -42,9 +92,20 @@ class Plastic():
         self.name = name
         self.plastic_model = plastic_model
         self.quadrature = quadrature
-        self.set_function(quadrature)
+        self.element = self._plastic_element(quadrature)
+        self._set_function(quadrature)
         
-    def plastic_element(self, quadrature):
+    def _plastic_element(self, quadrature):
+        """Create appropriate element for plastic variables.
+
+        Parameters
+        ----------
+        quadrature : QuadratureHandler Handler for quadrature integration
+            
+        Returns
+        -------
+        Element Appropriate element for plastic variables
+        """
         if self.mesh_dim == 1:
             return quadrature.quad_element(["Vector", 3])
         elif self.mesh_dim == 2:
@@ -53,15 +114,16 @@ class Plastic():
             return quadrature.quad_element(["Vector", 6])
         
     def set_plastic(self, sigY, hardening = "CinLin", **kwargs):
-        """
-        Initialise les paramètres et les espaces fonctionnelles pour une étude
-        élasto-plastique
-
+        """Initialize plasticity parameters and function spaces.
+        
         Parameters
         ----------
-        hardening : String, optional, type d'écrouissage. The default is "CinLin".
-        **kwargs : TYPE
-            DESCRIPTION.
+        sigY : float Yield stress
+        hardening : str, optional Type of hardening ("CinLin", "Iso"), default is "CinLin"
+        **kwargs : dict
+            Additional parameters:
+            - H (float): Hardening modulus
+            - Hardening_func (Function): Yield stress function (for J2_JAX)
         """
         self.hardening = hardening
         self.sig_yield = sigY
@@ -74,14 +136,32 @@ class Plastic():
             assert hasattr(self, "yield_stress"), "yield_stress doit être défini pour le modèle J2_JAX"
         
 class FiniteStrainPlastic(Plastic):         
+    """Finite strain plasticity model with multiplicative decomposition.
+
+    This class implements finite strain plasticity based on the multiplicative
+    decomposition of the deformation gradient and evolution of the elastic
+    left Cauchy-Green tensor.
     
-    def set_function(self, quadrature):
+    Attributes
+    ----------
+    V_dev_BE : FunctionSpace Function space for deviatoric elastic left Cauchy-Green tensor
+    dev_Be : Function Deviatoric elastic left Cauchy-Green tensor
+    dev_Be_3D : Expression 3D representation of deviatoric elastic left Cauchy-Green tensor
+    u_old : Function Previous displacement field
+    F_rel : Expression Relative deformation gradient
+    V_Ie : FunctionSpace Function space for volumetric elastic left Cauchy-Green tensor
+    barI_e : Function Volumetric elastic left Cauchy-Green tensor
+    barI_e_expr : Expression Expression for updated volumetric elastic left Cauchy-Green tensor
+    dev_Be_expr : Expression Expression for updated deviatoric elastic left Cauchy-Green tensor
+    """
+    def _set_function(self, quadrature):
+        """Initialize functions for finite strain plasticity.
+        
+        Parameters
+        ----------
+        quadrature : QuadratureHandler Handler for quadrature integration
         """
-        Initialise les fonctions supplémentaires nécessaire à la définition
-        du modèle élasto plastique en transformations finies.
-        """
-        element = self.plastic_element(quadrature)
-        self.V_dev_BE = functionspace(self.mesh, element)
+        self.V_dev_BE = functionspace(self.mesh, self.element)
         self.dev_Be = Function(self.V_dev_BE)
         self.dev_Be_3D  = self.kin.mandel_to_tridim(self.dev_Be)
         self.u_old = Function(self.V, name = "old_displacement")
@@ -91,26 +171,35 @@ class FiniteStrainPlastic(Plastic):
         self.barI_e.x.petsc_vec.set(1.)
         
     def set_expressions(self):
-        """
-        Définition des expressions symboliques des prédicteurs 
+        """Define symbolic expressions for predictors.
+        
+        Creates expressions for the trial elastic left Cauchy-Green tensor
+        and its deviatoric part, which will be used in the return mapping algorithm.
         """
         Be_trial = self.Be_trial()
         self.barI_e_expr = Expression(1./3 * tr(Be_trial), self.V_Ie.element.interpolation_points())       
         self.set_dev_Be_expression(dev(Be_trial))
         
     def Be_trial(self):
-        """
-        Définition du prédicteur du tenseur de Cauchy-Green gauche élastique
-
+        """Define the elastic left Cauchy-Green tensor predictor.
+        
         Returns
         -------
-        Prédicteur tridimensionnel du tenseur de Cauchy-Green gauche élastique
+        Expression Trial elastic left Cauchy-Green tensor
         """
         Be_trial_part_1 = self.barI_e * dot(self.F_rel, self.F_rel.T)
         Be_trial_part_2 = dot(dot(self.F_rel, self.dev_Be_3D), self.F_rel.T)
         return Be_trial_part_1 + Be_trial_part_2
     
     def set_dev_Be_expression(self, dev_Be_trial):
+        """Define the expression for the updated deviatoric elastic left Cauchy-Green tensor.
+
+        Implements the return mapping algorithm for J2 plasticity in finite strain.
+        
+        Parameters
+        ----------
+        dev_Be_trial : Expression Trial deviatoric elastic left Cauchy-Green tensor
+        """
         norme_dev_Be_trial = inner(dev_Be_trial, dev_Be_trial)**(1./2) 
         mu_bar = self.mu * self.barI_e
         F_charge = self.mu * norme_dev_Be_trial - sqrt(2/3) * self.sig_yield 
@@ -123,14 +212,31 @@ class FiniteStrainPlastic(Plastic):
         self.dev_Be_expr = Expression(dev_Be_expr, self.V_dev_BE.element.interpolation_points())
     
 class JAXJ2Plasticity(Plastic):
-
-    def set_function(self, quadrature):
+    """J2 plasticity model with improved numerical performance.
+    
+    This class implements J2 plasticity with algorithmic tangent,
+    providing improved convergence properties in nonlinear simulations.
+    
+    Attributes
+    ----------
+    V_Be : FunctionSpace Function space for elastic left Cauchy-Green tensor
+    Be_Bar_trial_func : Function Trial elastic left Cauchy-Green tensor
+    Be_Bar_old : Function Previous elastic left Cauchy-Green tensor
+    len_plas : int Length of plastic variable array
+    Be_bar_old_3D : Expression 3D representation of previous elastic left Cauchy-Green tensor
+    u_old : Function Previous displacement field
+    Be_Bar_trial : Expression Expression for trial elastic left Cauchy-Green tensor
+    V_p : FunctionSpace Function space for cumulated plasticity
+    p : Function Cumulated plasticity
+    """
+    def _set_function(self, quadrature):
+        """Initialize functions for J2 plasticity.
+        
+        Parameters
+        ----------
+        quadrature : QuadratureHandler Handler for quadrature integration
         """
-        Initialise les fonctions supplémentaires nécessaire à la définition
-        du modèle élasto plastique en transformations finies.
-        """
-        element = self.plastic_element(quadrature)
-        self.V_Be = functionspace(self.mesh, element)
+        self.V_Be = functionspace(self.mesh, self.element)
         self.Be_Bar_trial_func = Function(self.V_Be)
         self.Be_Bar_old = Function(self.V_Be)
         self.len_plas = len(self.Be_Bar_old)
@@ -149,13 +255,35 @@ class JAXJ2Plasticity(Plastic):
         self.p = Function(self.V_p, name = "Cumulated_plasticity")
 
 class JAXGursonPlasticity(Plastic):
-    def set_function(self, quadrature):
+    """Gurson-Tvergaard-Needleman model for porous plasticity.
+    
+    This class implements the GTN model for porous ductile materials,
+    accounting for void growth, nucleation, and coalescence.
+    
+    Attributes
+    ----------
+    V_Be : FunctionSpace Function space for elastic left Cauchy-Green tensor
+    Be_Bar_trial_func : Function Trial elastic left Cauchy-Green tensor
+    Be_Bar_old : Function Previous elastic left Cauchy-Green tensor
+    len_plas : int Length of plastic variable array
+    Be_bar_old_3D : Expression 3D representation of previous elastic left Cauchy-Green tensor
+    u_old : Function Previous displacement field
+    Be_Bar_trial : Expression Expression for trial elastic left Cauchy-Green tensor
+    V_p : FunctionSpace Function space for cumulated plasticity
+    p : Function Cumulated plasticity
+    V_f : FunctionSpace Function space for porosity
+    f : Function Porosity (void volume fraction)
+    q1, q2, q3 : float Tvergaard parameters
+    f0, fc, ff : float Initial, critical, and failure porosity
+    """
+    def _set_function(self, quadrature):
+        """Initialize functions for Gurson plasticity.
+        
+        Parameters
+        ----------
+        quadrature : QuadratureHandler Handler for quadrature integration
         """
-        Initialise les fonctions supplémentaires nécessaire à la définition
-        du modèle élasto plastique en transformations finies.
-        """
-        element = self.plastic_element(quadrature)
-        self.V_Be = functionspace(self.mesh, element)
+        self.V_Be = functionspace(self.mesh, self.element)
         self.Be_Bar_trial_func = Function(self.V_Be)
         self.Be_Bar_old = Function(self.V_Be)
 
@@ -196,8 +324,15 @@ class JAXGursonPlasticity(Plastic):
         self.f.x.array[:] = self.f0
         
     def compute_f_star(self, f):
-        """
-        Calcule la porosité effective selon le modèle GTN
+        """Calculate effective porosity according to GTN model.
+        
+        Parameters
+        ----------
+        f : float or Function Current porosity
+            
+        Returns
+        -------
+        float or Function Effective porosity accounting for void coalescence
         """
         if f <= self.fc:
             return f
@@ -206,8 +341,20 @@ class JAXGursonPlasticity(Plastic):
             return self.fc + (fu - self.fc)*(f - self.fc)/(self.ff - self.fc)
             
     def update_porosity(self, be_bar, dp, f_old, p_old):
-        """
-        Mise à jour de la porosité selon le modèle GTN
+        """Update porosity according to GTN model.
+        
+        Accounts for void growth and nucleation of new voids.
+        
+        Parameters
+        ----------
+        be_bar : Expression Elastic left Cauchy-Green tensor
+        dp : float or Function Increment of plastic strain
+        f_old : float or Function Previous porosity
+        p_old : float or Function Previous cumulated plastic strain
+            
+        Returns
+        -------
+        float or Function Updated porosity
         """
         # Croissance des vides
         tr_D = dp * tr(self.normal(be_bar))  # Trace du taux de déformation plastique
@@ -224,34 +371,56 @@ class JAXGursonPlasticity(Plastic):
         return f_old + f_growth + f_nucleation
 
 class HPPPlastic(Plastic):
-    def set_function(self, quadrature):
-        element = self.plastic_element(quadrature)
-        self.Vepsp = functionspace(self.mesh, element)
+    """Small strain plasticity model.
+    
+    This class implements J2 plasticity with small strain assumption,
+    supporting both isotropic and kinematic hardening.
+    
+    Attributes
+    ----------
+    Vepsp : FunctionSpace Function space for plastic strain
+    eps_p : Function Plastic strain tensor
+    eps_P_3D : Expression 3D representation of plastic strain tensor
+    delta_eps_p : Function Increment of plastic strain
+    """
+    def _set_function(self, quadrature):
+        """Initialize functions for small strain plasticity.
+
+        Parameters
+        ----------
+        quadrature : QuadratureHandler
+            Handler for quadrature integration
+        """
+        self.Vepsp = functionspace(self.mesh, self.element)
         self.eps_p = Function(self.Vepsp, name = "Plastic_strain")
         self.eps_P_3D = self.kin.mandel_to_tridim(self.eps_p)
         self.delta_eps_p = Function(self.Vepsp)
 
     def plastic_correction(self, mu):
-        """
-        Correction de la contrainte par une contribution plastique purement
-        déviatorique.
-
+        """Calculate plastic stress correction.
+        
+        Computes the plastic contribution to the stress tensor,
+        which is purely deviatoric.
+        
         Parameters
         ----------
-        mat : Float, coefficient de cisaillement du matériau.
+        mu : float Shear modulus
+            
         Returns
         -------
-        Tensor, contrainte plastique tridimensionnelle.
+        Expression Plastic stress tensor
         """
         return 2 * mu * self.eps_P_3D
     
     def plastic_driving_force(self, s_3D):
-        """
-        Initialise la force motrice plastique A et la variation de la déformation
-        plastique Delta_eps_p en fonction de cette déformation plastique
+        """Calculate plastic driving force and plastic strain increment.
+        
+        Implements return mapping algorithm for J2 plasticity with
+        different hardening options.
+        
         Parameters
         ----------
-        s_3D : Deviateur des contraintes 3D.
+        s_3D : Expression 3D deviatoric stress tensor
         """
         eps = 1e-10
         if self.hardening == "CinLin":

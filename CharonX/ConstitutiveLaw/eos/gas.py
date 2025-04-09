@@ -15,8 +15,27 @@
 Created on Wed Apr  2 11:24:51 2025
 
 @author: bouteillerp
+
+Ideal Gas Equation of State
+==========================
+
+This module implements the ideal gas equation of state and related models for 
+compressible gas dynamics. It provides the classical pressure-volume-temperature
+relation for ideal gases.
+
+Key features:
+- Implementation of the standard ideal gas law: P = (γ-1) * ρ * e
+- Wave speed calculation for acoustic phenomena
+- Temperature-dependent internal energy relationship
+
+Classes:
+--------
+GPEOS : Ideal gas equation of state
+    Implements the standard gamma-law for ideal gases
+    Provides wave speed calculation for acoustic simulations
+    Handles temperature-dependent behavior
 """
-"""Ideal gas and related equations of state."""
+
 
 from math import sqrt
 from .base_eos import BaseEOS

@@ -15,8 +15,14 @@
 Created on Wed Apr  2 11:36:30 2025
 
 @author: bouteillerp
+
+Mooney-Rivlin Hyperelastic Deviatoric Stress Model
+==================================================
+
+This module implements the Mooney-Rivlin hyperelastic model for the deviatoric part
+of the stress tensor. This model extends the Neo-Hookean model with an additional
+term that depends on the second invariant of the left Cauchy-Green deformation tensor.
 """
-"""Mooney-Rivlin hyperelastic deviatoric stress model."""
 
 from ufl import dev, dot, tr
 from .base_deviator import BaseDeviator

@@ -11,6 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""
+Base Deviatoric Stress Model Framework
+======================================
+
+This module defines the abstract base class for all deviatoric stress models.
+It establishes a common interface and validation functionality that all deviatoric
+stress implementations must follow.
+
+Classes:
+--------
+BaseDeviator : Abstract base class for deviatoric stress models
+    Defines the required interface for all deviatoric models
+    Provides validation functionality for parameters
+    Establishes the core method signatures for stress calculations
+"""
+
 from abc import ABC, abstractmethod
 
 class BaseDeviator(ABC):
@@ -53,12 +70,9 @@ class BaseDeviator(ABC):
         
         Parameters
         ----------
-        u : dolfinx.fem.Function Displacement field
-        v : dolfinx.fem.Function Velocity field
-        J : dolfinx.fem.Function Jacobian of the deformation
-        T : dolfinx.fem.Function Current temperature
-        T0 : dolfinx.fem.Function Initial temperature
-        kinematic : Kinematic Kinematic handler for tensor operations
+        u, v, J, T, T0 : Function See stress_3D method in ConstitutiveLaw.py for details.
+        kinematic : Kinematic Kinematic handler object
+        
         Returns
         -------
         ufl.core.expr.Expr Deviatoric stress tensor

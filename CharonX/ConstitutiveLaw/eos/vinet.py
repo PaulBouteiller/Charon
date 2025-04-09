@@ -15,8 +15,32 @@
 Created on Wed Apr  2 13:23:51 2025
 
 @author: bouteillerp
+
+Vinet Equation of State for Solids
+=================================
+
+This module implements the Vinet equation of state, a physically motivated model
+for solids under compression. The Vinet EOS is particularly well-suited for
+high-pressure simulations and offers improved accuracy compared to polynomial
+models for many materials.
+
+The Vinet model is derived from interatomic potentials and provides a more
+accurate description of solids at high compression than other EOS models.
+It performs especially well for metals and other materials where the repulsive
+interactions between atoms become significant under compression.
+
+Classes:
+--------
+VinetEOS : Vinet equation of state implementation
+    Physics-based EOS suitable for solids
+    Accounts for temperature effects on material parameters
+    Provides accurate pressure calculation at high compressions
+    
+References:
+-----------
+- P. Vinet, J. R. Smith, J. Ferrante, and J. H. Rose. Temperature effects on the universal
+  equation of state of solids. Physical Review B, 35(4) :1945, 1987.
 """
-"""Vinet equation of state for solids."""
 
 
 from ufl import exp, sqrt

@@ -15,8 +15,26 @@
 Created on Wed Apr  2 11:36:03 2025
 
 @author: bouteillerp
+
+Neo-Hookean Hyperelastic Deviatoric Stress Model
+===============================================
+
+This module implements the Neo-Hookean hyperelastic model for the deviatoric part
+of the stress tensor. This model provides a physically based extension of linear
+elasticity to large deformations for rubber-like materials.
+
+The Neo-Hookean model is one of the simplest hyperelastic models, requiring only 
+one material parameter (the shear modulus μ). Despite its simplicity, it provides
+good results for moderate deformations and serves as a foundation for more
+complex hyperelastic models.
+
+Classes:
+--------
+NeoHookDeviator : Neo-Hookean hyperelastic deviatoric model
+    Implements the Neo-Hookean formulation for deviatoric stress
+    Provides Helmholtz energy calculation for coupling with damage models
+    Handles large deformations correctly
 """
-"""Neo-Hookean hyperelastic deviatoric stress model."""
 
 from ufl import dev
 from .base_deviator import BaseDeviator

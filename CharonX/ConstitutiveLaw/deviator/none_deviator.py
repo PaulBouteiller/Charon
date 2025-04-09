@@ -15,8 +15,21 @@
 Created on Wed Apr  2 11:34:08 2025
 
 @author: bouteillerp
+
+Null Deviatoric Stress Model
+===========================
+
+This module implements a null deviatoric stress model, which always returns
+zero for the deviatoric part of the stress tensor. This model is appropriate
+for pure hydrostatic materials, such as perfect fluids, where the stress
+consists only of pressure.
+Classes:
+--------
+NoneDeviator : Null deviatoric model
+    Returns zero deviatoric stress for all inputs
+    Requires no parameters
+    Provides consistent interface with other deviatoric models
 """
-"""Null deviatoric model (pure hydrostatic)."""
 
 from ufl import Identity
 from .base_deviator import BaseDeviator

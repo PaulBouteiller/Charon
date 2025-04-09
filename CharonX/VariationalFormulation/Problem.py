@@ -226,7 +226,7 @@ class Problem:
         self._init_boundary_and_measures()
         
         # Initialisation de la cinématique et de l'amortissement
-        self.kinematic = Kinematic(self.name, self.r, self.n0)
+        self.kinematic = Kinematic(self.name, self.r)
         self.damping = self.set_damping()
         
         # Configuration des espaces fonctionnels et fonctions inconnues
@@ -340,9 +340,11 @@ class Problem:
         """Initialise l'analyse multiphase si nécessaire."""
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
-            self.multiphase = Multiphase(len(self.material), self.quad)
+            self.n_mat = len(self.material)
+            self.multiphase = Multiphase(self.n_mat, self.quad)
             self.set_multiphase()
         else:
+            self.n_mat = 1
             self.multiphase = None
     
     def _init_polycristal(self):
@@ -533,16 +535,16 @@ class Problem:
         la conservation de la masse dans les équations d'états. 
         """
         if isinstance(self.material, list):
-            if all([self.material[0].rho_0 == self.material[i].rho_0 for i in range(len(self.material))]):
-                return self.material[0].rho_0, [1 for j in range(len(self.material))]
+            if all([self.material[0].rho_0 == self.material[i].rho_0 for i in range(self.n_mat)]):
+                return self.material[0].rho_0, [1 for j in range(self.n_mat)]
             else:
                 rho_sum = sum(c * mat.rho_0 for c, mat in zip(self.multiphase.c, self.material))
                 rho_0_field_init = create_function_from_expression(
                     self.V_quad_UD, 
                     Expression(rho_sum, self.V_quad_UD.element.interpolation_points())
                 )
-                relative_rho_field_init_list = [Function(self.V_quad_UD) for i in range(len(self.material))]
-                for i in range(len(self.material)):
+                relative_rho_field_init_list = [Function(self.V_quad_UD) for _ in range(self.n_mat)]
+                for i in range(self.n_mat):
                     relative_rho_field = Expression(self.material[i].rho_0 / rho_sum, self.V_quad_UD.element.interpolation_points()) 
                     relative_rho_field_init_list[i].interpolate(relative_rho_field)
 

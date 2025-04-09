@@ -15,31 +15,77 @@
 Created on Tue Dec 20 17:36:38 2022
 
 @author: bouteillerp
+Thermal Material Properties Module
+==================================
+
+This module defines thermal material properties for heat transfer simulations.
+It provides classes for different types of thermal conductivity models,
+including linear and nonlinear isotropic formulations.
+
+Classes:
+--------
+LinearThermal : Linear isotropic thermal material
+    Constant thermal conductivity independent of temperature and pressure
+    
+NonLinearThermal : Nonlinear isotropic thermal material
+    Temperature and pressure-dependent thermal conductivity
+    Suitable for materials with significant thermal property variations
 """
 
 class LinearThermal:
-    """
-    Défini un matériau possédant des caractéristiques thermique linéaire isotrope
+    """Linear isotropic thermal material model.
+    
+    This class represents materials with constant thermal conductivity,
+    independent of temperature and pressure.
+    
+    Attributes
+    ----------
+    lmbda : float
+        Thermal conductivity coefficient (W/(m·K))
+    type : str
+        Type identifier ("LinearIsotropic")
     """
     def __init__(self, lmbda):
-        """
+        """Initialize linear thermal material.
+        
         Parameters
         ----------
-        lmbda : Float, coefficient de diffusion thermique.
+        lmbda : float
+            Thermal conductivity coefficient (W/(m·K))
         """
         self.lmbda = lmbda
         print("Le coefficient de diffusion est", self.lmbda)
         self.type = "LinearIsotropic"
         
 class NonLinearThermal:
-    """
-    Défini un matériau possédant des caractéristiques thermique non linéaire isotrope
+    """Nonlinear isotropic thermal material model.
+    
+    This class represents materials with temperature and pressure-dependent
+    thermal conductivity, following the relation:
+    λ(T,P) = λ₀ + a₁/T + a₂·max(P,0)
+    
+    Attributes
+    ----------
+    lmbda : float
+        Base thermal conductivity coefficient (W/(m·K))
+    a1 : float
+        Temperature dependence coefficient (W·K/m)
+    a2 : float
+        Pressure dependence coefficient (W/(m·K·Pa))
+    type : str
+        Type identifier ("NonLinearIsotropic")
     """
     def __init__(self, lmbda, a1, a2):
-        """
+        """Initialize nonlinear thermal material.
+        
         Parameters
         ----------
-        lmbda : Float, coefficient de diffusion thermique.
+        lmbda : float
+            Base thermal conductivity coefficient (W/(m·K))
+        a1 : float
+            Temperature dependence coefficient (W·K/m)
+        a2 : float
+            Pressure dependence coefficient (W/(m·K·Pa))
         """
         self.lmbda = lmbda
         self.a1 = a1

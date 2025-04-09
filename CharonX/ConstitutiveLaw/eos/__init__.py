@@ -15,11 +15,20 @@
 Created on Wed Apr  2 11:31:54 2025
 
 @author: bouteillerp
-"""
-"""Equation of State models for material behaviors.
 
-This module provides various equation of state models that relate
-volume changes, temperature, and pressure within materials.
+Equation of State (EOS) Module for Material Behavior
+===================================================
+
+This module provides a comprehensive framework for equations of state (EOS) in material
+modeling. Equations of state relate volumetric deformation, temperature, and pressure.
+
+The module implements various EOS models suitable for different material classes:
+- Linear elastic models for small deformations
+- Hyperelastic models for rubber-like materials
+- Complex models for fluids and gases
+- Specialized models for explosives and high-pressure phenomena
+- Tabulated EOS for experimental data-driven approaches
+
 """
 
 from .base_eos import BaseEOS
@@ -51,12 +60,32 @@ __all__ = [
 ]
 
 class EOS:
-    """Bridge class for compatibility with existing code."""
+    """Initialize the EOS bridge class."""
     
     def __init__(self):
         pass
     
     def set_eos(self, J, T, T0, mat, quadrature):
-        # Délègue au modèle EOS approprié dans le matériau
+        """Calculate pressure using the appropriate EOS model.
+        
+        Parameters
+        ----------
+        J : Function
+            Jacobian of the transformation (volumetric deformation)
+        T : Function
+            Current temperature
+        T0 : Function
+            Initial temperature
+        mat : Material
+            Material properties
+        quadrature : QuadratureHandler
+            Handler for quadrature integration
+            
+        Returns
+        -------
+        Expression
+            Pressure
+        """
+        # Delegate to the appropriate EOS model in the material
         pressure = mat.eos.pressure(J, T, T0, mat, quadrature)
         return pressure

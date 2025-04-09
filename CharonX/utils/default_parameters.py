@@ -146,7 +146,7 @@ def default_energy_solver_order():
         - "Kvaerno3" Solveur implicite
         - "Tsit5", "Dopri5", "Euler" Solveurs explicites,
     """
-    return 1
+    return 4
 
 def default_post_processing_parameters():
     post_processing = {}

@@ -15,8 +15,27 @@
 Created on Wed Apr  2 11:20:12 2025
 
 @author: bouteillerp
+
+Isotropic Linear Elastic Equation of State
+=========================================
+
+This module implements the isotropic linear elastic equation of state under the
+small strain hypothesis. It provides the volumetric component of the classical
+linear elastic constitutive relation, relating volume change to pressure.
+
+Key features:
+- Volumetric response for small strain elasticity
+- Thermal expansion effects
+- Wave speed calculation for acoustic simulations
+- Helmholtz energy calculation for phase field coupling
+
+Classes:
+--------
+IsotropicHPPEOS : Linear elastic equation of state
+    Implements small strain linear elasticity for volumetric response
+    Includes thermal expansion
+    Provides wave speed and energy calculations
 """
-"""Isotropic linear elastic equation of state under small strain hypothesis."""
 
 from math import sqrt
 from ufl import sym, tr

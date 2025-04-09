@@ -15,8 +15,49 @@
 Created on Wed Apr  2 11:23:58 2025
 
 @author: bouteillerp
+
+Mie-Grüneisen Family of Equations of State
+=========================================
+
+This module implements the Mie-Grüneisen family of equations of state, which are
+widely used for modeling materials under shock compression. These models combine
+a reference curve (often a Hugoniot) with a thermal term proportional to the
+Grüneisen parameter.
+
+The Mie-Grüneisen approach is fundamental in shock physics and provides a versatile
+framework for describing materials from moderate to high pressures. Different variants
+of the basic model offer varying degrees of sophistication and applicability ranges.
+
+The module includes:
+- Standard Mie-Grüneisen EOS with polynomial reference curve
+- Extended Mie-Grüneisen (xMG) with improved high-pressure behavior
+- Puff Mie-Grüneisen (PMG) with specialized formulation for porous materials
+
+Key applications:
+- Shock wave propagation
+- Impact dynamics
+- Explosive loading
+- High-pressure material behavior
+
+Classes:
+--------
+MGEOS : Standard Mie-Grüneisen equation of state
+    Basic formulation with polynomial reference curve
+    
+xMGEOS : Extended Mie-Grüneisen equation of state
+    Enhanced formulation for improved high-pressure behavior
+    
+PMGEOS : Puff Mie-Grüneisen equation of state
+    Specialized variant for porous materials
+
+References:
+-----------
+- Grüneisen, E. (1912). "Theorie des festen Zustandes einatomiger Elemente."
+  Annalen der Physik, 344(12), 257-306.
+- Meyers, M.A. (1994). "Dynamic Behavior of Materials." John Wiley & Sons.
+- Steinberg, D.J. (1996). "Equation of State and Strength Properties of Selected
+  Materials." Lawrence Livermore National Laboratory.
 """
-"""Mie-Grüneisen family of equations of state."""
 
 from ufl import sqrt
 from .base_eos import BaseEOS

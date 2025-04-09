@@ -15,8 +15,36 @@
 Created on Wed Apr  2 11:23:08 2025
 
 @author: bouteillerp
+
+Jones-Wilkins-Lee (JWL) Equation of State for Explosives
+=======================================================
+
+This module implements the Jones-Wilkins-Lee (JWL) equation of state, which is widely
+used for modeling the behavior of detonation products from high explosives. The JWL
+model accurately represents the pressure-volume-energy relationship of explosion
+gases over a wide range of expansions.
+
+The JWL equation of state is particularly important in computational physics for:
+- Explosive detonation modeling
+- Blast wave simulations
+- High-energy impact problems
+- Shock physics applications
+
+Classes:
+--------
+JWLEOS : JWL equation of state implementation
+    Models pressure-volume-energy relation for detonation products
+    Supports temperature-dependent behavior
+    Provides wave speed calculation for detonation simulations
+    
+References:
+-----------
+- Lee, E.L., Hornig, H.C., Kury, J.W. (1968). "Adiabatic Expansion of High Explosive
+  Detonation Products." University of California, Lawrence Radiation Laboratory, 
+  Livermore, Report UCRL-50422.
+- R. Menikoff. Jwl equation of state. Technical report, Los Alamos National Lab.(LANL),
+  Los Alamos, NM (United States), 2015.
 """
-"""Jones-Wilkins-Lee (JWL) equation of state for detonation products."""
 
 from ufl import exp, sqrt
 from .base_eos import BaseEOS

@@ -11,7 +11,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Deviatoric stress models for material behaviors."""
+"""
+Deviatoric Stress Models Module
+===============================
+
+This module provides a comprehensive framework for calculating deviatoric 
+stresses in material models. It implements various hyperelastic, hypoelastic,
+and fluid models for the deviatoric part of the stress tensor.
+
+The module is organized with a base abstract class and specialized implementations
+for different material behaviors, including:
+- Isotropic elastic and hyperelastic models
+- Anisotropic elasticity
+- Fluid viscosity models
+- Hypoelastic formulations for large deformations
+
+Key features:
+- Object-oriented design with a consistent interface
+- Support for different strain measures and material symmetries
+- Compatible with the overall constitutive framework
+- Efficient implementation for numerical simulations
+
+The Deviator class serves as the main interface for the rest of the framework,
+delegating calculations to the appropriate specialized implementations based on
+material type and simulation settings.
+
+Classes:
+--------
+BaseDeviator : Abstract base class for all deviatoric models
+    Defines the common interface and validation functionality
+    
+Deviator : Main interface for deviatoric stress calculations
+    Acts as a facade to the specialized implementations
+    Handles model selection and delegation
+    
+NoneDeviator : Model for pure hydrostatic materials (no deviatoric stress)
+    Used for fluids without viscosity
+    
+Various specialized models:
+    IsotropicHPPDeviator, NeoHookDeviator, MooneyRivlinDeviator, etc.
+"""
 #Abstract class
 from .base_deviator import BaseDeviator
 #Common isotropic deviator
@@ -22,13 +61,11 @@ from .mooney_rivlin import MooneyRivlinDeviator
 #Fluid deviator
 from .newtonian_fluid import NewtonianFluidDeviator
 #Anisotropic deviator
-from .transverse_isotropic import NeoHookTransverseDeviator, LuTransverseDeviator
 from .anisotropic import AnisotropicDeviator
 #Hypoelastic deviator
 from .hypoelastic import HypoelasticDeviator
 __all__ = ['BaseDeviator', 'Deviator', 'NoneDeviator', 'NewtonianFluidDeviator',
            'IsotropicHPPDeviator', 'NeoHookDeviator', 'MooneyRivlinDeviator',
-           'NeoHookTransverseDeviator', 'LuTransverseDeviator',
            'AnisotropicDeviator', 'HypoelasticDeviator']
 
 class Deviator:
@@ -61,6 +98,18 @@ class Deviator:
         self.model = model
         
         def is_in_list(material, attribut, keyword):
+            """Check if a keyword appears in a material or list of materials.
+
+            Parameters
+            ----------
+            material : Material or list Material or list of materials to check
+            attribut : str Attribute name to check
+            keyword : str Keyword to search for
+                
+            Returns
+            -------
+            bool True if the keyword is found, False otherwise
+            """
             is_mult = isinstance(material, list)
             return (is_mult and any(getattr(mat, attribut) == keyword for mat in material)) or \
                 (not is_mult and getattr(material, attribut) == keyword)

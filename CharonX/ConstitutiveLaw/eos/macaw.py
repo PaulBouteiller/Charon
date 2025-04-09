@@ -15,8 +15,41 @@
 Created on Wed Apr  2 11:23:34 2025
 
 @author: bouteillerp
+
+MACAW Equation of State for Materials Under Extreme Conditions
+============================================================
+
+This module implements the MACAW equation of state, which is designed for 
+materials under extreme conditions of pressure and temperature.  The MACAW model 
+provides an accurate representation of material behavior from ambient conditions 
+to extreme states encountered in shock and high-energy density physics.
+
+The MACAW equation combines:
+- A cold compression curve for high-pressure behavior
+- Thermal contributions with anharmonic effects
+- Temperature and volume-dependent thermodynamic properties
+
+This advanced EOS is particularly suited for:
+- Shock-dominated problems
+- Materials under extreme pressures
+- High temperature phenomena
+- Phase transitions
+
+Classes:
+--------
+MACAWEOS : MACAW equation of state implementation
+    Comprehensive model for materials under extreme conditions
+    Handles both cold compression and thermal contributions
+    Provides accurate wave speed calculation
+    Supports temperature-dependent behavior
+    
+References:
+-----------
+- E. Lozano and T. D. Aslam. A robust three-parameter reference curve for condensed phase
+    materials. Journal of Applied Physics, 131(1), 2022. .
+- E. Lozano, M. J. Cawkwell, and T. D. Aslam. An analytic and complete equation of state
+for condensed phase materials. Journal of Applied Physics, 134(12), 2023. 
 """
-"""MACAW equation of state for materials under extreme conditions."""
 
 from ufl import exp, sqrt
 from .base_eos import BaseEOS

@@ -15,8 +15,31 @@
 Created on Wed Apr  2 11:35:18 2025
 
 @author: bouteillerp
+
+Isotropic Linear Elastic Deviatoric Stress Model
+===============================================
+
+This module implements the isotropic linear elastic deviatoric stress model under 
+the small strain assumption. It provides the classical linear elastic stress-strain
+relationship for the deviatoric part of the stress tensor.
+
+The model is based on Hooke's law for isotropic materials, where the deviatoric stress
+is proportional to the deviatoric strain. This formulation is suitable for small
+deformation problems and serves as the foundation for more complex models.
+
+Key features:
+- Implementation of small strain linear elasticity
+- Support for both direct shear modulus specification and E/ν parameterization
+- Calculation of deviatoric stress as s = 2μ·dev(ε)
+- Implementation of isochoric Helmholtz energy for phase field coupling
+
+Classes:
+--------
+IsotropicHPPDeviator : Isotropic linear elastic deviatoric model
+    Implements linear elastic deviatoric stress under small strain
+    Supports both μ-based and E/ν-based parameterization
+    Provides Helmholtz energy calculation for coupling with damage models
 """
-"""Isotropic linear elastic deviatoric stress model (small strain)."""
 
 from ufl import sym, dev, tr, dot
 from .base_deviator import BaseDeviator

@@ -15,6 +15,26 @@
 Created on Wed Apr  2 11:14:17 2025
 
 @author: bouteillerp
+
+Material Properties Module for Mechanical Simulations
+=====================================================
+
+This module defines the material properties framework for mechanical simulations.
+It provides a comprehensive approach for handling different material types through
+a unified interface, connecting volumetric (equations of state) and deviatoric
+behaviors for a wide range of materials.
+
+The Material class serves as the central component, allowing for:
+- Management of basic material properties (density, thermal capacity, etc.)
+- Integration of equation of state (EOS) models for volumetric behavior
+- Integration of deviatoric models for shear response
+- Support for additional material parameters for specialized behaviors
+
+Available models include:
+- Various equations of state (IsotropicHPP, Vinet, JWL, MACAW, MG, etc.)
+- Multiple deviatoric behaviors (IsotropicHPP, NeoHook, MooneyRivlin, etc.)
+- Support for specialized material behaviors (fluids, anisotropic solids, etc.)
+
 """
 from .eos import (IsotropicHPPEOS, UEOS, VinetEOS, JWLEOS, MACAWEOS,
                   MGEOS, xMGEOS, PMGEOS, GPEOS, NewtonianFluidEOS, TabulatedEOS)
@@ -32,7 +52,13 @@ class Material:
     ----------
     rho_0 : float or Expression Initial mass density (kg/m³)
     C_mass : float or Function Mass thermal capacity (J/(K·kg))
+    eos_type : str Type of equation of state
+    dev_type : str or None Type of deviatoric behavior
+    eos : EOS Equation of state object
+    devia : DeviatoricModel Deviatoric behavior object
     celerity : float Wave propagation speed in the material
+    e_activation : float or None Activation energy for chemical reactions (if applicable)
+    kin_pref : float or None Kinetic prefactor (if applicable)
     """
     
     def __init__(self, rho_0, C_mass, eos_type, dev_type, eos_params, deviator_params, **kwargs):

@@ -15,8 +15,33 @@
 Created on Wed Apr  2 11:21:36 2025
 
 @author: bouteillerp
+Hyperelastic Isotropic Equations of State (U-family)
+==================================================
+
+This module implements the U-family of hyperelastic isotropic equations of state,
+which relate volume change to pressure through various energy potentials. These
+models provide a flexible framework for modeling the volumetric response of materials
+under large deformations.
+
+The U-family includes several variants (U1 through U8) with different mathematical
+formulations, offering a range of behaviors suitable for different material types
+and deformation regimes. Each model in the family is characterized by a specific 
+form of the strain energy potential.
+
+Key features:
+- Multiple energy potential formulations (U1, U5, U8, etc.)
+- Thermal expansion effects
+- Wave speed calculation for dynamic simulations
+- Support for phase field damage coupling
+
+Classes:
+--------
+UEOS : Hyperelastic isotropic equation of state
+    Implements the U-family of energy potentials
+    Supports multiple formulation variants
+    Includes thermal expansion
+    Provides Helmholtz energy calculation
 """
-"""Hyperelastic isotropic equation of state models (U-family)."""
 
 from ufl import ln, sqrt
 from .base_eos import BaseEOS

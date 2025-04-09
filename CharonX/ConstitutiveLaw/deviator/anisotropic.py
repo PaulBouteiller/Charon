@@ -15,8 +15,27 @@
 Created on Wed Apr  2 11:37:27 2025
 
 @author: bouteillerp
+Anisotropic Hyperelastic Deviatoric Stress Model
+================================================
+
+This module implements a general anisotropic hyperelastic framework for the deviatoric
+part of the stress tensor. It provides a flexible approach to modeling materials with
+complex directional properties, supporting various symmetry classes including orthotropic,
+transversely isotropic, and fully anisotropic behavior.
+
+The implementation features:
+- Support for direct specification of the stiffness tensor
+- Built-in material parameter conversion for common symmetry classes
+- Transformation capabilities to align material axes
+- Optional nonlinear stiffness modulation
+
+Classes:
+--------
+AnisotropicDeviator : General anisotropic hyperelastic model
+    Supports multiple initialization methods
+    Implements the stress calculation for anisotropic hyperelasticity
+    Provides tensor transformation utilities
 """
-"""General anisotropic hyperelastic deviatoric stress model."""
 from ...utils.tensor_operations import symetrized_tensor_product
 from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from .base_deviator import BaseDeviator

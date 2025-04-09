@@ -61,7 +61,7 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
    
 class Isotropic_beam(model):
     def __init__(self, material):
-        model.__init__(self, material, isotherm = True)
+        model.__init__(self, material, isotherm = False)
           
     def define_mesh(self):
         Nx = 1000

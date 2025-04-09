@@ -27,9 +27,8 @@ class Kinematic:
     Attributes:
         name (str): Nom du modèle mécanique ('CartesianUD', 'PlaneStrain', etc.)
         r (Function): Coordonnées radiales dans les cas axisymétriques, cylindriques et sphériques
-        n0 (Vector): Direction d'anisotropie initiale
     """
-    def __init__(self, name, r, anisotropic_dir):
+    def __init__(self, name, r):
         """
         Initialise l'objet Kinematic.
 
@@ -42,7 +41,6 @@ class Kinematic:
         """
         self.name = name
         self.r = r
-        self.n0 = anisotropic_dir
         
         # Configurations pour les différents types de modèles
         self._model_config = {"dim1": ["CartesianUD", "CylindricalUD", "SphericalUD"],
