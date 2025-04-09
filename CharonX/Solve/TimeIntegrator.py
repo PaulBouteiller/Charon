@@ -11,7 +11,7 @@ import numpy as np
 from dolfinx.fem import Function
 from petsc4py.PETSc import InsertMode, ScatterMode
 from ..utils.generic_functions import dt_update, petsc_assign
-from dolfinx.fem.petsc import  set_bc
+from dolfinx.fem.petsc import set_bc
 from numpy import sqrt
 
 # Classe abstraite de base pour tous les intégrateurs

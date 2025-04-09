@@ -21,7 +21,7 @@ from ufl import cofac, inner, div, sym, grad, dot
 from petsc4py.PETSc import ScalarType
 from basix.ufl import element
 
-class TridimensionnalBoundaryConditions(BoundaryConditions):
+class TridimensionalBoundaryConditions(BoundaryConditions):
     def __init__(self, V, facets, name):
         BoundaryConditions.__init__(self, V, facets)
 
@@ -37,7 +37,7 @@ class TridimensionnalBoundaryConditions(BoundaryConditions):
         self.add_component(self.V, 2, self.bcs, region, value)
         self.add_associated_speed_acceleration(self.V, 2, region, value)
         
-class TridimensionnalLoading(Loading):
+class TridimensionalLoading(Loading):
     def __init__(self, mesh, u, V, dx):
         Loading.__init__(self, mesh, u[0], V, dx)
 
@@ -50,10 +50,10 @@ class TridimensionnalLoading(Loading):
     def add_Fz(self, value, u, dx, **kwargs):
         self.add_loading(value, u[2], dx, **kwargs)
 
-class Tridimensionnal(Problem):
+class Tridimensional(Problem):
     @property
     def name(self):
-        return "Tridimensionnal"
+        return "Tridimensional"
 
     def set_finite_element(self):
         cell = self.mesh.basix_cell()
@@ -62,10 +62,10 @@ class Tridimensionnal(Problem):
         self.devia_e = self.Sig_e
         
     def boundary_conditions_class(self):
-        return TridimensionnalBoundaryConditions
+        return TridimensionalBoundaryConditions
     
     def loading_class(self):
-        return TridimensionnalLoading
+        return TridimensionalLoading
     
     def div(self, v):
         return div(v)

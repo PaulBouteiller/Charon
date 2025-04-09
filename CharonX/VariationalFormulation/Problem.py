@@ -22,21 +22,23 @@ from ..utils.kinematic import Kinematic
 from ..utils.default_parameters import default_damping_parameters, default_fem_parameters
 from ..utils.MyExpression import MyConstant, Tabulated_BCs
 from ..utils.quadrature import Quadrature
+from ..utils.interpolation import create_function_from_expression
 
 from .multiphase import Multiphase
+from .mesh_manager import MeshManager
 
 from mpi4py import MPI
 from basix.ufl import element
 from dolfinx.fem.petsc import set_bc
 from petsc4py.PETSc import ScalarType
-from numpy import hstack, argsort, finfo, full_like, array, zeros
+from numpy import array
 
 from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc, 
                          form, assemble_scalar, Constant, Function, Expression, function)
-from dolfinx.mesh import locate_entities_boundary, meshtags
+from dolfinx.mesh import meshtags
 
-from ufl import (SpatialCoordinate, action, Measure, inner, FacetNormal, 
-                 TestFunction, TrialFunction, dot)
+from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot)
+
 
 
 class BoundaryConditions:
@@ -197,197 +199,114 @@ class Loading:
                 return value
         self.Wext += self.kinematic.measure(-value(p) * dot(n, u_), ds)
         
-class MeshManager:
-    """Gestionnaire de maillage et de mesures d'intégration.
-    
-    Cette classe encapsule toutes les opérations liées au maillage,
-    incluant la création de sous-maillages pour les facettes, le marquage des frontières,
-    et la définition des mesures d'intégration pour la formulation HDG.
-    """
-    def __init__(self, mesh, name):
-        """Initialise le gestionnaire de maillage.
-        
-        Parameters
-        ----------
-        mesh : dolfinx.mesh.Mesh Maillage principal du problème.
-        """
-        self.mesh = mesh
-        self.name = name
-        self.dim = mesh.topology.dim
-        self.fdim = self.dim - 1
-        self.h = self.calculate_mesh_size()
-        
-    def mark_boundary(self, flag_list, coord_list, localisation_list, tol = finfo(float).eps):
-        """
-        Permet le marquage simple des bords pour des pavés/maillage 1D
-
-        Parameters
-        ----------
-        flag_list : List de Int, drapeau qui vont être associés aux domaines.
-        coord_list : List de String, variable permettant de repérer les domaines.
-        localisation_list : List de Float, réel au voisinage duquel les poins de coordonnées
-                            vont être récupéré.
-        """
-        facets, full_flag = self.set_facet_flags(flag_list, coord_list, localisation_list, tol)
-        facets, full_flag = self.set_custom_facet_flags(facets, full_flag)
-        marked_facets = hstack(facets)
-        marked_values = hstack(full_flag)
-        sorted_facets = argsort(marked_facets)   
-        self.facet_tag = meshtags(self.mesh, self.fdim, marked_facets[sorted_facets], marked_values[sorted_facets])
-        
-    def set_custom_facet_flags(self, facets, full_flag):
-        return facets, full_flag
-        
-    def set_facet_flags(self, flag_list, coord_list, localisation_list, tol):
-        facets = []
-        full_flag = []
-        for variable in zip(flag_list, coord_list, localisation_list):
-            def trivial_boundary(x):
-                return abs(x[self.index_coord(variable[1])] - variable[2]) < tol
-            facets.append(locate_entities_boundary(self.mesh, self.fdim, trivial_boundary))
-            full_flag.append(full_like(facets[-1], variable[0]))
-        return facets, full_flag
-        
-    def index_coord(self, coord):
-        """
-        Renvoie l'index correspondant à la variable spatiale
-
-        Parameters
-        ----------
-        coord : String, coordonnées parmi: "x", "y", "z", "r"
-
-        """
-        if coord == "x" or coord =="r":
-            index = 0
-        elif coord == "y":
-            index = 1
-        elif coord == "z":
-            if self.name == "Axisymetric":
-                index = 1
-            else:
-                index = 2
-        else:
-            raise ValueError("Standard coordinates must be chosen")   
-        return index
-    
-    def get_boundary_element_size(self, flag):
-        """
-        Calcule les surfaces des éléments connectés aux facettes marquées par `flag`.
-    
-        Parameters:
-            mesh : dolfinx.mesh.Mesh Le maillage.
-            facet_tags : dolfinx.mesh.meshtags Les marqueurs de facettes.
-            flag : int Le drapeau (label) des facettes d'intérêt.
-    
-        Returns: numpy.ndarray
-                Tableau contenant les surfaces des éléments connectés.
-        """
-        from numpy import array, where, unique
-        facet_tags = self.facet_tag
-        # Trouver les indices des facettes marquées par le drapeau
-        marked_facets = where(facet_tags.values == flag)[0]
-        facet_indices = facet_tags.indices[marked_facets]
-    
-        # Connexions facette -> cellule
-        facet_to_cell_map = self.mesh.topology.connectivity(1, 2)
-    
-        # Trouvez les cellules connectées aux facettes marquées
-        connected_cells = []
-        for facet in facet_indices:
-            if facet_to_cell_map.offsets[facet] != facet_to_cell_map.offsets[facet + 1]:
-                connected_cells.extend(facet_to_cell_map.links(facet))
-    
-        connected_cells = unique(connected_cells)  # Supprimez les doublons
-    
-        # Calculez la surface des cellules connectées
-        areas = []
-        centroids_x = []
-        for cell in connected_cells:
-            # Récupérez les sommets de la cellule
-            cell_vertices = self.mesh.geometry.x[self.mesh.topology.connectivity(2, 0).links(cell)]
-            # Vérifiez si l'élément est un triangle ou un quadrilatère
-            if len(cell_vertices) == 3:  # Triangle
-                x1, y1 = cell_vertices[0][0], cell_vertices[0][1]
-                x2, y2 = cell_vertices[1][0], cell_vertices[1][1]
-                x3, y3 = cell_vertices[2][0], cell_vertices[2][1]
-                # Calcul de la surface du triangle
-                area = 0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2))
-                centroid_x = (x1 + x2 + x3) / 3
-            elif len(cell_vertices) == 4:  # Quadrilatère
-                x1, y1 = cell_vertices[0][0], cell_vertices[0][1]
-                x2, y2 = cell_vertices[1][0], cell_vertices[1][1]
-                x3, y3 = cell_vertices[2][0], cell_vertices[2][1]
-                x4, y4 = cell_vertices[3][0], cell_vertices[3][1]
-                # Calcul de la surface du quadrilatère (somme de deux triangles)
-                area = (0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) +
-                        0.5 * abs(x1 * (y3 - y4) + x3 * (y4 - y1) + x4 * (y1 - y3)))
-                centroid_x = (x1 + x2 + x3 + x4) / 4
-            else:
-                raise ValueError(f"Nombre de sommets inattendu : {len(cell_vertices)}")
-            
-            areas.append(area)
-            centroids_x.append(centroid_x)
-    
-        return array(areas), array(centroids_x)
-    
-    def set_measures(self, quadrature):
-        """
-        Here we assign the Measure to get selective integration on boundaries and bulk subdomain
-        """
-        if self.name in ["Axisymetric", "CylindricalUD", "SphericalUD"]:
-            self.r =  SpatialCoordinate(self.mesh)[0]
-        else: 
-            self.r = None
-        self.dx = Measure("dx", domain = self.mesh, metadata = quadrature.metadata)
-        self.dx_l = Measure("dx", domain = self.mesh, metadata = quadrature.lumped_metadata)
-        self.ds = Measure('ds')(subdomain_data = self.facet_tag)
-        self.dS = Measure('dS')(subdomain_data = self.facet_tag)
-        
-    def calculate_mesh_size(self):
-        """
-        Calcule la taille locale des éléments du maillage.
-        
-        Returns
-        -------
-        Function  Fonction contenant la taille locale des éléments.
-        """
-        h_loc = Function(functionspace(self.mesh, ("DG", 0)), name="MeshSize")
-        num_cells = self.mesh.topology.index_map(self.dim).size_local
-        h_local = zeros(num_cells)
-        for i in range(num_cells):
-            h_local[i] = self.mesh.h(self.dim, array([i]))
-        
-        h_loc.x.array[:] = h_local
-        return h_loc
-        
 class Problem:
     """
     La classe Problem est un des éléments principal du code Charon. C'est elle qui défini
-    la formulation du problème en appelant les modèles mécaniques retenus. Les différents types 
-    d'analyses (plastique, endommageable etc..) sont précisés en insérant des mots clés lors de 
-    l'appel de cette classe. Voir la notice pour la définition des différents mots clés.
+    la formulation du problème en appelant les modèles mécaniques retenus.
     """
-    def __init__(self, material, initial_mesh = None, **kwargs):
-        if initial_mesh == None:
+    def __init__(self, material, initial_mesh=None, **kwargs):
+        # Initialisation du maillage et configuration MPI
+        self._init_mesh(initial_mesh)
+        self._init_mpi()
+        
+        # Initialisation des paramètres et du schéma d'intégration
+        self._init_parameters(kwargs)
+        self.quad = Quadrature(self.mesh, self.u_deg, self.schema)
+        
+        # Configuration du type d'analyse
+        self._init_analysis_type(kwargs)
+        
+        # Initialisation du matériau
+        self.material = material
+        
+        # Initialisation du gestionnaire de maillage
+        self._init_mesh_manager()
+        
+        # Configuration des conditions aux limites et mesures d'intégration
+        self._init_boundary_and_measures()
+        
+        # Configuration de l'anisotropie
+        self.set_anisotropy()
+        
+        # Initialisation de la cinématique et de l'amortissement
+        self.kinematic = Kinematic(self.name, self.r, self.n0)
+        self.damping = self.set_damping()
+        
+        # Configuration des espaces fonctionnels et fonctions inconnues
+        self._init_spaces_and_functions()
+        
+        # Configuration pour l'analyse multiphase
+        self._init_multiphase(kwargs)
+        
+        # Initialisation des champs de masse volumique
+        self.rho_0_field_init, self.relative_rho_field_init_list = self.rho_0_field()
+        
+        # Configuration pour polycristal si nécessaire
+        self._init_polycristal()
+        
+        # Détermination des types de lois
+        self._determine_law_types()
+        
+        # Initialisation de la loi constitutive
+        self._init_constitutive_law()
+        
+        # Configuration pour analyse d'endommagement si nécessaire
+        if self.damage_analysis:
+            self.set_damage()
+        
+        # Configuration pour analyse plastique si nécessaire
+        if self.plastic_analysis:
+            self.set_plastic()
+        
+        # Initialisation de la température et des champs auxiliaires
+        self._init_temperature_and_auxiliary()
+        
+        # Configuration pour explosif si nécessaire
+        if self.multiphase_analysis and self.multiphase.explosive:
+            self.set_explosive()
+        
+        # Configuration thermique si nécessaire
+        self._init_thermal_analysis()
+        
+        # Initialisation du chargement
+        self._init_loading()
+        
+        # Configuration des formulations variationnelles
+        self._init_variational_forms()
+        
+        # Configuration des conditions aux limites
+        self._init_boundary_conditions()
+        
+        # Initialisation de la vitesse initiale
+        self.set_initial_speed()
+    
+    def _init_mesh(self, initial_mesh):
+        """Initialise le maillage du problème."""
+        if initial_mesh is None:
             self.mesh = self.define_mesh()
         else:
             self.mesh = initial_mesh
-        if MPI.COMM_WORLD.Get_size()>1:
+    
+    def _init_mpi(self):
+        """Initialise la configuration MPI."""
+        if MPI.COMM_WORLD.Get_size() > 1:
             print("Parallel computation")
             self.mpi_bool = True
         else:
             print("Serial computation")
             self.mpi_bool = False
-
-        # Set parameters and update from user
+            
+    def _init_parameters(self, kwargs):
+        """Initialise les paramètres FEM du problème."""
         self.fem_parameters()
-        self.quad = Quadrature(self.mesh, self.u_deg, self.schema)
-        
-        #Analysis type
+    
+    def _init_analysis_type(self, kwargs):
+        """Configure le type d'analyse à effectuer."""
         self.analysis = kwargs.get("analysis", "explicit_dynamic")
         self.damage_model = kwargs.get("damage", None)
         self.plastic_model = kwargs.get("plastic", None)
         self.iso_T = kwargs.get("isotherm", False)
+        
         if self.analysis == "Pure_diffusion":
             self.adiabatic = False
             assert not self.iso_T
@@ -396,138 +315,106 @@ class Problem:
 
         if not self.adiabatic:
             self.mat_th = kwargs.get("Thermal_material", None)
-        self.plastic_analysis = self.plastic_model!=None
-        self.damage_analysis = self.damage_model!=None
-        
-        # Material properties
-        self.material = material
-        
-        # Gestionnaire de maillage
+            
+        self.plastic_analysis = self.plastic_model is not None
+        self.damage_analysis = self.damage_model is not None
+    
+    def _init_mesh_manager(self):
+        """Initialise le gestionnaire de maillage."""
         self.mesh_manager = MeshManager(self.mesh, self.name)
         self.h = self.mesh_manager.h
         self.dim = self.mesh_manager.dim
         self.fdim = self.mesh_manager.fdim
-
-        # MeshFunctions and Measures for different domains and boundaries
+    
+    def _init_boundary_and_measures(self):
+        """Initialise les conditions aux limites et mesures d'intégration."""
         self.set_boundary()
         self.set_measures()
         self.r = self.mesh_manager.r
         self.facet_tag = self.mesh_manager.facet_tag
-        
-        #Anisotropy
-        self.set_anisotropy()
-
-        # Kinematic
-        self.kinematic = Kinematic(self.name, self.r, self.n0)
-        
-        #Damping
-        self.damping = self.set_damping()
-        
-        #Set function space and unknwown functions 
+    
+    def _init_spaces_and_functions(self):
+        """Initialise les espaces fonctionnels et fonctions inconnues."""
         self.set_finite_element()
         self.set_function_space()
-        self.set_functions()    
-
-        # Multiphase
+        self.set_functions()
+    
+    def _init_multiphase(self, kwargs):
+        """Initialise l'analyse multiphase si nécessaire."""
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
             self.multiphase = Multiphase(len(self.material), self.quad)
             self.set_multiphase()
         else:
             self.multiphase = None
-            
-        self.rho_0_field_init, self.relative_rho_field_init_list = self.rho_0_field()
-        
-        #Set poly-cristal
+    
+    def _init_polycristal(self):
+        """Initialise la configuration polycristalline si nécessaire."""
         if (self.multiphase_analysis and any(mat.dev_type == "Anisotropic" for mat in self.material)) or \
-            (not self.multiphase_analysis and self.material.dev_type == "Anisotropic"):
+           (not self.multiphase_analysis and self.material.dev_type == "Anisotropic"):
             self.set_polycristal()
-        # TODO Implementer formule de Rodrigues donné par claude:
-            # et l'utiliser' pour tourner le tenseur d'élasticité'
-        
-        
-
-        #Define is any material is driven by a tabulated or hypo-elastic law
-        self.is_tabulated = (self.multiphase_analysis and any(mat.eos_type == "Tabulated" for mat in self.material)) or \
-                            (not self.multiphase_analysis and self.material.eos_type == "Tabulated")
-        self.is_hypoelastic = (self.multiphase_analysis and any(mat.dev_type == "Hypoelastic" for mat in self.material)) or \
-                              (not self.multiphase_analysis and self.material.dev_type == "Hypoelastic")
-        self.is_pure_hydro = (self.multiphase_analysis and all(mat.dev_type == None for mat in self.material)) or \
-                            (not self.multiphase_analysis and self.material.dev_type == None)
-                            
+    
+    def _determine_law_types(self):
+        """Détermine les types de lois utilisées."""
         def is_in_list(material, attribut, keyword):
             is_mult = isinstance(material, list)
             return (is_mult and any(getattr(mat, attribut) == keyword for mat in material)) or \
-                (not is_mult and getattr(material, attribut) == keyword)
+                  (not is_mult and getattr(material, attribut) == keyword)
 
         self.is_tabulated = is_in_list(self.material, "eos_type", "Tabulated")
         self.is_hypoelastic = is_in_list(self.material, "dev_type", "Hypoelastic")
         self.is_pure_hydro = is_in_list(self.material, "dev_type", "None")
-
-        # Constitutive Law
-        self.constitutive = ConstitutiveLaw(self.u, material, self.plastic_model,
-                                            self.damage_model, self.multiphase,
-                                            self.name, self.kinematic, self.quad,
-                                            self.damping, self.is_hypoelastic,
-                                            self.relative_rho_field_init_list, self.h)
-            
-        # Set Damage object
-        if self.damage_analysis:
-            self.set_damage()
     
-        # Plastic analysis
-        if self.plastic_analysis:
-            self.set_plastic()
-            
-        #Set function space and unknwown functions           
+    def _init_constitutive_law(self):
+        """Initialise la loi constitutive."""
+        self.constitutive = ConstitutiveLaw(
+            self.u, self.material, self.plastic_model,
+            self.damage_model, self.multiphase,
+            self.name, self.kinematic, self.quad,
+            self.damping, self.is_hypoelastic,
+            self.relative_rho_field_init_list, self.h
+        )
+    
+    def _init_temperature_and_auxiliary(self):
+        """Initialise la température et les champs auxiliaires."""
         self.set_initial_temperature()
         self.set_auxiliary_field()
-
-        if self.multiphase_analysis:
-            if self.multiphase.explosive:
-                self.set_explosive()
-                
-        if self.analysis!="static":
-            if not self.iso_T:
-                self.therm = Thermal(self.material, self.multiphase, self.kinematic, 
-                                     self.T, self.T0, self.constitutive.p)
-                self.set_T_dependant_massic_capacity()
-                self.therm.set_tangent_thermal_capacity() 
-                self.set_volumic_thermal_power()
-                
-        
-        # Loading
+    
+    def _init_thermal_analysis(self):
+        """Initialise l'analyse thermique si nécessaire."""
+        if self.analysis != "static" and not self.iso_T:
+            self.therm = Thermal(
+                self.material, self.multiphase, self.kinematic, 
+                self.T, self.T0, self.constitutive.p
+            )
+            self.set_T_dependant_massic_capacity()
+            self.therm.set_tangent_thermal_capacity() 
+            self.set_volumic_thermal_power()
+    
+    def _init_loading(self):
+        """Initialise le chargement."""
         self.load = Constant(self.mesh, ScalarType((1)))
         self.loading = self.loading_class()(self.mesh, self.u_, self.dx, self.kinematic)
         self.set_loading()
-        
-        # Set up variational formulation
+    
+    def _init_variational_forms(self):
+        """Initialise les formulations variationnelles."""
         print("Starting setting up variational formulation")
         self.set_form()
         
-        # Set up thermal variational formulation       
         if not self.adiabatic:
             self.flux_bilinear_form()
 
-        #Damage evolution 
         if self.damage_analysis:
             self.constitutive.set_damage_driving(self.u, self.J_transfo)
             
-        #Plastic evolution
         if self.plastic_analysis:
             self.constitutive.set_plastic_driving()
-            
-        # #Multiphase evolution           
-        # if self.multiphase_analysis:
-        #     if not self.multiphase.fixed_multiphase:
-        #         self.set_evolution_law()
-        
-        # Dirichlet BC
+    
+    def _init_boundary_conditions(self):
+        """Initialise les conditions aux limites."""
         self.bcs = self.boundary_conditions_class()(self.V, self.facet_tag, self.name)
         self.set_boundary_condition()
-          
-        #Initial speed
-        self.set_initial_speed()
 
     def set_output(self):
         return {}
@@ -652,10 +539,11 @@ class Problem:
             if all([self.material[0].rho_0 == self.material[i].rho_0 for i in range(len(self.material))]):
                 return self.material[0].rho_0, [1 for j in range(len(self.material))]
             else:
-                rho_sum = sum(self.multiphase.c[i] * self.material[i].rho_0 for i in range(len(self.material)))
-                rho_field_expr = Expression(rho_sum, self.V_quad_UD.element.interpolation_points()) 
-                rho_0_field_init = Function(self.V_quad_UD)
-                rho_0_field_init.interpolate(rho_field_expr)
+                rho_sum = sum(c * mat.rho_0 for c, mat in zip(self.multiphase.c, self.material))
+                rho_0_field_init = create_function_from_expression(
+                    self.V_quad_UD, 
+                    Expression(rho_sum, self.V_quad_UD.element.interpolation_points())
+                )
                 relative_rho_field_init_list = [Function(self.V_quad_UD) for i in range(len(self.material))]
                 for i in range(len(self.material)):
                     relative_rho_field = Expression(self.material[i].rho_0 / rho_sum, self.V_quad_UD.element.interpolation_points()) 

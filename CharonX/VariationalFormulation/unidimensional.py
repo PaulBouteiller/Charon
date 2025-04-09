@@ -15,7 +15,7 @@
 Created on Fri Mar 11 09:48:43 2022
 
 @author: bouteillerp
-Le fichier Unidimensionnal contient l'ensemble des routines 
+Le fichier Unidimensional contient l'ensemble des routines 
 nécessaires à la définition d'un problème unidimensionnel.
 Cela recouvre les modèles cartésien 1D, cylindrique et sphérique.
 """
@@ -24,7 +24,7 @@ from ufl import as_vector, dot
 from petsc4py.PETSc import ScalarType
 from basix.ufl import element
 
-class UnidimensionnalBoundaryConditions(BoundaryConditions):
+class UnidimensionalBoundaryConditions(BoundaryConditions):
     def __init__(self, V, facets, name):
         BoundaryConditions.__init__(self, V, facets)
 
@@ -56,10 +56,10 @@ class UnidimensionnalBoundaryConditions(BoundaryConditions):
         self.add_component(self.V, None, self.bcs_axi_homog, region, ScalarType(0))
         self.add_component(self.V, None, self.bcs, region, ScalarType(0))
     
-class UnidimensionnalPeriodicBoundary:  
+class UnidimensionalPeriodicBoundary:  
     pass
 
-class UnidimensionnalLoading(Loading):
+class UnidimensionalLoading(Loading):
     def __init__(self, mesh, u_, dx, kinematic):
         Loading.__init__(self, mesh, u_, dx, kinematic)
         
@@ -76,7 +76,7 @@ class UnidimensionnalLoading(Loading):
         """
         self.add_loading(value, u_, dx)
 
-class Unidimensionnal(Problem):
+class Unidimensional(Problem):
     def set_finite_element(self):
         """
         Initalise le type d'élements utilisé pour les champs inconnus
@@ -92,10 +92,10 @@ class Unidimensionnal(Problem):
         self.devia_e = self.quad.quad_element(["Vector", 3])
         
     def boundary_conditions_class(self):
-        return UnidimensionnalBoundaryConditions
+        return UnidimensionalBoundaryConditions
     
     def loading_class(self):
-        return UnidimensionnalLoading
+        return UnidimensionalLoading
     
     def dot_grad_scal(self, grad_scal_1, grad_scal_2):
         return grad_scal_1 * grad_scal_2
@@ -177,17 +177,17 @@ class Unidimensionnal(Problem):
                               (1 + u.dx(0)) * (1 + self.u / self.r),
                               (1 + u.dx(0)) * (1 + self.u / self.r)])
     
-class CartesianUD(Unidimensionnal):
+class CartesianUD(Unidimensional):
     @property
     def name(self):
         return "CartesianUD"
 
-class CylindricalUD(Unidimensionnal):
+class CylindricalUD(Unidimensional):
     @property
     def name(self):
         return "CylindricalUD"
 
-class SphericalUD(Unidimensionnal):
+class SphericalUD(Unidimensional):
     @property
     def name(self):
         return "SphericalUD"

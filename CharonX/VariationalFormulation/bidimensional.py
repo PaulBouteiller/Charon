@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Bidimensionnal.py contient les routines pour la définition d'un problème mécanique
+Bidimensional.py contient les routines pour la définition d'un problème mécanique
 2D (plan ou axisymétrique).
 """
 
@@ -21,7 +21,7 @@ from ufl import cofac, as_vector, dot, grad, as_tensor, Identity
 from petsc4py.PETSc import ScalarType
 from basix.ufl import element
 
-class BidimensionnalBoundaryConditions(BoundaryConditions):
+class BidimensionalBoundaryConditions(BoundaryConditions):
     def __init__(self, V, facet_tag, name):
         self.name = name
         BoundaryConditions.__init__(self, V, facet_tag)
@@ -32,7 +32,7 @@ class BidimensionnalBoundaryConditions(BoundaryConditions):
         self.add_component(self.V, 1, self.bcs, region, ScalarType(0))
         self.add_associated_speed_acceleration(self.V, 1, region, ScalarType(0))
         
-class AxiBoundaryConditions(BidimensionnalBoundaryConditions):
+class AxiBoundaryConditions(BidimensionalBoundaryConditions):
     def add_Ur(self, region = 1, value = ScalarType(0)):
         """
         Ajoute une CL de Dirichlet u_{r} = value sur la frontière "region".
@@ -58,7 +58,7 @@ class AxiBoundaryConditions(BidimensionnalBoundaryConditions):
         if value is not None:
             self.add_component(self.V, 1, self.bcs_axi, region, ScalarType(value))
             
-class PlaneStrainBoundaryConditions(BidimensionnalBoundaryConditions):
+class PlaneStrainBoundaryConditions(BidimensionalBoundaryConditions):
     def add_Ux(self, region = 1, value = ScalarType(0)):
         """
         Ajoute une CL de Dirichlet u_{x} = value sur la frontière "region".
@@ -73,11 +73,11 @@ class PlaneStrainBoundaryConditions(BidimensionnalBoundaryConditions):
         self.add_component(self.V, 1, self.bcs, region, value)
         self.add_associated_speed_acceleration(self.V, 1, region, value)
 
-class BidimensionnalLoading(Loading):
+class BidimensionalLoading(Loading):
     def __init__(self, mesh, u_, dx, kinematic):
         Loading.__init__(self, mesh, u_[0], dx, kinematic)
 
-class PlaneStrainLoading(BidimensionnalLoading):
+class PlaneStrainLoading(BidimensionalLoading):
     def add_Fx(self, value, u_, dx):
         """
         Ajoute une condition au limite en effort suivant ex.
@@ -94,7 +94,7 @@ class PlaneStrainLoading(BidimensionnalLoading):
     def add_Fy(self, value, u_, dx):
         self.add_loading(value, u_[1], dx)
 
-class AxiLoading(BidimensionnalLoading):
+class AxiLoading(BidimensionalLoading):
     def add_Fr(self, value, u_, dx):
         """
         Ajoute une condition au limite en effort suivant \vec{e}_r.
@@ -104,7 +104,7 @@ class AxiLoading(BidimensionnalLoading):
     def add_Fz(self, value, u_, dx):
         self.add_loading(value, u_[1], dx)
 
-class Bidimensionnal(Problem):
+class Bidimensional(Problem):
     def set_finite_element(self):
         """
         Définition des éléments finis utilisés pour le champ de déplacement
@@ -158,7 +158,7 @@ class Bidimensionnal(Problem):
         """
         return dot(tensor1, tensor2)
     
-class Plane_strain(Bidimensionnal):
+class Plane_strain(Bidimensional):
     @property
     def name(self):
         return "PlaneStrain"
@@ -203,7 +203,7 @@ class Plane_strain(Bidimensionnal):
             return vector_1[0] * vector_2[0] + vector_1[1] * vector_2[1] + \
                     + vector_1[2] * (vector_2[2] + vector_2[3]) 
 
-class Axisymetric(Bidimensionnal):
+class Axisymetric(Bidimensional):
     """
     Défini un problème axisymétrique, par convention l'axe de symétrie est l'axe Oy
     """

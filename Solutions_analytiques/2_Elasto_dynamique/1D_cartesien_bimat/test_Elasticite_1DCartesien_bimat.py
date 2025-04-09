@@ -40,7 +40,7 @@ rho_acier = 7.8e-3
 dico_eos = {"E" : E_acier, "nu" : nu_acier, "alpha" : 1}
 dico_devia = {"E":E_acier, "nu" : nu_acier}
 eos_type = "IsotropicHPP"
-devia_type = "NeoHook"
+devia_type = "IsotropicHPP"
 Acier = Material(rho_acier, 1, eos_type, devia_type, dico_eos, dico_devia)
 
 ###### Modèle mécanique ######
@@ -51,7 +51,7 @@ rho_alu = 2.7e-3
 dico_eos_alu = {"E" : E_alu, "nu" : nu_alu, "alpha" : 1}
 dico_devia_alu = {"E" : E_alu, "nu" : nu_alu}
 eos_type_alu = "IsotropicHPP"
-devia_type_alu = "NeoHook"
+devia_type_alu = "IsotropicHPP"
 Alu = Material(rho_alu, 1, eos_type_alu, devia_type_alu, dico_eos_alu, dico_devia_alu)
 
 Mat = [Acier, Alu]
@@ -84,7 +84,7 @@ class Isotropic_beam(model):
         model.__init__(self, material, isotherm = True)
           
     def define_mesh(self):
-        Nx = 1000
+        Nx = 2000
         return create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
     
     def prefix(self):

@@ -18,7 +18,7 @@ Created on Thu Mar 24 09:54:52 2022
 """
 from dolfinx.fem import Function, Expression
 from ufl import exp
-from ..utils.generic_functions import petsc_assign
+from ..utils.interpolation import interpolate_multiple
 
 class Multiphase:
     def __init__(self, nb_phase, quadrature):
@@ -32,7 +32,7 @@ class Multiphase:
         ----------
         nb_phase : Int, nombre de phase à l'étude.
         """
-        self.multiphase_evolution = [False for i in range(nb_phase)]
+        self.multiphase_evolution = [False] * nb_phase
         self.explosive = False
         self.nb_phase = nb_phase
         self.set_multiphase_function(quadrature)
@@ -47,23 +47,13 @@ class Multiphase:
     
     def set_multiphase(self, expression_list):
         """
-        Définition des concentrations des différents composants
+        Définit les concentrations des différents composants.
 
         Parameters
         ----------
-    
-        expression : Float ou Expression, concentration spatiale initiale de chacune des phases.
+        expression_list : Liste de concentrations initiales pour chaque phase.
         """
-
-        for i in range(self.nb_phase):
-            if isinstance(expression_list[i], float):
-                self.c[i].x.array[:] = expression_list[i]
-            elif isinstance(expression_list[i], Expression):
-                self.c[i].interpolate(expression_list[i])
-            elif isinstance(expression_list[i], Function):
-                petsc_assign(self.c[i], expression_list[i])
-            else:
-                raise ValueError("Concentration must be set")
+        interpolate_multiple(self.c, expression_list)
             
     def set_two_phase_explosive(self, E_vol):
         """
@@ -74,10 +64,36 @@ class Multiphase:
         ----------
         E_vol : Float, Energie volumique libérée par l'explosif.
         """
-        self.c_old = [self.c[i].copy() for i in range(self.nb_phase)]      
+        self.c_old = [c.copy() for c in self.c]   
         self.Delta_e_vol_chim = (self.c[1] - self.c_old[1]) * E_vol
         
-    def set_KJMA_kinetic(self, rho, T, melt_param, gamma_param, alpha_param, tau_param):
+    def set_evolution_parameters(self, params):
+        """
+        Méthode unifiée pour configurer l'évolution des phases.
+        
+        Parameters
+        ----------
+        params : dict, dictionnaire des paramètres d'évolution
+        """
+        if params.get("type") == "KJMA":
+            self._set_KJMA_kinetic(
+                params["rho"], 
+                params["T"], 
+                params["melt_param"], 
+                params["gamma_param"], 
+                params["alpha_param"],
+                params["tau_param"]
+            )
+        elif params.get("type") == "smooth_instantaneous":
+            self._set_smooth_instantaneous_evolution(
+                params["rho"],
+                params["rholim"],
+                params["width"]
+            )
+        else:
+            raise ValueError(f"Unknown evolution type: {params.get('type')}")
+    
+    def _set_KJMA_kinetic(self, rho, T, melt_param, gamma_param, alpha_param, tau_param):
         """
         Initialise les fonctions nécessaires à la définition du modèle de cinétique
         de KJMA.
@@ -102,7 +118,7 @@ class Multiphase:
         self.J = Function(self.V_c)
         
         
-    def set_smooth_instantaneous_evolution(self, rho, rholim, width):
+    def _set_smooth_instantaneous_evolution(self, rho, rholim, width):
         """
         Crée une fonction d'interpolation lisse entre 0 et 1 autour de x0,
         avec une largeur donnée pour passer de 0.01 à 0.99.

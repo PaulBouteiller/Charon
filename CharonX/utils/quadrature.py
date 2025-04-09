@@ -23,7 +23,7 @@ from numpy import array, kron
 from basix import make_quadrature, CellType, QuadratureType
 from .default_parameters import default_fem_degree
 from dolfinx.fem import functionspace
-from basix.ufl import quadrature_element
+from basix.ufl import quadrature_element as quad_el
 
 
 class Quadrature():
@@ -221,14 +221,11 @@ class Quadrature():
         """
         quad_deg = self.default_quadrature_degree()   
         if shape[0] == "Scalar":
-            Qe = quadrature_element(self.ref_el, degree = quad_deg,
-                                    value_shape=())
+            Qe = quad_el(self.ref_el, degree = quad_deg, value_shape=())
         elif shape[0] == "Vector":
-            Qe = quadrature_element(self.ref_el, degree = quad_deg,
-                                    value_shape=(shape[1],))
+            Qe = quad_el(self.ref_el, degree = quad_deg, value_shape=(shape[1],))
         elif shape[0] == "Tensor":
-            Qe = quadrature_element(self.ref_el,  degree = quad_deg,
-                                    value_shape=(shape[1], shape[2]))
+            Qe = quad_el(self.ref_el,  degree = quad_deg, value_shape=(shape[1], shape[2]))
         return Qe  
     
     def quadrature_space(self, shape):

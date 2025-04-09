@@ -20,6 +20,10 @@ Created on Wed Apr  2 11:37:27 2025
 from ...utils.tensor_operations import symetrized_tensor_product
 from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from .base_deviator import BaseDeviator
+from scipy.linalg import block_diag
+from math import cos, sin
+from numpy import array, diag
+from numpy.linalg import inv as np_inv
 
 class AnisotropicDeviator(BaseDeviator):
     """General anisotropic hyperelastic deviatoric stress model.
@@ -38,25 +42,171 @@ class AnisotropicDeviator(BaseDeviator):
         
         Returns
         -------
-        list List with "C" (required) and "f_func" (optional)
+        list List of required parameters based on initialization method
         """
+        # Case 1: Direct stiffness tensor
+        if "C" in self.params:
+            return ["C"]
+        
+        # Case 2: Orthotropic material
+        elif "ET" in self.params:
+            return ["ET", "EL", "EN", "nuLT", "nuLN", "nuTN", "muLT", "muLN", "muTN"]
+        
+        # Case 3: Transversely isotropic material
+        elif "ET" in self.params and "EL" in self.params and "nuT" in self.params:
+            return ["ET", "EL", "nuT", "nuL", "muL"]
+        
+        # Case 4: Isotropic material
+        elif "E" in self.params and "nu" in self.params:
+            return ["E", "nu"]
+        
+        # Default case
         return ["C"]
     
     def __init__(self, params):
         """Initialize the general anisotropic deviatoric model.
         
+        The model can be initialized in multiple ways:
+        1. With a direct stiffness tensor: params = {"C": stiffness_tensor}
+        2. With orthotropic parameters: params = {"ET": ET, "EL": EL, ...}
+        3. With transversely isotropic parameters: params = {"ET": ET, "EL": EL, "nuT": nuT, ...}
+        4. With isotropic parameters: params = {"E": E, "nu": nu}
+        
+        Additional parameters:
+        - f_func: [optional] Coefficients for stiffness modulation functions
+        - rotation: [optional] Rotation angle in radians
+        
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            C : array Stiffness tensor in Voigt notation
-            f_func : list, optional Coefficients for stiffness modulation functions
+        params : dict Parameters for material behavior
         """
+        self.params = params  # Store for required_parameters method
         super().__init__(params)
         
-        # Store parameters
-        self.C = params["C"]
+        # Store stiffness modulation parameters if provided
         self.f_func_coeffs = params.get("f_func", None)
+        
+        # Initialize stiffness tensor based on provided parameters
+        if "C" in params:
+            # Case 1: Direct stiffness tensor provided
+            self.C = params["C"]
+            self._log_direct_stiffness()
+        else:
+            # Build stiffness tensor from material parameters
+            self._build_stiffness_tensor(params)
+        
+        # Apply rotation if specified
+        if "rotation" in params:
+            self._apply_rotation(params["rotation"])
+    
+    def _log_direct_stiffness(self):
+        """Log stiffness tensor components when directly provided."""
+        print("Using direct stiffness tensor (C)")
+    
+    def _build_stiffness_tensor(self, params):
+        """Build stiffness tensor from material parameters.
+        
+        Parameters
+        ----------
+        params : dict Material parameters
+        """
+        # Determine material type and build appropriate stiffness tensor
+        if "ET" in params and "EL" in params and "EN" in params:
+            # Case 2: Orthotropic material
+            self._build_orthotropic_stiffness(params)
+        elif "ET" in params and "EL" in params and "nuT" in params:
+            # Case 3: Transversely isotropic material  
+            self._build_transverse_isotropic_stiffness(params)
+        else:
+            raise ValueError("Invalid parameter set for anisotropic material")
+    
+    def _build_orthotropic_stiffness(self, params):
+        """Build stiffness tensor for orthotropic material.
+        
+        Parameters
+        ----------
+        params : dict Orthotropic material parameters
+        """
+        ET = params["ET"]
+        EL = params["EL"]
+        EN = params["EN"]
+        nuLT = params["nuLT"]
+        nuLN = params["nuLN"]
+        nuTN = params["nuTN"]
+        muLT = params["muLT"]
+        muLN = params["muLN"]
+        muTN = params["muTN"]
+        
+        print("Building orthotropic stiffness tensor with parameters:")
+        print(f"Young's modulus (longitudinal): {EL}")
+        print(f"Young's modulus (transverse): {ET}")
+        print(f"Young's modulus (normal): {EN}")
+        print(f"Poisson ratio (nu_LT): {nuLT}")
+        print(f"Poisson ratio (nu_LN): {nuLN}")
+        print(f"Poisson ratio (nu_TN): {nuTN}")
+        print(f"Shear modulus (mu_LT): {muLT}")
+        print(f"Shear modulus (mu_LN): {muLN}")
+        print(f"Shear modulus (mu_TN): {muTN}")
+        
+        # Create compliance matrix and convert to stiffness
+        Splan = array([[1. / EL, -nuLT / EL, -nuLN / EL],
+                       [-nuLT / EL, 1. / ET, -nuTN / ET],
+                       [-nuLN / EL, -nuTN / ET, 1. / EN]])
+        S = block_diag(Splan, diag([1 / muLN, 1 / muLT, 1 / muTN]))
+        self.C = np_inv(S)
+    
+    def _build_transverse_isotropic_stiffness(self, params):
+        """Build stiffness tensor for transversely isotropic material.
+        
+        Parameters
+        ----------
+        params : dict Transversely isotropic material parameters
+        """
+        ET = params["ET"]
+        EL = params["EL"]
+        nuT = params["nuT"]
+        nuL = params["nuL"]
+        muL = params["muL"]
+        
+        print("Building transversely isotropic stiffness tensor with parameters:")
+        print(f"Young's modulus (longitudinal): {EL}")
+        print(f"Young's modulus (transverse): {ET}")
+        print(f"Poisson ratio (transverse): {nuT}")
+        print(f"Poisson ratio (longitudinal): {nuL}")
+        print(f"Shear modulus (longitudinal): {muL}")
+        
+        # Calculate derived parameters
+        muT = ET / (2 * (1 + nuT))
+        
+        # Reuse orthotropic calculation with appropriate parameters
+        self._build_orthotropic_stiffness({
+            "ET": ET, "EL": EL, "EN": ET,
+            "nuLT": nuL, "nuLN": nuL, "nuTN": nuT,
+            "muLT": muL, "muLN": muL, "muTN": muT
+        })
+    
+    def _apply_rotation(self, alpha):
+        """Apply rotation to the stiffness tensor.
+        
+        Parameters
+        ----------
+        alpha : float Rotation angle in radians
+        """
+        print(f"Applying rotation of {alpha} radians to stiffness tensor")
+        
+        c = cos(alpha)
+        s = sin(alpha)
+        
+        # Create rotation matrix for 6x6 tensor in Voigt notation
+        R = array([[c**2, s**2, 0, 2*s*c, 0, 0],
+                   [s**2, c**2, 0, -2*s*c, 0, 0],
+                   [0, 0, 1, 0, 0, 0],
+                   [-c*s, c*s, 0, c**2 - s**2, 0, 0],
+                   [0, 0, 0, 0, c, s],
+                   [0, 0, 0, 0, -s, c]])
+        
+        # Apply rotation to stiffness tensor
+        self.C = R.dot(self.C.dot(R.T))
     
     def calculate_stress(self, u, v, J, T, T0, kinematic):
         """Calculate the deviatoric stress tensor for anisotropic hyperelasticity.
