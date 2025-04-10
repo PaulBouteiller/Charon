@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Created on Thu Jul 21 09:52:08 2022
 
-@author: bouteillerp
 """
-from numpy import asarray, int32, zeros, arange
+MPI Gathering Functions Module
+============================
+
+This module provides utility functions for working with parallel computations
+using MPI. The functions help gather distributed data from multiple processes 
+into a single coherent result on the root process.
+"""
+
+from numpy import asarray, int32, zeros
 from mpi4py import MPI
-import basix
 
 try:
     import __builtin__
@@ -26,40 +30,56 @@ except ImportError:
     import builtins as __builtin__
     
 def print(*args, **kwargs):
-    """ 
-    Surcharge la version print de Python pour n'afficher qu'une seule
-    fois la chaine de caractère demandé si l'on se trouve en MPI
+    """
+    Override Python's print function to display output only once in MPI environments.
+    
+    This function ensures that in parallel computations, print statements are only
+    executed by the root process (rank 0), avoiding duplicate output.
+    
+    Parameters
+    ----------
+    *args : tuple Arguments to pass to the original print function
+    **kwargs : dict Keyword arguments to pass to the original print function
     """
     if MPI.COMM_WORLD.Get_rank() == 0:
         __builtin__.print(*args, **kwargs)
 
 def gather_function(u):
     """
-    Rassemble les inconnus dans un unique vecteur sur le processus 0
+    Gather function values from all MPI processes into a single global array on rank 0.
+    
     Parameters
     ----------
-    u : Function.
+    u : dolfinx.fem.Function Function whose values are to be gathered
+    
     Returns
     -------
-    global_array : np.array contenant la concaténation des inconnues portées
-                    par les différents processus
+    numpy.ndarray or None
+        On rank 0: Returns an array containing all function values
+        On other ranks: Returns None
     """
     dofmap = u.function_space.dofmap
     imap = dofmap.index_map
-    local_range = asarray(imap.local_range, dtype = int32) * dofmap.index_map_bs
+    local_range = asarray(imap.local_range, dtype=int32) * dofmap.index_map_bs
     size_global = imap.size_global * dofmap.index_map_bs
     return gather_vector(u.x.petsc_vec.array, local_range, size_global)
     
 def gather_vector(local_vector, local_range, size):
     """
-    Rassemble les inconnus dans un unique vecteur sur le processus 0
+    Gather vector values from all MPI processes into a single global array on rank 0.
+    
     Parameters
     ----------
-    u : Function.
+    local_vector : numpy.ndarray Local part of the vector on the current process
+    local_range : numpy.ndarray Range of global indices owned by the current process
+    size : int
+        Global size of the vector
+    
     Returns
     -------
-    global_array : np.array contenant la concaténation des inconnues portées
-                    par les différents processus
+    numpy.ndarray or None
+        On rank 0: Returns an array containing the complete vector
+        On other ranks: Returns None
     """
     comm = MPI.COMM_WORLD
     ranges = comm.gather(local_range, root=0)
@@ -72,11 +92,11 @@ def gather_vector(local_vector, local_range, size):
     
 def gather_coordinate(V):
     """
-    Gathers mesh coordinates from all MPI processes into a single global array on rank 0.
+    Gather mesh coordinates from all MPI processes into a single global array on rank 0.
     
     Parameters
     ----------
-    V : FunctionSpace
+    V : dolfinx.fem.FunctionSpace
         The function space whose mesh coordinates are to be gathered.
         Must be a vector-valued space for geometric coordinates.
     
@@ -94,14 +114,13 @@ def gather_coordinate(V):
     - Assumes 3D coordinates (x, y, z)
     - Coordinates are ordered according to the global DOF numbering
     """
-    
     comm = MPI.COMM_WORLD
     dofmap = V.dofmap
     imap = dofmap.index_map
-    local_range = asarray(imap.local_range, dtype = int32) * dofmap.index_map_bs
+    local_range = asarray(imap.local_range, dtype=int32) * dofmap.index_map_bs
     size_global = imap.size_global * dofmap.index_map_bs
     x = V.tabulate_dof_coordinates()[:imap.size_local]
-    x_glob = comm.gather(x, root = 0)
+    x_glob = comm.gather(x, root=0)
     ranges = comm.gather(local_range, root=0)
     global_array = zeros((size_global,3))
     if comm.rank == 0:

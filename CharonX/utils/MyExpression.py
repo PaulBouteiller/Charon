@@ -11,30 +11,56 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Created on Thu Jul 21 09:52:08 2022
 
-@author: bouteillerp
 """
+Custom Expression Module
+=====================
+
+This module provides custom time-dependent expressions for boundary conditions
+and loading in finite element simulations. It includes various predefined loading
+patterns like step functions, ramps, and custom user-defined functions.
+
+Key components:
+- MyConstant: Base class for time-dependent expressions
+- Various loading patterns (step, smooth step, hat, ramp)
+- User-defined arbitrary loading functions
+- Tabulated boundary conditions
+"""
+
 from dolfinx.fem import Constant
 from petsc4py.PETSc import ScalarType
 from scipy import interpolate
 
 def interpolation_lin(temps_originaux, valeurs_originales, nouveaux_temps):
     """
-    Fonction interpolant 
+    Linearly interpolate values at new time points.
 
     Parameters
     ----------
-    temps_originaux : array, Liste des temps d'origine.
-    valeurs_originales : array, Valeurs aux temps originaux.
-    nouveaux_temps : array, Liste de nouveaux temps auxquels on souhaite 
-                            interpoler les valeurs_originales
+    temps_originaux : array List of original time points
+    valeurs_originales : array Values at the original time points
+    nouveaux_temps : array List of new time points at which to interpolate
+        
+    Returns
+    -------
+    array Interpolated values at the new time points
     """
     f = interpolate.interp1d(temps_originaux, valeurs_originales)
     return f(nouveaux_temps)
 
 class MyConstant:
+    """
+    Base class for time-dependent expressions.
+    
+    This class creates different types of time-dependent expressions based on
+    the "Type" argument, such as step functions, ramps, etc.
+    
+    Parameters
+    ----------
+    mesh : dolfinx.mesh.Mesh Computational mesh
+    *args : tuple Additional arguments for the specific expression type
+    **kwargs : dict Keyword arguments, including "Type" to specify the expression type
+    """
     def __init__(self, mesh, *args, **kwargs):
         if kwargs.get("Type") == "Creneau":
             self.Expression = self.Creneau(mesh, *args)
@@ -50,40 +76,57 @@ class MyConstant:
             raise ValueError("Wrong definition")
         
     class Creneau:  
+        """
+        Step function (rectangular pulse).
+        
+        Creates a step function with amplitude "amplitude" starting at t=0 
+        and ending at t=t_crit.
+        """
         def __init__(self, mesh, t_crit, amplitude):
             """
-            Définition d'un créneau d'amplitude "amplitude" commençant à
-            t=0 et se terminant à t= t_crit
+            Initialize a step function.
 
             Parameters
             ----------
-            mesh : Mesh, maillage du domaine.
-            t_crit : Float, temps de fin du créneau.
-            amplitude : Float, amplitude du créneau.
+            mesh : dolfinx.mesh.Mesh Computational mesh
+            t_crit : float End time of the step
+            amplitude : float Amplitude of the step
             """
             self.t_crit = t_crit 
             self.amplitude = amplitude
             self.constant = Constant(mesh, float(amplitude))
             
         def set_time_dependant_array(self, load_steps):
+            """
+            Precompute values for all time steps.
+            
+            Parameters
+            ----------
+            load_steps : array Array of time points
+            """
             self.value_array = []
             for i in range(len(load_steps)):
-                if load_steps[i] <=self.t_crit:
+                if load_steps[i] <= self.t_crit:
                     self.value_array.append(self.amplitude)
                 else:
                     self.value_array.append(0)
                     
     class SmoothCreneau:  
+        """
+        Smooth step function with linear ramps.
+        
+        Creates a trapezoidal pulse with linear rise and fall.
+        """
         def __init__(self, mesh, t_load, t_plateau, amplitude):
             """
-            Définition d'un créneau d'amplitude "amplitude" commençant à
-            t=0 et se terminant à t= t_crit
+            Initialize a smooth step function.
 
             Parameters
             ----------
-            mesh : Mesh, maillage du domaine.
-            t_crit : Float, temps de fin du créneau.
-            amplitude : Float, amplitude du créneau.
+            mesh : dolfinx.mesh.Mesh Computational mesh
+            t_load : float Duration of the rise/fall
+            t_plateau : float Duration of the plateau
+            amplitude : float Amplitude of the step
             """
             self.t_load = t_load
             self.t_plateau = t_plateau 
@@ -91,14 +134,21 @@ class MyConstant:
             self.constant = Constant(mesh, float(amplitude))
             
         def set_time_dependant_array(self, load_steps):
+            """
+            Precompute values for all time steps.
+            
+            Parameters
+            ----------
+            load_steps : array Array of time points
+            """
             self.value_array = []
             t_fin_plate = self.t_load + self.t_plateau
             t_fin = 2 * self.t_load + self.t_plateau
             for i in range(len(load_steps)):
                 load_step = load_steps[i]
-                if load_step<=self.t_load:
+                if load_step <= self.t_load:
                     self.value_array.append(self.amplitude * load_step/self.t_load)
-                elif load_step >=self.t_load and load_step <=t_fin_plate:
+                elif load_step >= self.t_load and load_step <= t_fin_plate:
                     self.value_array.append(self.amplitude)
                 elif load_step >= t_fin_plate and load_step <= t_fin:
                     self.value_array.append(-self.amplitude / self.t_load * (load_step - t_fin_plate) + self.amplitude)
@@ -106,42 +156,61 @@ class MyConstant:
                     self.value_array.append(0)
 
     class Chapeau:  
+        """
+        Hat function (triangular pulse).
+        
+        Creates a hat function with amplitude "amplitude" starting at t=0
+        and ending at t=t_crit, with the peak at t=t_crit/2.
+        """
         def __init__(self, mesh, t_crit, amplitude):
             """
-            Définition d'un chapeau d'amplitude "amplitude" commençant à
-            t=0 et se terminant à t= t_crit
+            Initialize a hat function.
 
             Parameters
             ----------
-            mesh : Mesh, maillage du domaine.
-            t_crit : Float, temps de fin du créneau.
-            amplitude : Float, amplitude du créneau.
+            mesh : dolfinx.mesh.Mesh Computational mesh
+            t_crit : float End time of the hat
+            amplitude : float Amplitude of the hat
             """
             self.t_crit = t_crit 
             self.amplitude = amplitude
             self.constant = Constant(mesh, float(amplitude))
             
         def set_time_dependant_array(self, load_steps):
+            """
+            Precompute values for all time steps.
+            
+            Parameters
+            ----------
+            load_steps : array Array of time points
+            """
             self.value_array = []
             for i in range(len(load_steps)):
-                if load_steps[i] <=self.t_crit/2:
+                if load_steps[i] <= self.t_crit/2:
                     self.value_array.append(2 * self.amplitude * load_steps[i]/self.t_crit)
-                elif load_steps[i] >=self.t_crit/2 and load_steps[i] <=self.t_crit:
+                elif load_steps[i] >= self.t_crit/2 and load_steps[i] <= self.t_crit:
                     self.value_array.append(2 * self.amplitude * (1 - load_steps[i]/self.t_crit))
                 else:
                     self.value_array.append(0)
             
     class Rampe:  
+        """
+        Ramp function.
+        
+        Creates a linear ramp function with slope "pente".
+        """
         def __init__(self, mesh, pente):
             """
-            Défini chargement rampe.
+            Define a ramp loading.
 
             Parameters
             ----------
-            mesh : Mesh, maillage du domaine.
-            t : Float, instant courant.
-            amplitude : Float, pente du chargement.
-            Le chargement sera donc T^{D} = pente * t
+            mesh : dolfinx.mesh.Mesh Computational mesh
+            pente : float Slope of the ramp
+                
+            Notes
+            -----
+            The loading will be T^{D} = pente * t
             """
             self.pente = pente
             self.constant = Constant(mesh, ScalarType(0))
@@ -149,6 +218,13 @@ class MyConstant:
             self.a_constant = Constant(mesh, ScalarType(0))
         
         def set_time_dependant_array(self, load_steps):
+            """
+            Precompute values for all time steps.
+            
+            Parameters
+            ----------
+            load_steps : array Array of time points
+            """
             self.value_array = []
             self.speed_array = []
             self.acceleration_array = []
@@ -158,33 +234,67 @@ class MyConstant:
                 self.acceleration_array.append(0)
         
     class UserDefined:
-        def __init__(self, mesh, value_array, speed_array = None):
+        """
+        User-defined loading function.
+        
+        Creates a loading from an array of values provided by the user.
+        """
+        def __init__(self, mesh, value_array, speed_array=None):
             """
-            Défini un chargement uniforme qui sera appliqué au bord.
-            Il s'agit d'un chargement de la forme T^{D} = f(t).
-            L'utilisateur doit donner en argument une liste ou un numpy
-            array, qui contient les valeurs de la contrainte au bord,
-            et de même longueur que le nombre de pas de temps.
+            Define a uniform loading to be applied at the boundary.
+            
+            This is a loading of the form T^{D} = f(t).
+            The user must provide a list or numpy array containing the values
+            of the boundary stress, with the same length as the number of time steps.
 
             Parameters
             ----------
-            mesh : Mesh, maillage du domaine.
-            value_array : numpy.array ou list, list des valeurs de la contrainte
-                                                à appliquer.
+            mesh : dolfinx.mesh.Mesh Computational mesh
+            value_array : array List of stress values to apply
+            speed_array : array, optional List of rate values, by default None
             """
             self.constant = Constant(mesh, ScalarType(0))
             self.value_array = value_array
             self.speed_array = speed_array
         
         def set_time_dependant_array(self, load_steps):
+            """
+            This method is a no-op for user-defined arrays.
+            
+            Parameters
+            ----------
+            load_steps : array Array of time points
+            """
             pass
         
 class MyConstantExpression(MyConstant):
+    """
+    Extension of MyConstant that also stores a function.
+    
+    Parameters
+    ----------
+    function : dolfinx.fem.Function Function to be associated with the expression
+    mesh : dolfinx.mesh.Mesh Computational mesh
+    *args : tuple Additional arguments for the specific expression type
+    **kwargs : dict Keyword arguments, including "Type" to specify the expression type
+    """
     def __init__(self, function, mesh, *args, **kwargs):
         self.function = function
         MyConstant.__init__(mesh, *args, **kwargs)
         
 class Tabulated_BCs:
+    """
+    Tabulated boundary conditions.
+    
+    This class creates boundary conditions from tabulated values or
+    standard functions.
+    
+    Parameters
+    ----------
+    mesh : dolfinx.mesh.Mesh Computational mesh
+    *args : tuple Additional arguments for the specific expression type
+    **kwargs : dict Keyword arguments, including "Type" to specify the expression type
+    """
     def __init__(self, mesh, *args, **kwargs):
         if kwargs.get("Type") == "Creneau":
             self.Expression = self.Creneau(mesh, *args)
@@ -194,25 +304,37 @@ class Tabulated_BCs:
             self.Expression = self.UserDefined(mesh, *args)
         
     class Creneau:  
+        """
+        Step function (rectangular pulse) for tabulated BCs.
+        
+        Creates a step function with amplitude "amplitude" starting at t=0 
+        and ending at t=t_crit.
+        """
         def __init__(self, mesh, t_crit, amplitude):
             """
-            Définition d'un créneau d'amplitude "amplitude" commençant à
-            t=0 et se terminant à t= t_crit
+            Initialize a step function.
 
             Parameters
             ----------
-            mesh : Mesh, maillage du domaine.
-            t_crit : Float, temps de fin du créneau.
-            amplitude : Float, amplitude du créneau.
+            mesh : dolfinx.mesh.Mesh Computational mesh
+            t_crit : float End time of the step
+            amplitude : float Amplitude of the step
             """
             self.t_crit = t_crit 
             self.amplitude = amplitude
             self.constant = Constant(mesh, amplitude)
             
         def set_time_dependant_array(self, load_steps):
+            """
+            Precompute values for all time steps.
+            
+            Parameters
+            ----------
+            load_steps : array Array of time points
+            """
             self.value_array = []
             for i in range(len(load_steps)):
-                if load_steps[i] <=self.t_crit:
+                if load_steps[i] <= self.t_crit:
                     self.value_array.append(self.amplitude)
                 else:
                     self.value_array.append(0)

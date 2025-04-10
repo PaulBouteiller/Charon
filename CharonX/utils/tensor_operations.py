@@ -16,10 +16,11 @@ Created on Tue Oct 15 15:32:00 2024
 
 @author: bouteillerp
 """
-from ufl import as_matrix, as_vector, as_tensor, cos, sin
-from numpy import zeros, array, dot
-import numpy as np
-import ufl as ufl
+from ufl import as_matrix, cos, sin
+from ufl import dot as ufl_dot
+from numpy import array, ndarray
+from numpy import dot as np_dot
+
 
 def rotation_matrix_direct(theta, axis):
     """
@@ -70,7 +71,7 @@ def stifness_rotation_matrix(Q):
     of a stiffness tensor, following the Voigt notation convention:
     [11, 22, 33, 12, 23, 13] for both rows and columns.
     """
-    if type(Q) == np.ndarray:
+    if type(Q) == ndarray:
         poly_cristal = False
         Ql = Q.tolist()
     else:
@@ -110,10 +111,8 @@ def rotate_stifness(stiff, Q):
     
     Parameters
     ----------
-    stiff : array-like or ufl.Matrix
-        6x6 stiffness matrix in Voigt notation
-    Q : array-like or ufl.Matrix
-        3x3 rotation matrix
+    stiff : array-like or ufl.Matrix 6x6 stiffness matrix in Voigt notation
+    Q : array-like or ufl.Matrix 3x3 rotation matrix
     
     Returns
     -------
@@ -122,11 +121,11 @@ def rotate_stifness(stiff, Q):
         Returns same type as input (numpy array or UFL matrix)
     """
     Q_sigma = stifness_rotation_matrix(Q)
-    if type(Q_sigma) == np.ndarray:
-        return np.dot(np.dot(Q_sigma, stiff), Q_sigma.T)
+    if type(Q_sigma) == ndarray:
+        return np_dot(np_dot(Q_sigma, stiff), Q_sigma.T)
     else:
         Q_sig = as_matrix(Q_sigma)
-        return ufl.dot(ufl.dot(Q_sig, as_matrix(stiff)), Q_sig.T)
+        return ufl_dot(ufl_dot(Q_sig, as_matrix(stiff)), Q_sig.T)
     
 def sym_mat_to_vec(mat):
     """
@@ -134,8 +133,7 @@ def sym_mat_to_vec(mat):
     
     Parameters
     ----------
-    mat : array-like
-        3x3 symmetric matrix
+    mat : array-like 3x3 symmetric matrix
     
     Returns
     -------
@@ -150,10 +148,8 @@ def symetrized_tensor_product(S1, S2):
     
     Parameters
     ----------
-    S1 : array-like
-        First 3x3 symmetric tensor
-    S2 : array-like
-        Second 3x3 symmetric tensor
+    S1 : array-like First 3x3 symmetric tensor
+    S2 : array-like Second 3x3 symmetric tensor
     
     Returns
     -------

@@ -12,79 +12,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Thu Jul 21 09:52:08 2022
+PETSc Operations Module
+=====================
 
-@author: bouteillerp
+This module provides utility functions for performing operations on PETSc
+vectors and DOLFINx functions. These operations are important for efficient
+manipulation of numerical data in the finite element framework.
+
+Key components:
+- Functions for setting bounds and corrections on vectors
+- Vector operations (division, addition, assignment)
+- Time integration utilities for explicit time stepping
 """
-from mpi4py import MPI
+
 from petsc4py.PETSc import Vec
-try:
-    import __builtin__
-except ImportError:
-    import builtins as __builtin__
-    
-def print(*args, **kwargs):
-    """ 
-    Surcharge la version print de Python pour n'afficher qu'une seule
-    fois la chaine de caractère demandé si l'on se trouve en MPI
-    """
-    if MPI.COMM_WORLD.Get_rank() == 0:
-        __builtin__.print(*args, **kwargs)
 
 def set_correction(current, inf, maxi):
     """
-    Maximum entre la fonction current et la fonction prev puis minimum avec 
-    la fonction maximum.
+    Constrain values to be between lower and upper bounds.
+    
+    Takes the maximum between the current function and the lower bound,
+    then takes the minimum with the upper bound.
 
     Parameters
     ----------
-    current : Function, état courant.
-    prev : Function, borne inférieure.
-    maxi : Function, borne supérieure.
+    current : dolfinx.fem.Function Current state to be constrained
+    inf : dolfinx.fem.Function Lower bound
+    maxi : dolfinx.fem.Function Upper bound
     """
-    current.x.petsc_vec.pointwiseMax(inf.x.petsc_vec, current.x.petsc_vec)
-    current.x.petsc_vec.pointwiseMin(maxi.x.petsc_vec, current.x.petsc_vec)
+    set_min(current, inf)
+    set_max(current, maxi)
     
 def set_min(current, inf):
     """
-    Maximum entre la fonction current et la fonction prev.
+    Set a lower bound on function values.
+    
+    Takes the maximum between the current function and the lower bound.
 
     Parameters
     ----------
-    current : Function, état courant.
-    prev : Function, borne inférieure.
+    current : dolfinx.fem.Function Current state to be constrained
+    inf : dolfinx.fem.Function Lower bound
     """
     current.x.petsc_vec.pointwiseMax(inf.x.petsc_vec, current.x.petsc_vec)
     
 def set_max(current, maxi):
     """
-    Minimum entre la fonction current et la fonction prev.
+    Set an upper bound on function values.
+    
+    Takes the minimum between the current function and the upper bound.
 
     Parameters
     ----------
-    current : Function, état courant.
-    maxi : Function, borne supérieure.
+    current : dolfinx.fem.Function Current state to be constrained
+    maxi : dolfinx.fem.Function Upper bound
     """
     current.x.petsc_vec.pointwiseMin(maxi.x.petsc_vec, current.x.petsc_vec)
 
 def petsc_div(numerateur, denominateur, output):
     """ 
-    Division élément par élément de deux vecteurs via PETSc. Le vecteur
-    output est rempli avec le résultat x/y
+    Element-wise division of two vectors using PETSc.
+    
+    The output vector is filled with the result x/y.
 
-    numerateur : PETScVector
-    denominateur : PETScVector
-    output : PETScVector
+    Parameters
+    ----------
+    numerateur : petsc4py.PETSc.Vec Numerator vector
+    denominateur : petsc4py.PETSc.Vec Denominator vector
+    output : petsc4py.PETSc.Vec Output vector to store the result
     """
     output.pointwiseDivide(numerateur, denominateur)
 
-def petsc_add(target_vec, source_vec, new_vec = False):
+def petsc_add(target_vec, source_vec, new_vec=False):
     """ 
-    Addition élément par élément de deux vecteurs via PETSc
-    x : PETScVector
-    y : PETScVector
-
-    Return a PETSc Vec
+    Element-wise addition of two vectors using PETSc.
+    
+    Parameters
+    ----------
+    target_vec : petsc4py.PETSc.Vec Target vector
+    source_vec : petsc4py.PETSc.Vec Source vector to add
+    new_vec : bool, optional Whether to create a new vector for the result, by default False
+        
+    Returns
+    -------
+    petsc4py.PETSc.Vec
+        Result of the addition (new vector or modified target_vec)
     """
     if new_vec:
         xp = target_vec.copy()
@@ -95,21 +107,29 @@ def petsc_add(target_vec, source_vec, new_vec = False):
 
 def petsc_assign(target, source):
     """ 
-    Pointwise assignation between two Functions using PETSc
-    x : Function
-    y : Function
+    Element-wise assignment between two Functions using PETSc.
+    
+    Parameters
+    ----------
+    target : dolfinx.fem.Function Target function
+    source : dolfinx.fem.Function Source function
     """
     Vec.copy(source.x.petsc_vec, target.x.petsc_vec)
     
-def dt_update(x, dot_x, dt, new_vec = False):
+def dt_update(x, dot_x, dt, new_vec=False):
     """
-    Mise jour explicite de x en utilisant sa dérivée = schéma de Euler-explicite
+    Explicit update of x using its time derivative (Euler-explicit scheme).
 
     Parameters
     ----------
-    x : Function, fonction à mettre à jour.
-    dot_x : Function, dérivée temporelle de x.
-    dt : Float, pas de temps temporel.
+    x : dolfinx.fem.Function Function to update
+    dot_x : dolfinx.fem.Function Time derivative of x
+    dt : float Time step
+    new_vec : bool, optional Whether to create a new vector for the result, by default False
+        
+    Returns
+    -------
+    dolfinx.fem.Function or None Updated function if new_vec is True, None otherwise
     """
     if new_vec:
         u = x.copy()
@@ -121,13 +141,15 @@ def dt_update(x, dot_x, dt, new_vec = False):
     
 def higher_order_dt_update(x, derivative_list, dt):
     """
-    Mise jour explicite de x en utilisant ses dérivées d'ordres supérieurs.
+    Explicit update of x using higher-order time derivatives.
+    
+    Implements a Taylor series expansion for more accurate time integration.
 
     Parameters
     ----------
-    x : Function, fonction à mettre à jour.
-    derivative_list : List, liste contenant les dérivées temporelles successives de x.
-    dt : Float, pas de temps temporel.
+    x : dolfinx.fem.Function Function to update
+    derivative_list : list of dolfinx.fem.Function List containing successive time derivatives of x
+    dt : float Time step
     """
     for k in range(len(derivative_list)):
         x.x.petsc_vec.axpy(dt**(k+1)/(k+1), derivative_list[k].x.petsc_vec)

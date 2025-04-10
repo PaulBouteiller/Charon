@@ -34,33 +34,22 @@ class Quadrature():
     This class provides functionality to define custom Gauss points and weights
     that will be used to integrate bilinear mass forms.
     
-    Parameters
-    ----------
-    mesh : dolfinx.mesh.Mesh
-        The computational mesh
-    u_degree : int
-        Degree of the displacement field interpolation
-    schema : str
-        Integration scheme type ('default', 'over', or 'reduit')
-    
     Attributes
     ----------
-    ref_el : str
-        Name of the reference element (e.g., 'triangle', 'quadrilateral')
-    dim : int
-        Dimension of the mesh
-    u_deg : int
-        Degree of displacement field interpolation
-    schema : str
-        Integration scheme type
-    lumped_metadata : dict
-        Metadata for lumped mass integration
-    metadata : dict
-        Metadata for standard integration
-    mesh : dolfinx.mesh.Mesh
-        The computational mesh
+    ref_el : str Name of the reference element (e.g., 'triangle', 'quadrilateral')
+    dim : int Dimension of the mesh
+    u_deg : int Degree of displacement field interpolation
+    schema : str Integration scheme type
+    lumped_metadata : dict Metadata for lumped mass integration
+    metadata : dict Metadata for standard integration
+    mesh : dolfinx.mesh.Mesh The computational mesh
     """
     def __init__(self, mesh, u_degree, schema):
+        """Parameters
+        ----------
+        mesh : dolfinx.mesh.Mesh The computational mesh
+        u_degree : int Degree of the displacement field interpolation
+        schema : str Integration scheme type ('default', 'over', or 'reduit')"""
         self.ref_el = mesh.ufl_cell().cellname()
         self.dim = mesh.topology.dim
         self.u_deg = u_degree
@@ -165,8 +154,7 @@ class Quadrature():
         
         Returns
         -------
-        int
-            Number of Gauss points based on element type and integration scheme
+        int Number of Gauss points based on element type and integration scheme
             
         Notes
         -----
@@ -234,12 +222,10 @@ class Quadrature():
         
         Parameters
         ----------
-        shape : list
-            Shape specification for the quadrature element
+        shape : list Shape specification for the quadrature element
             
         Returns
         -------
-        dolfinx.fem.FunctionSpace
-            Function space using the specified quadrature element
+        dolfinx.fem.FunctionSpace Function space using the specified quadrature element
         """
         return functionspace(self.mesh, self.quad_element(shape))

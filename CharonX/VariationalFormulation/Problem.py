@@ -11,11 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Created on Fri Mar 11 09:36:05 2022
 
-@author: bouteillerp
 """
+Problem Base Module
+==================
+
+This module provides the foundation for defining and solving mechanical problems
+using the finite element method with FEniCSx.
+
+The module implements the base Problem class, which serves as the framework
+for all specific problem types (1D, 2D, 3D). It handles the setup of the
+variational formulation, boundary conditions, material properties, and solver
+parameters.
+
+Key components:
+- BoundaryConditions: Management of displacement and temperature constraints
+- Loading: Application of external forces and pressure
+- Problem: Base framework for mechanical problems
+"""
+
 from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 from ..utils.kinematic import Kinematic
@@ -39,42 +53,80 @@ from dolfinx.mesh import meshtags
 
 from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot)
 
-
-
 class BoundaryConditions:
     """
-    La classe BoundaryConditions contient les conditions aux limites en déplacement
+    Class containing displacement boundary conditions.
+    
+    This class manages Dirichlet boundary conditions for displacement,
+    velocity, and acceleration fields, supporting both constant and
+    time-dependent values.
+    
+    Attributes
+    ----------
+    V : dolfinx.fem.FunctionSpace
+        Function space for the displacement field
+    facet_tag : dolfinx.mesh.MeshTags
+        Tags identifying different regions of the boundary
+    bcs : list
+        List of Dirichlet boundary conditions
+    v_bcs : list
+        List of velocity boundary conditions
+    a_bcs : list
+        List of acceleration boundary conditions
+    bcs_axi : list
+        List of axisymmetry boundary conditions
+    bcs_axi_homog : list
+        List of homogeneous axisymmetry boundary conditions
+    my_constant_list : list
+        List of time-dependent boundary condition expressions
     """
     def __init__(self, V, facet_tag):
+        """
+        Initialize boundary conditions.
+        
+        Parameters
+        ----------
+        V : dolfinx.fem.FunctionSpace Function space for the displacement field
+        facet_tag : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
+        """
         self.V = V
         self.facet_tag = facet_tag
         self.bcs = []
-        self.v_bcs= []
-        self.a_bcs= []
+        self.v_bcs = []
+        self.a_bcs = []
         self.bcs_axi = []
         self.bcs_axi_homog = []
         self.my_constant_list = []
         
     def current_space(self, space, isub):
+        """
+        Get the current function space or subspace.
+        
+        Parameters
+        ----------
+        space : dolfinx.fem.FunctionSpace Base function space
+        isub : int or None Subspace index, or None for the whole space
+            
+        Returns
+        -------
+        dolfinx.fem.FunctionSpace The selected function space or subspace
+        """
         if isub is None:
             return space
         else:
             return space.sub(isub)
 
-    def add_component(self, space, isub, bcs, region, value = ScalarType(0)):
+    def add_component(self, space, isub, bcs, region, value=ScalarType(0)):
         """
-        Ajout une condition au limites de Dirichlet à la list bcs
-
+        Add a Dirichlet boundary condition to the list.
+        
         Parameters
         ----------
-        space : functionspace, espace fonctionnel sur lequel vis la fonction sur 
-                                laquelle on cherche à appliquer la CL.
-        isub : Int ou None, indice du sous espace de space sur lequel on souhaite 
-                            appliquer la CL.
-        bcs : List, liste auxquelles va être rajouté la CL.
-        region : Int, drapeau de la région sur lequel on souhaite appliquer la CL.
-        value : Float, Constant ou expression, optional
-                    Valeur de la CL. The default is ScalarType(0).
+        space : dolfinx.fem.FunctionSpace Function space for the constrained field
+        isub : int or None Subspace index, or None for a scalar field
+        bcs : list List to which the boundary condition will be added
+        region : int Tag identifying the boundary region
+        value : float, Constant, or Expression, optional Value to impose, by default 0
         """
         def bc_value(value):
             if isinstance(value, float) or isinstance(value, Constant):
@@ -87,7 +139,14 @@ class BoundaryConditions:
         if isinstance(value, MyConstant):
             self.my_constant_list.append(value.Expression)
             
-    def add_associated_speed_acceleration(self, space, isub, region, value = ScalarType(0)):     
+    def add_associated_speed_acceleration(self, space, isub, region, value=ScalarType(0)):
+        """
+        Add associated velocity and acceleration boundary conditions.
+        
+        Parameters
+        ----------
+        space, isub, region, value : see add_component parameters
+        """
         def associated_speed(value):
             if isinstance(value, float) or isinstance(value, Constant):
                 return value
@@ -104,21 +163,26 @@ class BoundaryConditions:
         self.v_bcs.append(dirichletbc(associated_speed(value), dof_loc, self.current_space(space, isub)))
         self.a_bcs.append(dirichletbc(associated_acceleration(value), dof_loc, self.current_space(space, isub)))
         
-        
-    def add_T(self, V_T, T_bcs, value, region = 1):
+    def add_T(self, V_T, T_bcs, value, region):
         """
-        Impose une CL de dirichlet au champ de température
-
+        Impose a Dirichlet boundary condition on the temperature field.
+        
         Parameters
         ----------
-        V_T : functionspace, espace fonctionnel du champ de température.
-        T_bcs : List, list des Cl de Dirichlet pour le champ de température.
-        value : ScalarType ou Expression, valeur de la CL à appliquer.
-        region : Int, drapeau de la région où appliquer les CLs
+        V_T : dolfinx.fem.FunctionSpace Function space for the temperature field
+        T_bcs : list List of Dirichlet BCs for the temperature field
+        value : ScalarType or Expression Value to impose
+        region : int Tag identifying the boundary region
         """
         self.add_component(V_T, None, T_bcs, region, value)
         
     def remove_all_bcs(self):
+        """
+        Remove all boundary conditions.
+        
+        Clears all boundary condition lists, including displacement,
+        velocity, acceleration, and time-dependent expressions.
+        """
         print("Remove_bcs")
         self.bcs = []
         self.v_bcs = []
@@ -127,17 +191,28 @@ class BoundaryConditions:
                 
 class Loading:
     """
-    La classe loading créé l'objet self.Wext égale au travail des efforts exterieurs
+    Class for managing external loads.
+    
+    This class creates the external work form (Wext) representing the
+    work done by external forces, such as boundary tractions or body forces.
+    
+    Attributes
+    ----------
+    kinematic        : Kinematic Object handling kinematics transformations
+    my_constant_list : list List of time-dependent loading expressions
+    function_list    : list  List of loading functions
+    Wext             : ufl.form.Form Form representing the external work
     """
     def __init__(self, mesh, u_, dx, kinematic):
         """
-        Initialise la forme linéaire Wext
-
+        Initialize the external work form.
+        
         Parameters
         ----------
-        mesh : Mesh, maillage du domaine.
-        u_ : TestFunction, fonction test du déplacement.
-        dx : Measure, mesure d'intégration.
+        mesh : dolfinx.mesh.Mesh Computational mesh
+        u_ : ufl.TestFunction Test function for the displacement field
+        dx : ufl.Measure Integration measure
+        kinematic : Kinematic Object handling kinematics transformations
         """
         self.kinematic = kinematic
         self.my_constant_list = []
@@ -146,15 +221,16 @@ class Loading:
         
     def add_loading(self, value, u_, dx):
         """
-        Ajoute des efforts extérieurs, si dx est la mesure volumique,
-        il s'agit de force volumique, si dx est une mesure surfacique,
-        il s'agit de conditions aux limites de Neumann
-
+        Add external loads.
+        
+        If dx is a volume measure, this adds body forces;
+        if dx is a surface measure, this adds Neumann boundary conditions.
+        
         Parameters
         ----------
-        value : ScalarType ou Expression, valeur de la CL en effort.
-        u_ : TestFunction, fonction test du déplacement.
-        dx : Measure, mesure d'intégration.
+        value : ScalarType or Expression Value of the load
+        u_ : ufl.TestFunction Test function for the displacement field
+        dx : ufl.Measure Integration measure
         """
         if isinstance(value, MyConstant):
             if hasattr(value, "function"):
@@ -170,26 +246,30 @@ class Loading:
             self.Wext += self.kinematic.measure(inner(value, u_), dx)
             
     def select(self, value):
-        # if isinstance(value, MyExpression):
-        #     return value.Expression.eval
+        """
+        Select the appropriate value for a boundary condition.
+        
+        Parameters
+        ----------
+        value : various types Input value or expression
+            
+        Returns
+        -------
+        function.Expression or None Selected representation of the value
+        """
         if isinstance(value, function.Expression):
             return value
-        # elif isinstance(value, tabulated):
-            #ToDo si on veut mettre une CL tabulée on peut le faire ici
-            # en mettant à jour la fonction avec sa valeur.
-            # return 
     
     def add_pressure(self, p, mesh, u_, ds):
         """
-        Ajoute une pression (force surfacique normal aux frontières)
-        sur la surface extérieur de mesure d'intégration ds.
-
+        Add pressure (normal surface force) on the exterior surface.
+        
         Parameters
         ----------
-        p : ScalarType ou Expression, valeur de la pression.
-        mesh : Mesh, maillage du domaine.
-        u_ : TestFunction, fonction test du déplacement.
-        dx : Measure, mesure surfacique d'intégration.
+        p : ScalarType or Expression Pressure value
+        mesh : dolfinx.mesh.Mesh Computational mesh
+        u_ : ufl.TestFunction Test function for the displacement field
+        ds : ufl.Measure Surface integration measure
         """
         n = FacetNormal(mesh)
         def value(value):
@@ -201,91 +281,126 @@ class Loading:
         
 class Problem:
     """
-    La classe Problem est un des éléments principal du code Charon. C'est elle qui défini
-    la formulation du problème en appelant les modèles mécaniques retenus.
+    Base class for mechanical problems.
+    
+    This class is one of the main elements of the CharonX code. It defines
+    the problem formulation by calling the selected mechanical models.
     """
     def __init__(self, material, initial_mesh=None, **kwargs):
-        # Initialisation du maillage et configuration MPI
+        """
+        Initialize the problem.
+        
+        Sets up the mesh, material properties, boundary conditions,
+        function spaces, and variational forms for the mechanical problem.
+        
+        Parameters
+        ----------
+        material : Material or list
+            Material properties, or list of materials for multiphase problems
+        initial_mesh : dolfinx.mesh.Mesh, optional
+            Initial mesh, by default None (created using define_mesh)
+        **kwargs : dict
+            Additional parameters:
+                - analysis: Type of analysis
+                - damage: Damage model
+                - plastic: Plasticity model
+                - isotherm: Whether to use isothermal analysis
+                - adiabatic: Whether to use adiabatic analysis
+                - Thermal_material: Material for thermal properties
+        """
+        # Initialize mesh and MPI configuration
         self._init_mesh(initial_mesh)
         self._init_mpi()
         
-        # Initialisation des paramètres et du schéma d'intégration
+        # Initialize parameters and integration scheme
         self._init_parameters(kwargs)
         self.quad = Quadrature(self.mesh, self.u_deg, self.schema)
         
-        # Configuration du type d'analyse
+        # Configure analysis type
         self._init_analysis_type(kwargs)
         
-        # Initialisation du matériau
+        # Initialize material
         self.material = material
         
-        # Initialisation du gestionnaire de maillage
+        # Initialize mesh manager
         self._init_mesh_manager()
         
-        # Configuration des conditions aux limites et mesures d'intégration
+        # Configure boundary conditions and integration measures
         self._init_boundary_and_measures()
         
-        # Initialisation de la cinématique et de l'amortissement
+        # Initialize kinematics and damping
         self.kinematic = Kinematic(self.name, self.r)
         self.damping = self.set_damping()
         
-        # Configuration des espaces fonctionnels et fonctions inconnues
+        # Configure function spaces and unknown functions
         self._init_spaces_and_functions()
         
-        # Configuration pour l'analyse multiphase
+        # Configure multiphase analysis
         self._init_multiphase(kwargs)
         
-        # Initialisation des champs de masse volumique
+        # Initialize density fields
         self.rho_0_field_init, self.relative_rho_field_init_list = self.rho_0_field()
         
-        # Configuration pour polycristal si nécessaire
+        # Configure polycrystal if needed
         self._init_polycristal()
         
-        # Détermination des types de lois
+        # Determine law types
         self._determine_law_types()
         
-        # Initialisation de la loi constitutive
+        # Initialize constitutive law
         self._init_constitutive_law()
         
-        # Configuration pour analyse d'endommagement si nécessaire
+        # Configure damage analysis if needed
         if self.damage_analysis:
             self.set_damage()
         
-        # Configuration pour analyse plastique si nécessaire
+        # Configure plastic analysis if needed
         if self.plastic_analysis:
             self.set_plastic()
         
-        # Initialisation de la température et des champs auxiliaires
+        # Initialize temperature and auxiliary fields
         self._init_temperature_and_auxiliary()
         
-        # Configuration pour explosif si nécessaire
+        # Configure explosive if needed
         if self.multiphase_analysis and self.multiphase.explosive:
             self.set_explosive()
         
-        # Configuration thermique si nécessaire
+        # Configure thermal analysis if needed
         self._init_thermal_analysis()
         
-        # Initialisation du chargement
+        # Initialize loading
         self._init_loading()
         
-        # Configuration des formulations variationnelles
+        # Configure variational forms
         self._init_variational_forms()
         
-        # Configuration des conditions aux limites
+        # Configure boundary conditions
         self._init_boundary_conditions()
         
-        # Initialisation de la vitesse initiale
+        # Initialize initial velocity
         self.set_initial_speed()
     
     def _init_mesh(self, initial_mesh):
-        """Initialise le maillage du problème."""
+        """
+        Initialize the problem mesh.
+        
+        Parameters
+        ----------
+        initial_mesh : dolfinx.mesh.Mesh or None
+            Initial mesh, or None to create one using define_mesh
+        """
         if initial_mesh is None:
             self.mesh = self.define_mesh()
         else:
             self.mesh = initial_mesh
     
     def _init_mpi(self):
-        """Initialise la configuration MPI."""
+        """
+        Initialize MPI configuration for parallel computation.
+        
+        Sets up the MPI environment and determines whether the computation
+        is running in parallel or serial mode.
+        """
         if MPI.COMM_WORLD.Get_size() > 1:
             print("Parallel computation")
             self.mpi_bool = True
@@ -294,11 +409,35 @@ class Problem:
             self.mpi_bool = False
             
     def _init_parameters(self, kwargs):
-        """Initialise les paramètres FEM du problème."""
+        """
+        Initialize FEM parameters.
+        
+        Sets up the finite element parameters such as polynomial degree
+        and quadrature scheme.
+        
+        Parameters
+        ----------
+        kwargs : dict Additional parameters
+        """
         self.fem_parameters()
     
     def _init_analysis_type(self, kwargs):
-        """Configure le type d'analyse à effectuer."""
+        """
+        Configure the type of analysis to perform.
+        
+        Sets up flags and parameters for the specific type of analysis,
+        such as static, dynamic, with or without damage, etc.
+        
+        Parameters
+        ----------
+        kwargs : dict Configuration parameters:
+                        - analysis: Type of analysis
+                        - damage: Damage model
+                        - plastic: Plasticity model
+                        - isotherm: Whether to use isothermal analysis
+                        - adiabatic: Whether to use adiabatic analysis
+                        - Thermal_material: Material for thermal properties
+        """
         self.analysis = kwargs.get("analysis", "explicit_dynamic")
         self.damage_model = kwargs.get("damage", None)
         self.plastic_model = kwargs.get("plastic", None)
@@ -317,27 +456,50 @@ class Problem:
         self.damage_analysis = self.damage_model is not None
     
     def _init_mesh_manager(self):
-        """Initialise le gestionnaire de maillage."""
+        """
+        Initialize the mesh manager.
+        
+        Creates a MeshManager object to handle mesh-related operations
+        and stores mesh properties.
+        """
         self.mesh_manager = MeshManager(self.mesh, self.name)
         self.h = self.mesh_manager.h
         self.dim = self.mesh_manager.dim
         self.fdim = self.mesh_manager.fdim
     
     def _init_boundary_and_measures(self):
-        """Initialise les conditions aux limites et mesures d'intégration."""
+        """
+        Initialize boundary conditions and integration measures.
+        
+        Sets up boundary markers and integration measures for the problem.
+        """
         self.set_boundary()
         self.set_measures()
         self.r = self.mesh_manager.r
         self.facet_tag = self.mesh_manager.facet_tag
     
     def _init_spaces_and_functions(self):
-        """Initialise les espaces fonctionnels et fonctions inconnues."""
+        """
+        Initialize function spaces and unknown functions.
+        
+        Sets up the finite element spaces for displacement, stress, etc.,
+        and creates the corresponding function objects.
+        """
         self.set_finite_element()
         self.set_function_space()
         self.set_functions()
     
     def _init_multiphase(self, kwargs):
-        """Initialise l'analyse multiphase si nécessaire."""
+        """
+        Initialize multiphase analysis if needed.
+        
+        Sets up the multiphase object and configuration if the material
+        is defined as a list of materials.
+        
+        Parameters
+        ----------
+        kwargs : dict Additional configuration parameters
+        """
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
             self.n_mat = len(self.material)
@@ -348,13 +510,22 @@ class Problem:
             self.multiphase = None
     
     def _init_polycristal(self):
-        """Initialise la configuration polycristalline si nécessaire."""
+        """
+        Initialize polycrystal configuration if needed.
+        
+        Sets up polycrystal-specific properties for anisotropic materials.
+        """
         if (self.multiphase_analysis and any(mat.dev_type == "Anisotropic" for mat in self.material)) or \
            (not self.multiphase_analysis and self.material.dev_type == "Anisotropic"):
             self.set_polycristal()
     
     def _determine_law_types(self):
-        """Détermine les types de lois utilisées."""
+        """
+        Determine the types of constitutive laws used.
+        
+        Identifies whether the material uses tabulated EOS, hypoelastic
+        formulation, or pure hydrostatic behavior.
+        """
         def is_in_list(material, attribut, keyword):
             is_mult = isinstance(material, list)
             return (is_mult and any(getattr(mat, attribut) == keyword for mat in material)) or \
@@ -365,7 +536,12 @@ class Problem:
         self.is_pure_hydro = is_in_list(self.material, "dev_type", "None")
     
     def _init_constitutive_law(self):
-        """Initialise la loi constitutive."""
+        """
+        Initialize the constitutive law.
+        
+        Creates a ConstitutiveLaw object with the appropriate configuration
+        for the material and problem type.
+        """
         self.constitutive = ConstitutiveLaw(
             self.u, self.material, self.plastic_model,
             self.damage_model, self.multiphase,
@@ -375,12 +551,22 @@ class Problem:
         )
     
     def _init_temperature_and_auxiliary(self):
-        """Initialise la température et les champs auxiliaires."""
+        """
+        Initialize temperature and auxiliary fields.
+        
+        Sets up the initial temperature and creates auxiliary fields derived
+        from the primary variables.
+        """
         self.set_initial_temperature()
         self.set_auxiliary_field()
     
     def _init_thermal_analysis(self):
-        """Initialise l'analyse thermique si nécessaire."""
+        """
+        Initialize thermal analysis if needed.
+        
+        Sets up thermal properties and heat transfer formulation for
+        non-isothermal analysis.
+        """
         if self.analysis != "static" and not self.iso_T:
             self.therm = Thermal(
                 self.material, self.multiphase, self.kinematic, 
@@ -391,13 +577,22 @@ class Problem:
             self.set_volumic_thermal_power()
     
     def _init_loading(self):
-        """Initialise le chargement."""
+        """
+        Initialize loading conditions.
+        
+        Creates a Loading object and sets up external forces and boundary tractions.
+        """
         self.load = Constant(self.mesh, ScalarType((1)))
         self.loading = self.loading_class()(self.mesh, self.u_, self.dx, self.kinematic)
         self.set_loading()
     
     def _init_variational_forms(self):
-        """Initialise les formulations variationnelles."""
+        """
+        Initialize variational forms.
+        
+        Sets up the weak forms for the mechanical problem, including terms
+        for stiffness, mass, and external work.
+        """
         print("Starting setting up variational formulation")
         self.set_form()
         
@@ -411,63 +606,111 @@ class Problem:
             self.constitutive.set_plastic_driving()
     
     def _init_boundary_conditions(self):
-        """Initialise les conditions aux limites."""
+        """
+        Initialize boundary conditions.
+        
+        Creates a BoundaryConditions object and sets up the specific
+        boundary conditions for the problem.
+        """
         self.bcs = self.boundary_conditions_class()(self.V, self.facet_tag, self.name)
         self.set_boundary_condition()
 
     def set_output(self):
+        """
+        Configure output parameters.
+        
+        Returns
+        -------
+        dict Dictionary of output parameters
+        """
         return {}
     
     def query_output(self, t):
+        """
+        Query output at a specific time.
+        
+        Parameters
+        ----------
+        t : float Current time
+            
+        Returns
+        -------
+        dict Dictionary of output values
+        """
         return {}
     
     def final_output(self):
+        """
+        Process final output at the end of the simulation.
+        """
         pass
     
     def csv_output(self):
+        """
+        Configure CSV output.
+        
+        Returns
+        -------
+        dict Dictionary of CSV output parameters
+        """
         return {}
     
     def prefix(self):
+        """
+        Return a prefix for output files.
+        
+        Returns
+        -------
+        str "problem"
+        """
         return "problem"
     
     def set_measures(self):
-        """Configure les mesures d'intégration pour le problème.
+        """
+        Configure integration measures for the problem.
         
-        Utilise le gestionnaire de maillage pour définir les mesures
-        d'intégration avec le degré polynomial approprié.
+        Uses the mesh manager to define integration measures with the
+        appropriate polynomial degree.
         """
         self.mesh_manager.set_measures(self.quad)
         self.dx = self.mesh_manager.dx
         self.dx_l = self.mesh_manager.dx_l
         self.ds = self.mesh_manager.ds
         
-    def set_function_space(self):  
+    def set_function_space(self):
         """
-        Initialise les espaces fonctionnels
+        Initialize function spaces.
+        
+        Creates the appropriate function spaces for temperature, displacement,
+        and other fields based on the problem configuration.
         """
         if self.adiabatic:
             self.V_T = self.quad.quadrature_space(["Scalar"])
         else:
-            FE_T_elem = element("Lagrange", self.mesh.basix_cell(), degree = self.u_deg)
+            FE_T_elem = element("Lagrange", self.mesh.basix_cell(), degree=self.u_deg)
             self.V_T = functionspace(self.mesh, FE_T_elem)
         self.V = functionspace(self.mesh, self.U_e)
         self.V_quad_UD = self.quad.quadrature_space(["Scalar"])
         self.V_Sig = functionspace(self.mesh, self.Sig_e)
         self.V_devia = functionspace(self.mesh, self.devia_e)
         
-    def set_functions(self):   
-        """ 
-        Initialise les champs inconnues du problème thermo-mécanique
+    def set_functions(self):
+        """
+        Initialize unknown fields for the thermo-mechanical problem.
+        
+        Creates Function objects for displacement, velocity, and temperature.
         """
         self.u_ = TestFunction(self.V)
         self.du = TrialFunction(self.V)
-        self.u = Function(self.V, name = "Displacement")
-        self.v = Function(self.V, name = "Velocities")
-        self.T = Function(self.V_T, name = "Temperature")
+        self.u = Function(self.V, name="Displacement")
+        self.v = Function(self.V, name="Velocities")
+        self.T = Function(self.V_T, name="Temperature")
         
     def set_form(self):
         """
-        Initialise les formes variationnelles prises en input de l'objet solve
+        Initialize variational forms for the solver.
+        
+        Sets up the residual form and, for dynamic problems, the mass form.
         """
         a_res = self.k(self.sig, self.conjugate_strain())
         L_form = self.loading.Wext
@@ -477,66 +720,78 @@ class Problem:
         
     def k(self, sigma, eps):
         """
-        Définition de la forme bilinéaire "rigidité"
-
+        Define the stiffness form.
+        
         Parameters
         ----------
-        sigma : Function, Contrainte actuelle
-        eps : Function, déformation conjuguée à sigma
+        sigma : ufl.tensors.ListTensor Current stress
+        eps : ufl.tensors.ListTensor Strain conjugate to sigma
+            
+        Returns
+        -------
+        ufl.form.Form Stiffness form
         """
         return self.kinematic.measure(self.inner(sigma, eps), self.dx)
     
     def m(self, du, u_):
         """
-        Définition de la forme bilinéaire de masse
-
+        Define the mass bilinear form.
+        
         Parameters
         ----------
-        du : TrialFunction, champ test.
-        u_ : TestFunction, champ test.
+        du : ufl.TrialFunction Trial function
+        u_ : ufl.TestFunction Test function
+            
+        Returns
+        -------
+        ufl.form.Form Mass form
         """
         return self.kinematic.measure(self.rho_0_field_init * inner(du, u_), self.dx_l)
         
     def set_auxiliary_field(self):
         """
-        Initialise quelques champs auxiliaires qui permettent d'écrire de 
-        manière plus concise le problème thermo-mécanique
-        """        
+        Initialize auxiliary fields for the thermo-mechanical problem.
+        
+        Creates fields derived from the primary unknowns, such as the
+        Jacobian of the transformation, density, and stress.
+        """
         self.J_transfo = self.kinematic.J(self.u)
         self.rho = self.rho_0_field_init / self.J_transfo
         self.sig = self.current_stress(self.u, self.v, self.T, self.T0, self.J_transfo)        
         self.D = self.kinematic.Eulerian_gradient(self.v, self.u)
-        # if not self.is_pure_hydro:
-        #     s_expr = self.extract_deviatoric(self.constitutive.s)
-            # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
-            # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
-            # self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
-            # self.s_func = Function(self.V_devia, name = "Deviateur")    
         
         self.sig_expr = Expression(self.sig, self.V_Sig.element.interpolation_points())
-        self.sig_func = Function(self.V_Sig, name = "Stress")
+        self.sig_func = Function(self.V_Sig, name="Stress")
         
         self.p_expr = Expression(self.constitutive.p, self.V_quad_UD.element.interpolation_points())
-        self.p_func = Function(self.V_quad_UD, name = "Pression")
+        self.p_func = Function(self.V_quad_UD, name="Pression")
 
-    
     def set_damping(self):
         """
-        Initialise les paramètres de la pseudo-viscosité
+        Initialize damping parameters.
+        
+        Returns
+        -------
+        dict Dictionary of damping parameters
         """
         return default_damping_parameters()
         
     def rho_0_field(self):
         """
-        Définition du champ de masse volumique initial, si toutes les phases
-        possèdent la même masse volumique, on renvoie cette valeur commune. 
-        La méthode renvoie également des champs de contraintes relatives
-        rho_0_phase/rho_0_init pour les modèles multimatériaux afin d'assurer
-        la conservation de la masse dans les équations d'états. 
+        Define the initial density field.
+        
+        For multimaterial models, computes the initial density as a weighted
+        sum of phase densities, and returns relative density fields for each phase.
+        
+        Returns
+        -------
+        tuple (rho_0_field_init, relative_rho_field_init_list)
+                - Initial density field
+                - List of relative density fields for each phase
         """
         if isinstance(self.material, list):
             if all([self.material[0].rho_0 == self.material[i].rho_0 for i in range(self.n_mat)]):
-                return self.material[0].rho_0, [1 for j in range(self.n_mat)]
+                return self.material[0].rho_0, [1 for _ in range(self.n_mat)]
             else:
                 rho_sum = sum(c * mat.rho_0 for c, mat in zip(self.multiphase.c, self.material))
                 rho_0_field_init = create_function_from_expression(
@@ -554,23 +809,23 @@ class Problem:
 
     def current_stress(self, u, v, T, T0, J):
         """
-        Définie la contrainte actuelle dans le matériau en fonction
-        de la déformation et de la vitesse (utilisée pour la pseudo-viscosité)
-        la contrainte est pondérée par des fonctions de dégradation
-        dans le cas endommageable
-
+        Define the current stress in the material.
+        
+        Computes the stress based on deformation and velocity, applying
+        degradation factors in case of damage.
+        
         Parameters
         ----------
-        u : Function, champ de déplacement.
-        v : Function, champ de vitesse.
-        T : Function, champ de température.
-        T0 : Function, champ de température initiale.
-        J : Function, Jacobien de la transformation.
-
+        u  : dolfinx.fem.Function Displacement field
+        v  : dolfinx.fem.Function Velocity field
+        T  : dolfinx.fem.Function Current temperature field
+        T0 : dolfinx.fem.Function Initial temperature field
+        J  : ufl.algebra.Product Jacobian of the transformation
+            
         Returns
         -------
-        sigma : Contrainte actuelle.
-
+        ufl.tensors.ListTensor
+            Current stress tensor
         """
         sigma = self.undamaged_stress(u, v, T, T0, J)
         if self.damage_analysis:
@@ -579,9 +834,10 @@ class Problem:
     
     def set_initial_temperature(self):
         """
-        Initialise la température de l'étude, si un des matériaux
-        suit une loi d'état de Mie Gruneisen, le champ T dans ce cas
-        désigne l'énergie interne !!!
+        Initialize temperature for the study.
+        
+        For materials following Mie-Gruneisen EOS, the T field may
+        represent internal energy rather than temperature.
         """
         T0 = 293.15
         self.T0 = Constant(self.mesh, ScalarType(T0))
@@ -589,13 +845,17 @@ class Problem:
                 
     def set_volumic_thermal_power(self):
         """
-        Définition de la puissance volumique des efforts intérieurs
+        Define the volumetric power of internal forces.
+        
+        Computes the heat generation term from mechanical work.
         """
         self.pint_vol = self.inner(self.sig, self.D)
         
     def flux_bilinear_form(self):
         """
-        Définition de la forme bilinéaire correspondant au flux thermique
+        Define the bilinear form for thermal flux.
+        
+        Sets up the weak form for heat conduction in non-adiabatic analysis.
         """
         self.dT = TrialFunction(self.V_T)
         self.T_ = TestFunction(self.V_T)
@@ -604,10 +864,11 @@ class Problem:
         
     def set_time_dependant_BCs(self, load_steps):
         """
-        Définition de la liste donnant l'évolution temporelle du chargement.
+        Define the list giving the temporal evolution of loading.
+        
         Parameters
         ----------
-        load_steps : List, liste des pas de temps.
+        load_steps : list List of time steps
         """
         for constant in self.loading.my_constant_list:
             constant.set_time_dependant_array(load_steps)
@@ -615,60 +876,128 @@ class Problem:
             constant.set_time_dependant_array(load_steps)
         
     def set_boundary(self):
+        """
+        Set up boundary tags.
+        
+        Creates default empty boundary tags if not overridden.
+        """
         print("Warning no boundary has been tagged inside CHARONX")
         self.mesh_manager.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
     
     def set_loading(self):
+        """
+        Set up loading conditions.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def set_boundary_condition(self):
+        """
+        Set up boundary conditions.
+        
+        To be overridden in derived classes.
+        """
         pass
 
     def set_velocity_boundary_condition(self):
+        """
+        Set up velocity boundary conditions.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def set_initial_speed(self):
+        """
+        Set up initial velocity.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def user_defined_constitutive_law(self):
+        """
+        Define user-defined constitutive law.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def set_T_dependant_massic_capacity(self):
+        """
+        Set temperature-dependent specific heat capacity.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def update_bcs(self, num_pas):
+        """
+        Update boundary conditions at a given time step.
+        
+        Parameters
+        ----------
+        num_pas : int Current time step number
+        """
         pass
     
     def set_polycristal(self):
+        """
+        Set up polycrystal configuration.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def fem_parameters(self):
+        """
+        Set up FEM parameters.
+        
+        Loads default parameters for polynomial degree and quadrature scheme.
+        """
         fem_parameters = default_fem_parameters()
         self.u_deg = fem_parameters.get("u_degree")
         self.schema= fem_parameters.get("schema")
         
     def user_defined_displacement(self, t):
+        """
+        Apply user-defined displacement at time t.
+        
+        Parameters
+        ----------
+        t : float Current time
+        """
         set_bc(self.u.x.petsc_vec, self.bcs.bcs)
     
     def set_initial_conditions(self):
+        """
+        Set up initial conditions.
+        
+        To be overridden in derived classes.
+        """
         pass
     
     def set_gen_F(self, boundary_flag, value):
         """
-        Fonction générique définissant la résultante d'une force sur une surface donnée
-        en étudiant l'action du champ de déplacement solution sur le résidu
-        voir https://comet-fenics.readthedocs.io/en/latest/demo/tips_and_tricks/computing_reactions.html
-
+        Define the resultant force on a given surface.
+        
+        Computes the reaction force by testing the residual with a
+        carefully chosen test function.
+        
         Parameters
         ----------
-        boundary_flag : Int, drapeau de la frontière sur laquelle on souhaite récupérer
-        la résultante.
-        value : ScalarType.
+        boundary_flag : int Flag of the boundary where the resultant is to be recovered
+        value : ScalarType Value to impose for the test function
+            
         Returns
         -------
-        Form, form linéaire, action du résidu sur un champ test bien 
-                        choisi prenant une valeur unitaire sur la CL de 
-                        Dirichlet où on souhaite récupérer la réaction.
+        ufl.form.Form Linear form representing the action of the residual on the test function
+            
+        Notes
+        -----
+        This follows the approach described in:
+        https://comet-fenics.readthedocs.io/en/latest/demo/tips_and_tricks/computing_reactions.html
         """
         v_reac = Function(self.V)
         dof_loc = locate_dofs_topological(self.V, self.facet_tag.dim, self.facet_tag.find(boundary_flag))
@@ -677,14 +1006,16 @@ class Problem:
     
     def set_F(self, boundary_flag, coordinate):
         """
-        Initialise la résultante F selon la coordonnée coordinate
-        sur la frontière déterminée par le drapeau boundary_flag.
-
+        Initialize the resultant force along a coordinate.
+        
         Parameters
         ----------
-        boundary_flag : Int, drapeau de la frontière sur laquelle on souhaite récupérer
-        la résultante.
-        coordinate : Str, coordonnée pour laquelle on souhaite récupérer la réaction
+        boundary_flag : int Flag of the boundary where the resultant is to be recovered
+        coordinate : str Coordinate for which to recover the reaction ("x", "y", "z", "r")
+            
+        Returns
+        -------
+        ufl.form.Form  Linear form representing the reaction force
         """
         if self.dim == 1:
             return self.set_gen_F(boundary_flag, ScalarType(1.))
@@ -703,15 +1034,14 @@ class Problem:
     
     def get_F(self, form):
         """
-        Export la réaction associé à la condition aux limites de Dirichlet.
-
+        Export the reaction associated with a Dirichlet boundary condition.
+        
         Parameters
         ----------
-        form : Form, forme linéaire, action du résidu sur un champ test bien 
-                     choisi prenant une valeur unitaire sur la CL de 
-                     Dirichlet où on souhaite récupérer la réaction.
+        form : ufl.form.Form Linear form representing the reaction force
+            
         Returns
         -------
-        Scalar, intégrale de la forme linéaire sur la frontière.
+        float Integral of the linear form over the boundary
         """
         return assemble_scalar(form)

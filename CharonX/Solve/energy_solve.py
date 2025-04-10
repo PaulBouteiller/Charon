@@ -17,12 +17,10 @@ Created on Mon Sep 26 17:56:59 2022
 @author: bouteillerp
 """
 from ..utils.default_parameters import default_energy_solver_order
-from .TimeIntegrator import ButcherIntegrator
+from .explicit_butcher import ButcherIntegrator
 from .hybrid_solver import create_linear_solver
 
 from dolfinx.fem import Function, Expression
-
-
         
 class ExplicitEnergySolver:
     def __init__(self, dt, T, C_tan, PVol):
@@ -41,7 +39,6 @@ class ExplicitEnergySolver:
         self.dot_T = PVol / C_tan
         self.dot_T_expr = Expression(self.dot_T, self.T.function_space.element.interpolation_points())
         self.dot_T_func = Function(self.T.function_space)
-        # Initialiser l'intégrateur avec l'expression de la dérivée
         self.integrator = ButcherIntegrator(lambda: self.dot_T_expr)
         
     def energy_solve(self):

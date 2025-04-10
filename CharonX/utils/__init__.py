@@ -11,4 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+CharonX Utilities Module
+======================
+
+This module provides utility functions and classes that support 
+the core functionality of the CharonX finite element framework.
+
+The utilities cover a wide range of functionality including:
+- Parameter management
+- MPI operations and parallel computing support
+- Interpolation functions
+- Kinematic transformations and tensor operations
+- Custom expressions and quadrature rules
+- PETSc operations for efficient vector/matrix manipulation
+"""
+
+
 pass

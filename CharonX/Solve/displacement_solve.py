@@ -15,6 +15,9 @@
 Created on Mon Sep 26 17:51:49 2022
 
 @author: bouteillerp
+
+Rajouter la référence The accuracy of symplectic integrators de McLachlan pour les intégrateurs
+symplectic
 """
 from dolfinx.fem.petsc import assemble_vector, set_bc
 from dolfinx.fem import Function, form

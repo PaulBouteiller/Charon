@@ -12,114 +12,98 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Thu Jul 21 09:52:08 2022
+Generic Utility Functions Module
+==============================
 
-@author: bouteillerp
+This module provides general-purpose utility functions that are used throughout
+the CharonX framework. 
 """
-# from numpy import int32, arange
-from mpi4py import MPI
-# import basix
 
-try:
-    import __builtin__
-except ImportError:
-    import builtins as __builtin__
-    
-def print(*args, **kwargs):
-    """ 
-    Surcharge la version print de Python pour n'afficher qu'une seule
-    fois la chaine de caractère demandé si l'on se trouve en MPI
-    """
-    if MPI.COMM_WORLD.Get_rank() == 0:
-        __builtin__.print(*args, **kwargs)
+from ufl import exp
 
 def ppart(x):
     """
-    Renvoie la partie positive de x
-
+    Return the positive part of x: max(x, 0).
+    
     Parameters
     ----------
-    x : Float, Expression ou Fonction, grandeur dont on cherche la partie positive.
+    x : float, Expression, or Function Value to extract the positive part from
+        
+    Returns
+    -------
+    float, Expression, or Function Positive part of x, calculated as (x + |x|)/2
     """
     return (x + abs(x)) / 2
 
 def npart(x):
     """
-    Renvoie la partie positive de x
-
+    Return the negative part of x: min(x, 0).
+    
     Parameters
     ----------
-    x : Float, Expression ou Fonction, grandeur dont on cherche la partie positive.
+    x : float, Expression, or Function
+        Value to extract the negative part from
+        
+    Returns
+    -------
+    float, Expression, or Function Negative part of x, calculated as (x - |x|)/2
     """
     return (x - abs(x)) / 2
 
-def Heav(x, eps = 1e-3):
+def Heav(x, eps=1e-3):
     """
-    Renvoie un Heaviside, si x\geq 0 alors Heav renvoie 1, 0 sinon
-
+    Return the Heaviside step function of x.
+    
+    Returns 1 if x >= 0, and 0 otherwise.
+    
     Parameters
     ----------
-    x : Float, Expression ou Fonction, grandeur dont on cherche le Heavyside.
-    eps : TYPE, optional Paramètre numérique évitant les divisions par 0. The default is 1e-3.
+    x : float, Expression, or Function
+        Value to evaluate the Heaviside function at
+    eps : float, optional
+        Small value to avoid division by zero, by default 1e-3
+        
+    Returns
+    -------
+    float, Expression, or Function Heaviside function evaluated at x
     """
     return ppart(x) / (abs(x) + eps)
 
-def over_relaxed_predictor(d, d_old, omega):
+def smooth_shifted_heaviside(x, x_lim, width):
     """
-    Sur-relaxation d'un prédicteur, utilisation de la fonction PETSc axpy:
-    VecAXPY(Vec y,PetscScalar a,Vec x); return y = y + a ∗ x
+    Create a smooth interpolation function between 0 and 1 around x_lim.
+    
+    This function creates a smooth transition for x, using a logistic function.
+    
     Parameters
     ----------
-    d : Function, fonction à sur-relaxer
-    d_old : Function, ancienne valeur de la fonction
-    omega : Float, paramètre de sur-relaxation.
+    x : float, Expression, or Function
+        Value to evaluate the smooth shifted Heaviside function at
+    x_lim : float Central point of the transition
+    width : float Width over which the function changes from 0.01 to 0.99
+    """
+    k = 9.19 / width  # Relation derived from 2*ln(99)/k = width
+    return 1 / (1 + exp(-k * (x - x_lim)))
 
+def over_relaxed_predictor(d, d_old, omega):
+    """
+    Apply over-relaxation to a predictor.
+    
+    Uses the PETSc axpy function: VecAXPY(Vec y, PetscScalar a, Vec x),
+    which computes y = y + a * x
+    
+    Parameters
+    ----------
+    d : dolfinx.fem.Function
+        Function to over-relax
+    d_old : dolfinx.fem.Function
+        Previous value of the function
+    omega : float
+        Over-relaxation parameter
+        
     Returns
     -------
-    d : Function, fonction sur-relaxée
+    dolfinx.fem.Function
+        Over-relaxed function
     """
     d.x.petsc_vec.axpy(omega, d.x.petsc_vec - d_old.x.petsc_vec)
-    
-# def slice_array(vecteur, quotient, reste):
-#   """Récupère tous les indices pairs d'un numpy array.
-
-#   Args:
-#     array: Le tableau numpy dont on veut récupérer les indices pairs.
-
-#   Returns:
-#     Un tableau contenant tous les indices pairs du tableau original.
-#   """
-#   return vecteur[arange(reste, len(vecteur), quotient)]
-
-# def set_quadrature(mesh, deg_quad):
-#     topo = mesh.topology
-#     basix_celltype = getattr(basix.CellType, topo.cell_types[0].name)
-#     quadrature_points, weights = basix.make_quadrature(basix_celltype, deg_quad)
-#     return quadrature_points
-
-# def set_cells(mesh, deg_quad):
-#     topo = mesh.topology
-#     map_c = topo.index_map(mesh.topology.dim)
-#     num_cells = map_c.size_local + map_c.num_ghosts
-#     return arange(0, num_cells, dtype = int32)
-
-
-# def interpolate_quadrature(function, expr, mesh, cells):
-#     """
-#     Interpolate Expression into Function of Quadrature type
-
-#     Parameters
-#     ----------
-#     function : Function, function living in a quadrature space.
-#     expr : UFLExpression, expression UFL
-#     mesh : Mesh, maillage.
-#     cells : TYPE
-#         DESCRIPTION.
-
-#     Returns
-#     -------
-#     None.
-
-#     """
-#     expr_eval = expr.eval(mesh, cells)
-#     function.x.array[:] = expr_eval.flatten()[:]

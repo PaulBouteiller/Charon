@@ -1,15 +1,38 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Copyright 2025 CEA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Created on Wed Apr  9 10:51:13 2025
 
 @author: bouteillerp
-"""
-"""
-Module de cinématique pour les modèles mécaniques.
+Kinematics Module
+===============
 
-Ce module contient la classe Kinematic qui encapsule les opérations
-cinématiques pour différentes dimensions et géométries.
+This module provides a comprehensive framework for handling kinematic transformations
+in finite element simulations of solid mechanics problems. It supports various
+coordinate systems and dimensions, automatically adapting computations to the
+specific problem type.
+
+Key features:
+- Support for 1D, 2D, and 3D problems
+- Support for Cartesian, cylindrical, and spherical coordinate systems
+- Gradient calculations for scalar and vector fields
+- Conversion between different tensor representations
+- Deformation gradient and strain calculations
+- Push-forward and pull-back operations for tensors
+
+The module enables accurate representation of large deformations, nonlinear
+strain measures, and various stress tensors for different material models.
 """
 
 from ufl import (grad, as_tensor, div, tr, Identity, dot, as_vector, det, inv,
@@ -18,48 +41,57 @@ from math import sqrt
 
 class Kinematic:
     """
-    Encapsule les opérations cinématiques pour différentes dimensions et géométries.
+    Encapsulates kinematic operations for different dimensions and geometries.
     
-    Cette classe fournit des méthodes pour calculer des gradients, tenseurs, 
-    transformations et autres grandeurs cinématiques en adaptant automatiquement
-    les calculs à la dimension et géométrie du problème.
+    This class provides methods for calculating gradients, tensors, 
+    transformations, and other kinematic quantities, automatically adapting
+    the calculations to the problem dimension and geometry.
     
-    Attributes:
-        name (str): Nom du modèle mécanique ('CartesianUD', 'PlaneStrain', etc.)
-        r (Function): Coordonnées radiales dans les cas axisymétriques, cylindriques et sphériques
+    Attributes
+    ----------
+    name : str Name of the mechanical model ('CartesianUD', 'PlaneStrain', etc.)
+    r : Function or None Radial coordinate in axisymmetric, cylindrical, and spherical cases
     """
     def __init__(self, name, r):
         """
-        Initialise l'objet Kinematic.
+        Initialize a Kinematic object.
 
-        Parameters:
-            name (str): Nom du modèle mécanique, doit appartenir à:
-                       [CartesianUD, CylindricalUD, SphericalUD, 
-                        PlaneStrain, Axisymetric, Tridimensionnal]
-            r (Function): Coordonnées radiales dans les cas axisymétriques, cylindriques et sphériques
-            anisotropic_dir (Vector): Direction d'anisotropie initiale
+        Parameters
+        ----------
+        name : str
+            Name of the mechanical model, must be one of:
+            [CartesianUD, CylindricalUD, SphericalUD, 
+             PlaneStrain, Axisymetric, Tridimensionnal]
+        r : Function or None
+            Radial coordinate in axisymmetric, cylindrical, and spherical cases
         """
         self.name = name
         self.r = r
         
-        # Configurations pour les différents types de modèles
+        # Configurations for different model types
         self._model_config = {"dim1": ["CartesianUD", "CylindricalUD", "SphericalUD"],
                               "dim2": ["PlaneStrain", "Axisymetric"],
                               "dim3": ["Tridimensionnal"]}
+
+    def _is_1d(self):
+        """Check if the model is one-dimensional"""
+        return self.name in self._model_config["dim1"]
         
     # =========================================================================
-    # Méthodes de gradient
+    # Gradient methods
     # =========================================================================
     
     def grad_scal(self, f):
         """
-        Renvoie la représentation appropriée du gradient d'un champ scalaire.
+        Return the appropriate representation of a scalar field gradient.
 
-        Parameters:
-            f (Function): Champ scalaire
+        Parameters
+        ----------
+        f : Function Scalar field
 
-        Returns:
-            Expression: Gradient adapté à la dimension et géométrie
+        Returns
+        -------
+        Expression Gradient adapted to dimension and geometry
         """
         if self._is_1d():
             return f.dx(0)
@@ -68,13 +100,15 @@ class Kinematic:
     
     def v_grad3D(self, f):
         """
-        Renvoie le gradient 3D d'un champ scalaire sous forme vectorielle.
+        Return the 3D gradient of a scalar field in vector form.
 
-        Parameters:
-            f (Function): Champ scalaire
+        Parameters
+        ----------
+        f : Function Scalar field
 
-        Returns:
-            Vector: Gradient 3D adapté à la dimension et géométrie
+        Returns
+        -------
+        Vector 3D gradient adapted to dimension and geometry
         """
         grad_f = self.grad_scal(f)
         
@@ -87,18 +121,20 @@ class Kinematic:
         else:  # Tridimensional
             return grad_f
     
-    def grad_reduit(self, u, sym=False):
+    def grad_reduit(self, u, sym = False):
         """
-        Renvoie le gradient réduit d'un champ vectoriel.
+        Return the reduced gradient of a vector field.
         
-        La représentation est adaptée à la dimension et géométrie.
+        The representation is adapted to the dimension and geometry.
 
-        Parameters:
-            u (Function): Champ vectoriel
-            sym (bool, optional): Si True, utilise une représentation symétrique. Défaut: False
+        Parameters
+        ----------
+        u : Function Vector field
+        sym : bool, optional If True, use a symmetric representation. Default: False
 
-        Returns:
-            Expression: Gradient réduit
+        Returns
+        -------
+        Expression Reduced gradient
         """
         if self.name == "CartesianUD":
             return u.dx(0)
@@ -116,14 +152,37 @@ class Kinematic:
             return grad(u)
     
     def _get_2d_reduced_grad(self, grad_u, sym):
-        """Méthode privée pour obtenir le gradient réduit 2D"""
+        """
+        Private method to get the reduced 2D gradient.
+
+        Parameters
+        ----------
+        grad_u : Expression Full gradient tensor
+        sym : bool If True, use a symmetric representation
+
+        Returns
+        -------
+        Vector Reduced gradient
+        """
         if sym:
             return as_vector([grad_u[0, 0], grad_u[1, 1], grad_u[0, 1]])
         else:
             return as_vector([grad_u[0, 0], grad_u[1, 1], grad_u[0, 1], grad_u[1, 0]])
     
     def _get_axi_reduced_grad(self, grad_u, u, sym):
-        """Méthode privée pour obtenir le gradient réduit axisymétrique"""
+        """
+        Private method to get the reduced axisymmetric gradient.
+
+        Parameters
+        ----------
+        grad_u : Expression Full gradient tensor
+        u : Function Displacement field
+        sym : bool If True, use a symmetric representation
+
+        Returns
+        -------
+        Vector Reduced gradient
+        """
         if sym:
             return as_vector([grad_u[0, 0], u[0] / self.r, grad_u[1, 1], grad_u[0, 1]])
         else:
@@ -132,28 +191,32 @@ class Kinematic:
     
     def grad_3D(self, u, sym=False):
         """
-        Renvoie le gradient tridimensionnel d'un champ vectoriel.
+        Return the three-dimensional gradient of a vector field.
 
-        Parameters:
-            u (Function): Champ vectoriel
-            sym (bool, optional): Si True, utilise une représentation symétrique. Défaut: False
+        Parameters
+        ----------
+        u : Function Vector field
+        sym : bool, optional If True, use a symmetric representation. Default: False
 
-        Returns:
-            Tensor: Gradient 3D sous forme tensorielle
+        Returns
+        -------
+        Tensor 3D gradient as a tensor
         """
         return self.reduit_to_3D(self.grad_reduit(u, sym=sym), sym=sym)
     
     def Eulerian_gradient(self, v, u):
         """
-        Renvoie le gradient Eulérien de v, c'est-à-dire ∂v/∂x où ∂x désigne 
-        la dérivée par rapport aux coordonnées actuelles.
+        Return the spatial velocity gradient, which is ∂v/∂x where ∂x denotes
+        the derivative with respect to current coordinates.
 
-        Parameters:
-            v (Function): Champ vectoriel à dériver
-            u (Function): Champ de déplacement définissant la transformation
+        Parameters
+        ----------
+        v : Function Vector field to derive
+        u : Function Displacement field defining the transformation
 
-        Returns:
-            Expression: Gradient eulérien
+        Returns
+        -------
+        Expression Eulerian gradient
         """
         invF_reduit = self.invF_reduit(u)
         grad_red = self.grad_reduit(v)
@@ -171,21 +234,23 @@ class Kinematic:
             return dot(grad_red, invF_reduit)
     
     # =========================================================================
-    # Méthodes de conversion de format
+    # Format conversion methods
     # =========================================================================
     
-    def reduit_to_3D(self, red, sym=False):
+    def reduit_to_3D(self, red, sym = False):
         """
-        Convertit un tenseur en forme réduite vers sa forme tridimensionnelle complète.
+        Convert a tensor in reduced form to its full three-dimensional form.
 
-        Parameters:
-            red (Expression): Champ sous forme réduite
-            sym (bool, optional): Si True, utilise une représentation symétrique. Défaut: False
+        Parameters
+        ----------
+        red : Expression Field in reduced form
+        sym : bool, optional If True, use a symmetric representation. Default: False
 
-        Returns:
-            Tensor: Tenseur 3D correspondant
+        Returns
+        -------
+        Tensor Corresponding 3D tensor
         """
-        # Modèles 1D
+        # 1D models
         if self.name == "CartesianUD":
             return as_tensor([[red, 0, 0], [0, 0, 0], [0, 0, 0]])
         elif self.name == "CylindricalUD":
@@ -193,14 +258,14 @@ class Kinematic:
         elif self.name == "SphericalUD":
             return as_tensor([[red[0], 0, 0], [0, red[1], 0], [0, 0, red[1]]])
         
-        # Modèles 2D
+        # 2D models
         elif self.name == "PlaneStrain":
             return self._plane_strain_to_3D(red, sym)
         elif self.name == "Axisymetric":
             return self._axisymetric_to_3D(red, sym)
         
-        # Modèle 3D
-        else:  # Tridimensional
+        # 3D model
+        else:
             if sym:
                 return as_tensor([[red[0], red[3], red[4]], 
                                   [red[3], red[1], red[5]], 
@@ -209,15 +274,45 @@ class Kinematic:
                 return red
     
     def _plane_strain_to_3D(self, red, sym):
-        """Méthode privée pour convertir de PlaneStrain à 3D"""
+        """
+        Private method to convert from PlaneStrain to 3D.
+
+        Parameters
+        ----------
+        red : Expression Reduced form tensor
+        sym : bool If True, use a symmetric representation
+
+        Returns
+        -------
+        Tensor 3D tensor
+        """
         if sym:
             return as_tensor([[red[0], red[2], 0], [red[2], red[1], 0], [0, 0, 0]])
         else:
             return as_tensor([[red[0], red[2], 0], [red[3], red[1], 0], [0, 0, 0]])
     
     def _axisymetric_to_3D(self, red, sym):
-        """Méthode privée pour convertir d'Axisymétrique à 3D"""
-        condition = ge(self.r, 1e-2)
+        """
+        Private method to convert from Axisymmetric to 3D.
+
+        Parameters
+        ----------
+        red : Expression Reduced form tensor
+        sym : bool If True, use a symmetric representation
+
+        Returns
+        -------
+        Tensor 3D tensor
+        
+        Notes
+        -----
+        When r is small (r < 1e-3), L'Hôpital's rule is applied to handle
+        the potential singularity near the axis. In this case, we approximate
+        red[1] ≈ red[0], which is the theoretically correct limit as r→0.
+        This avoids numerical instability while maintaining the physical meaning
+        of the solution near the symmetry axis.
+        """
+        condition = ge(self.r, 1e-3)
         
         if sym:
             true_tens = as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[3], 0, red[2]]])
@@ -230,40 +325,46 @@ class Kinematic:
     
     def reduit_to_2D(self, red):
         """
-        Convertit un tenseur en forme réduite vers sa forme bidimensionnelle.
+        Convert a tensor in reduced form to its two-dimensional form.
 
-        Parameters:
-            red (Expression): Champ sous forme réduite
+        Parameters
+        ----------
+        red : Expression Tensor in reduced form
 
-        Returns:
-            Tensor: Tenseur 2D correspondant
+        Returns
+        -------
+        Tensor Corresponding 2D tensor
         """
         return as_tensor([[red[0], red[2]], [red[3], red[1]]])
     
     def bidim_to_reduit(self, tens2D):
         """
-        Convertit un tenseur 2D vers sa forme réduite.
+        Convert a 2D tensor to its reduced form.
 
-        Parameters:
-            tens2D (Tensor): Tenseur 2D
+        Parameters
+        ----------
+        tens2D : Tensor 2D tensor
 
-        Returns:
-            Vector: Forme réduite correspondante
+        Returns
+        -------
+        Vector Corresponding reduced form
         """
         return as_vector([tens2D[0, 0], tens2D[1, 1], tens2D[0, 1], tens2D[1, 0]])
     
     def tridim_to_reduit(self, tens3D, sym=False):
         """
-        Convertit un tenseur 3D vers sa forme réduite.
+        Convert a 3D tensor to its reduced form.
 
-        Parameters:
-            tens3D (Tensor): Tenseur 3D
-            sym (bool, optional): Si True, utilise une représentation symétrique. Défaut: False
+        Parameters
+        ----------
+        tens3D : Tensor 3D tensor
+        sym : bool, optional If True, use a symmetric representation. Default: False
 
-        Returns:
-            Expression: Forme réduite correspondante
+        Returns
+        -------
+        Expression Corresponding reduced form
         """
-        # Modèles 1D
+        # 1D models
         if self.name == "CartesianUD":
             return tens3D[0, 0]
         elif self.name == "CylindricalUD":
@@ -271,7 +372,7 @@ class Kinematic:
         elif self.name == "SphericalUD":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2]])
         
-        # Modèles 2D
+        # 2D models
         elif self.name == "PlaneStrain":
             if sym:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[0, 1]])
@@ -284,7 +385,7 @@ class Kinematic:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
                                 tens3D[0, 2], tens3D[2, 0]])
         
-        # Modèle 3D
+        # 3D model
         elif self.name == "Tridimensionnal":
             if sym:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
@@ -294,50 +395,54 @@ class Kinematic:
     
     def tridim_to_mandel(self, tens3D):
         """
-        Convertit un tenseur 3D vers sa représentation en notation de Mandel.
+        Convert a 3D tensor to its Mandel notation representation.
         
-        Les termes extra-diagonaux sont pondérés par un facteur √2.
+        The off-diagonal terms are weighted by a factor √2.
 
-        Parameters:
-            tens3D (Tensor): Tenseur 3D symétrique
+        Parameters
+        ----------
+        tens3D : Tensor 3D symmetric tensor
 
-        Returns:
-            Vector: Représentation de Mandel
+        Returns
+        -------
+        Vector Mandel representation
         """
         sq2 = sqrt(2)
         
-        # Modèles 1D
+        # 1D models
         if self._is_1d():
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2]])
         
-        # Modèles 2D
+        # 2D models
         elif self.name == "PlaneStrain":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 1]])
         elif self.name == "Axisymetric":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 2]])
         
-        # Modèle 3D
+        # 3D model
         elif self.name == "Tridimensionnal":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
                             sq2 * tens3D[0, 1], sq2 * tens3D[0, 2], sq2 * tens3D[1, 2]])
     
     def mandel_to_tridim(self, red):
         """
-        Convertit une représentation de Mandel vers un tenseur 3D.
+        Convert a Mandel representation to a 3D tensor.
 
-        Parameters:
-            red (Vector): Représentation de Mandel
+        Parameters
+        ----------
+        red : Vector Mandel representation
 
-        Returns:
-            Tensor: Tenseur 3D correspondant
+        Returns
+        -------
+        Tensor Corresponding 3D tensor
         """
         sq2 = sqrt(2)
         
-        # Modèles 1D
+        # 1D models
         if self._is_1d():
             return as_tensor([[red[0], 0, 0], [0, red[1], 0], [0, 0, red[2]]])
         
-        # Modèles 2D
+        # 2D models
         elif self.name == "PlaneStrain":
             return as_tensor([[red[0], red[3]/sq2, 0], 
                              [red[3]/sq2, red[1], 0], 
@@ -347,7 +452,7 @@ class Kinematic:
                              [0, red[1], 0], 
                              [red[3]/sq2, 0, red[2]]])
         
-        # Modèle 3D
+        # 3D model
         elif self.name == "Tridimensionnal":
             return as_tensor([[red[0], red[3]/sq2, red[4]/sq2], 
                              [red[3]/sq2, red[1], red[5]/sq2], 
@@ -355,50 +460,56 @@ class Kinematic:
     
     def tridim_to_Voigt(self, tens):
         """
-        Convertit un tenseur 3D vers sa représentation de Voigt.
+        Convert a 3D tensor to its Voigt representation.
         
-        L'ordre des composantes est: [11, 22, 33, 12, 13, 23]
+        The components order is: [11, 22, 33, 12, 13, 23]
 
-        Parameters:
-            tens (Tensor): Tenseur 3D
+        Parameters
+        ----------
+        tens : Tensor 3D tensor
 
-        Returns:
-            Vector: Représentation de Voigt
+        Returns
+        -------
+        Vector Voigt representation
         """
         return as_vector([tens[0,0], tens[1,1], tens[2,2],
                         2 * tens[1,2], 2 * tens[0,2], 2 * tens[0,1]])
     
     def Voigt_to_tridim(self, Voigt):
         """
-        Convertit une représentation de Voigt vers un tenseur 3D.
+        Convert a Voigt representation to a 3D tensor.
         
-        Note: Ne fonctionne pas pour les déformations à cause du facteur 2.
+        Note: Doesn't work for strains due to the factor 2.
 
-        Parameters:
-            Voigt (Vector): Représentation de Voigt
+        Parameters
+        ----------
+        Voigt : Vector Voigt representation
 
-        Returns:
-            Tensor: Tenseur 3D correspondant
+        Returns
+        -------
+        Tensor Corresponding 3D tensor
         """
         return as_tensor([[Voigt[0], Voigt[5], Voigt[4]],
                          [Voigt[5], Voigt[1], Voigt[3]],
                          [Voigt[4], Voigt[3], Voigt[2]]])
     
     # =========================================================================
-    # Méthodes de transformation
+    # Transformation methods
     # =========================================================================
     
     def F_reduit(self, u):
         """
-        Renvoie le gradient de la transformation sous forme réduite.
+        Return the deformation gradient in reduced form.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Expression: Gradient de transformation réduit
+        Returns
+        -------
+        Expression Reduced deformation gradient
         """
-        # Modèles 1D
+        # 1D models
         if self.name == "CartesianUD":
             return as_vector([1 + u.dx(0), 1, 1])
         elif self.name == "CylindricalUD":
@@ -406,33 +517,37 @@ class Kinematic:
         elif self.name == "SphericalUD":
             return as_vector([1 + u.dx(0), 1 + u/self.r, 1 + u/self.r])
         
-        # Modèles 2D et 3D
+        # 2D and 3D models
         else:
             return Identity(3) + self.grad_3D(u)
     
     def F_3D(self, u):
         """
-        Renvoie le gradient de la transformation complet (3D).
+        Return the full 3D deformation gradient.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Tensor: Gradient de transformation 3D
+        Returns
+        -------
+        Tensor 3D deformation gradient
         """
         return Identity(3) + self.grad_3D(u)
     
     def J(self, u):
         """
-        Renvoie le jacobien de la transformation (mesure de la dilatation locale).
+        Return the Jacobian of the transformation (measure of local dilatation).
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Expression: Jacobien de la transformation
+        Returns
+        -------
+        Expression Jacobian of the transformation
         """
-        # Modèles 1D
+        # 1D models
         if self.name == "CartesianUD":
             return 1 + u.dx(0)
         elif self.name == "CylindricalUD":
@@ -440,28 +555,30 @@ class Kinematic:
         elif self.name == "SphericalUD":
             return (1 + u.dx(0)) * (1 + u / self.r)**2
         
-        # Modèles 2D
+        # 2D models
         elif self.name == "PlaneStrain":
             return det(Identity(2) + grad(u))
         elif self.name == "Axisymetric":
             F = self.F_reduit(u)
             return F[1, 1] * (F[0, 0] * F[2, 2] - F[0, 2] * F[2, 0])
         
-        # Modèle 3D
+        # 3D model
         else:
             return det(Identity(3) + grad(u))
     
     def invF_reduit(self, u):
         """
-        Renvoie l'inverse du gradient de la transformation sous forme réduite.
+        Return the inverse of the deformation gradient in reduced form.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Expression: Inverse du gradient de transformation
+        Returns
+        -------
+        Expression Inverse of the deformation gradient
         """
-        # Modèles 1D
+        # 1D models
         if self.name == "CartesianUD":
             return as_vector([1 / (1 + u.dx(0)), 1, 1])
         elif self.name == "CylindricalUD":
@@ -469,19 +586,37 @@ class Kinematic:
         elif self.name == "SphericalUD":
             return as_vector([1 / (1 + u.dx(0)), 1 /(1 + u/self.r), 1 / (1 + u/self.r)])
         
-        # Modèles 2D
+        # 2D models
         elif self.name == "PlaneStrain":
             inv_F2 = inv(Identity(2) + grad(u))
             return as_tensor([[inv_F2[0,0], inv_F2[0,1], 0], [inv_F2[1,0], inv_F2[1,1], 0], [0, 0, 1]])
         elif self.name == "Axisymetric":
             return self._get_axisymetric_invF(u)
         
-        # Modèle 3D
+        # 3D model
         else:
             return inv(Identity(3) + grad(u))
     
     def _get_axisymetric_invF(self, u):
-        """Méthode privée pour calculer l'inverse du gradient en axisymétrique"""
+        """
+        Private method to calculate the inverse deformation gradient in axisymmetric case.
+
+        Parameters
+        ----------
+        u : Function Displacement field
+
+        Returns
+        -------
+        Tensor Inverse deformation gradient
+        
+        Notes
+        -----
+        When r is small (r < 1e-3), L'Hôpital's rule is applied to handle
+        the potential singularity near the axis. In this case, we approximate
+        red[1] ≈ red[0], which is the theoretically correct limit as r→0.
+        This avoids numerical instability while maintaining the physical meaning
+        of the solution near the symmetry axis.
+        """
         grad_u = grad(u)
         prefacteur = (1 + grad_u[0,0]) * (1 + grad_u[1,1]) - grad_u[0,1] * (1 + grad_u[1,0])
         condition = ge(self.r, 1e-3)
@@ -498,32 +633,36 @@ class Kinematic:
     
     def relative_gradient_3D(self, u, u_old):
         """
-        Renvoie le gradient de la transformation relative entre deux configurations.
+        Return the relative deformation gradient between two configurations.
 
-        Parameters:
-            u (Function): Champ de déplacement actuel
-            u_old (Function): Ancien champ de déplacement
+        Parameters
+        ----------
+        u : Function Current displacement field
+        u_old : Function Previous displacement field
 
-        Returns:
-            Tensor: Gradient de transformation relative
+        Returns
+        -------
+        Tensor Relative deformation gradient
         """
         F_new = self.F_3D(u)
         inv_F_old = inv(self.F_3D(u_old))
         return dot(F_new, inv_F_old)
     
     # =========================================================================
-    # Méthodes de déformation
+    # Strain methods
     # =========================================================================
     
     def B(self, u):
         """
-        Renvoie le tenseur de Cauchy-Green gauche.
+        Return the left Cauchy-Green tensor.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Expression: Tenseur de Cauchy-Green gauche (forme adaptée à la dimension)
+        Returns
+        -------
+        Expression Left Cauchy-Green tensor (form adapted to dimension)
         """
         F = self.F_reduit(u)
         if self._is_1d():
@@ -533,39 +672,45 @@ class Kinematic:
     
     def B_3D(self, u):
         """
-        Renvoie le tenseur de Cauchy-Green gauche complet (3D).
+        Return the full 3D left Cauchy-Green tensor.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Tensor: Tenseur de Cauchy-Green gauche 3D
+        Returns
+        -------
+        Tensor 3D left Cauchy-Green tensor
         """
         F = self.F_3D(u)
         return dot(F, F.T)
     
     def C_3D(self, u):
         """
-        Renvoie le tenseur de Cauchy-Green droit complet (3D).
+        Return the full 3D right Cauchy-Green tensor.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Tensor: Tenseur de Cauchy-Green droit 3D
+        Returns
+        -------
+        Tensor 3D right Cauchy-Green tensor
         """
         F = self.F_3D(u)
         return dot(F.T, F)
     
     def BI(self, u):
         """
-        Renvoie la trace du tenseur de Cauchy-Green gauche.
+        Return the trace of the left Cauchy-Green tensor.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Expression: Trace du tenseur de Cauchy-Green gauche
+        Returns
+        -------
+        Expression Trace of the left Cauchy-Green tensor
         """
         B = self.B(u)
         if self._is_1d():
@@ -575,35 +720,40 @@ class Kinematic:
     
     def BBarI(self, u):
         """
-        Renvoie la trace du tenseur de Cauchy-Green gauche isovolume.
+        Return the trace of the isovolumic left Cauchy-Green tensor.
 
-        Parameters:
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        u : Function Displacement field
 
-        Returns:
-            Expression: Trace du tenseur isovolume
+        Returns
+        -------
+        Expression Trace of the isovolumic tensor
         """
         return self.BI(u) / self.J(u)**(2./3)
     
     # =========================================================================
-    # Méthodes d'intégration et opérations diverses
+    # Integration and miscellaneous methods
     # =========================================================================
     
     def measure(self, a, dx):
         """
-        Renvoie la mesure d'intégration adaptée à la géométrie.
+        Return the integration measure adapted to the geometry.
         
-        La mesure est:
-        - dx dans le cas Cartésien 1D, 2D plan ou 3D
-        - r*dr dans le cas cylindrique 1D ou axisymétrique
-        - r²*dr dans le cas sphérique 1D
+        The measure is:
+        - dx in Cartesian 1D, 2D plane or 3D cases
+        - r*dr in cylindrical 1D or axisymmetric cases
+        - r²*dr in spherical 1D case
 
-        Parameters:
-            a (Expression): Champ à intégrer
-            dx (Measure): Mesure d'intégration par défaut
+        Parameters
+        ----------
+        a : Expression Field to integrate
+        dx : Measure Default integration measure
 
-        Returns:
-            Expression: Mesure d'intégration adaptée
+        Returns
+        -------
+        Expression
+            Adapted integration measure
         """
         if self.name in ["CartesianUD", "PlaneStrain", "Tridimensionnal"]:
             return a * dx
@@ -614,13 +764,15 @@ class Kinematic:
     
     def div(self, v):
         """
-        Renvoie la divergence du champ vectoriel v.
+        Return the divergence of vector field v.
 
-        Parameters:
-            v (Function): Champ vectoriel
+        Parameters
+        ----------
+        v : Function Vector field
 
-        Returns:
-            Expression: Divergence du champ
+        Returns
+        -------
+        Expression Divergence of the field
         """
         if self._is_1d():
             return v.dx(0)
@@ -629,37 +781,33 @@ class Kinematic:
     
     def push_forward(self, tensor, u):
         """
-        Renvoie le push-forward d'un tenseur d'ordre 2 deux fois covariant.
+        Return the push-forward of a second-order twice covariant tensor.
 
-        Parameters:
-            tensor (Tensor): Tenseur d'ordre 2
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        tensor : Tensor Second-order tensor
+        u : Function Displacement field
 
-        Returns:
-            Tensor: Tenseur après push-forward
+        Returns
+        -------
+        Tensor Tensor after push-forward
         """
         F = self.F_3D(u)
         return dot(dot(F, tensor), F.T)
     
     def pull_back(self, tensor, u):
         """
-        Renvoie le pull-back d'un tenseur d'ordre 2 deux fois covariant.
+        Return the pull-back of a second-order twice covariant tensor.
 
-        Parameters:
-            tensor (Tensor): Tenseur d'ordre 2
-            u (Function): Champ de déplacement
+        Parameters
+        ----------
+        tensor : Tensor Second-order tensor
+        u : Function Displacement field
 
-        Returns:
-            Tensor: Tenseur après pull-back
+        Returns
+        -------
+        Tensor Tensor after pull-back
         """
         F = self.F_3D(u)
         inv_F = inv(F)
         return dot(dot(inv_F, tensor), inv_F.T)
-    
-    # =========================================================================
-    # Méthodes privées d'aide
-    # =========================================================================
-    
-    def _is_1d(self):
-        """Vérifie si le modèle est unidimensionnel"""
-        return self.name in self._model_config["dim1"]
