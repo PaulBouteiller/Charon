@@ -36,13 +36,14 @@ AnisotropicDeviator : General anisotropic hyperelastic model
     Implements the stress calculation for anisotropic hyperelasticity
     Provides tensor transformation utilities
 """
-from ...utils.tensor_operations import symetrized_tensor_product
+from ...utils.tensor_operations import symetrized_tensor_product, Voigt_to_tridim, tridim_to_Voigt
 from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from .base_deviator import BaseDeviator
 from scipy.linalg import block_diag
 from math import cos, sin
-from numpy import array, diag
+from numpy import array, diag, ndarray
 from numpy.linalg import inv as np_inv
+from numpy import dot as np_dot
 
 class AnisotropicDeviator(BaseDeviator):
     """General anisotropic hyperelastic deviatoric stress model.
@@ -93,6 +94,7 @@ class AnisotropicDeviator(BaseDeviator):
         
         Additional parameters:
         - f_func: [optional] Coefficients for stiffness modulation functions
+        - g_func: [optional] Coefficients for coupling stress modulation functions
         - rotation: [optional] Rotation angle in radians
         
         Parameters
@@ -104,6 +106,8 @@ class AnisotropicDeviator(BaseDeviator):
         
         # Store stiffness modulation parameters if provided
         self.f_func_coeffs = params.get("f_func", None)
+        # Store coupling stress modulation parameters if provided
+        self.g_func_coeffs = params.get("g_func", None)
         
         # Initialize stiffness tensor based on provided parameters
         if "C" in params:
@@ -239,56 +243,89 @@ class AnisotropicDeviator(BaseDeviator):
         -------
         Function Deviatoric stress tensor
         """
-        RigLin = self.C
-        
-        # Initial term
-        M_0 = as_tensor([[RigLin[0,0] + RigLin[0,1] + RigLin[0,2], 0, 0],
-                          [0, RigLin[1,0] + RigLin[1,1] + RigLin[1,2], 0],
-                          [0, 0, RigLin[2,0] + RigLin[2,1] + RigLin[2,2]]])
-        pi_0 = 1./3 * (J - 1) * M_0
-        term_1 = J**(-5./3) * dev(kinematic.push_forward(pi_0, u))
-
-        # Second term
-        C = kinematic.C_3D(u)
-        C_bar = J**(-2./3) * C
-        inv_C = inv(C)
-        
-        GLD_bar = 1./2 * (C_bar - Identity(3))
-        GLDBar_V = kinematic.tridim_to_Voigt(GLD_bar)
-        D = 1./3 * symetrized_tensor_product(M_0, inv_C)
-        DE = kinematic.Voigt_to_tridim(dot(D, GLDBar_V))
-        term_2 = kinematic.push_forward(DE, u)
-        
-        # Optional modulation of stiffness with J
         def polynomial_expand(x, point, coeffs):
             return coeffs[0] + sum(coeff * (x - point)**(i+1) for i, coeff in enumerate(coeffs[1:]))
         
         def polynomial_derivative(x, point, coeffs):
             return coeffs[1] * (x - point) + sum(coeff * (i+2) * (x - point)**(i+1) for i, coeff in enumerate(coeffs[2:]))
         
-        def rig_lin_correction(C, Rig_func_coeffs, J, derivative_degree):
+        def rig_lin_correction(C, f_func, J):
             size = len(C)
-            C_list = [[C[i][j] for i in range(size)] for j in range(size)]
+            C_list = [[C[i][j] for j in range(size)] for i in range(size)]
             for i in range(size):
                 for j in range(size):
-                    if derivative_degree == 0:
-                        C_list[i][j] *= polynomial_expand(J, 1, Rig_func_coeffs[i][j])
-                    elif derivative_degree == 1:
-                        C_list[i][j] *= polynomial_derivative(J, 1, Rig_func_coeffs[i][j])
+                    C_list[i][j] *= polynomial_expand(J, 1, f_func[i][j])
             return C_list
+        
+        def rig_lin_derivative(C, f_func, J):
+            size = len(C)
+            deriv_C_list = [[C[i][j] for i in range(size)] for j in range(size)]
+            for i in range(size):
+                for j in range(size):
+                    deriv_C_list[i][j] *= polynomial_derivative(J, 1, f_func[i][j])
+            return deriv_C_list
+        
+        def bulk_anisotropy_tensor(Rigi):
+            unit_tensor_voigt = array([1, 1, 1, 0, 0, 0])
+            M0 = np_dot(Rigi, unit_tensor_voigt)  
+            return Voigt_to_tridim(M0)
+        
+        def pi_bar_derivative(M0, g_func, J):
+            JgM0_derivative = [[M0[i, j] for i in range(3)] for j in range(3)]
+            for i in range(3):
+                for j in range(3):
+                    if len(g_func[i][j]) > 1:
+                        JgM0_derivative[i][j] *= (polynomial_expand(J, 1, g_func[i][j]) 
+                                                  + (J - 1) * polynomial_derivative(J, 1, g_func[i][j]))
+                        
+            return 1./3 * as_tensor(JgM0_derivative)
+        
+        def compute_pi_bar(M0, g_func, J):
+            if g_func is None:
+                pibar = 1./3 * (J-1) * M0
+            elif isinstance(g_func, ndarray):
+                pibar = 1./3 * (J-1) * polynomial_expand(J, 1, g_func)  * M0
+            elif isinstance(g_func, list):
+                gM0 = [[polynomial_expand(J, 1, g_func[i][j]) * M0[i, j] for i in range(3)] for j in range(3)]
+                pibar = 1./3 * (J - 1) * as_tensor(gM0)
+            return pibar
+        
+        def compute_D(M0, g_func, J, inv_C):
+            if g_func is None:
+                D = 1./3 * symetrized_tensor_product(M0, inv_C)
+            elif isinstance(g_func, ndarray):
+                D = 1./3 * ((J-1) * polynomial_derivative(J, 1, g_func) + polynomial_expand(J, 1, g_func)) * symetrized_tensor_product(M0, inv_C)
+            elif isinstance(g_func, list):
+                D = symetrized_tensor_product(pi_bar_derivative(M0, self.g_func_coeffs, J), inv_C)
+            return D
+        
+        RigLin = self.C
 
+        M0 = bulk_anisotropy_tensor(RigLin)
+
+        pibar = compute_pi_bar(M0, self.g_func_coeffs, J)
+        term_1 = J**(-5./3) * dev(kinematic.push_forward(pibar, u))
+        # Second term
+        C = kinematic.C_3D(u)
+        C_bar = J**(-2./3) * C
+        inv_C = inv(C)
+        
+        GLD_bar = 1./2 * (C_bar - Identity(3))
+        GLDBar_V = tridim_to_Voigt(GLD_bar)
+        D = compute_D(M0, self.g_func_coeffs, J, inv_C)
+        DE = Voigt_to_tridim(dot(D, GLDBar_V))
+        term_2 = kinematic.push_forward(DE, u)
         # Third term (and optional fourth term)
         if self.f_func_coeffs is not None:
-            RigiLinBar = rig_lin_correction(RigLin, self.f_func_coeffs, J, 0)
-            CE = kinematic.Voigt_to_tridim(dot(as_matrix(RigiLinBar), GLDBar_V))
-            term_3 = J**(-5./3) * dev(kinematic.push_forward(CE, u))
-            
-            DerivRigiLinBar = rig_lin_correction(RigLin, self.f_func_coeffs, J, 1)
-            EE = kinematic.Voigt_to_tridim(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
+            RigiLinBar = rig_lin_correction(RigLin, self.f_func_coeffs, J)
+            CE = Voigt_to_tridim(dot(as_matrix(RigiLinBar), GLDBar_V))
+            term_3 = J**(-5./3) * dev(kinematic.push_forward(CE, u))     
+            DerivRigiLinBar = rig_lin_derivative(RigLin, self.f_func_coeffs, J)
+            EE = Voigt_to_tridim(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
             term_4 = dev(kinematic.push_forward(EE, u))
             
             return term_1 + term_2 + term_3 + term_4
         else:
-            CE = kinematic.Voigt_to_tridim(dot(as_matrix(RigLin), GLDBar_V))
+            CE = Voigt_to_tridim(dot(as_matrix(RigLin), GLDBar_V))
             term_3 = J**(-5./3) * dev(kinematic.push_forward(CE, u))
             return term_1 + term_2 + term_3

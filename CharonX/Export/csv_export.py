@@ -162,7 +162,7 @@ class OptimizedCSVExport:
         elif self.model_meca == "Axisymetric":
             self.sig_cte = [self.comp_to_export(self.sig_dte, i) for i in range(4)]
             self.sig_name_list = [r"\sigma_{rr}", r"\sigma_{tt}", r"\sigma_{zz}", r"\sigma_{rz}"]
-        elif self.model_meca == "Tridimensionnal":
+        elif self.model_meca == "Tridimensional":
             self.sig_cte = [self.comp_to_export(self.sig_dte, i) for i in range(9)]
             self.sig_name_list = [r"\sigma_{xx}", r"\sigma_{xy}", r"\sigma_{xz}", 
                                   r"\sigma_{yx}", r"\sigma_{yy}",r"\sigma_{yz}", 
@@ -205,7 +205,7 @@ class OptimizedCSVExport:
             self.s_name_list = ["s_{xx}", "s_{yy}", "s_{zz}", "s_{xy}"]
         elif self.model_meca == "Axisymetric":
             self.s_name_list = ["s_{rr}", "s_{tt}", "s_{zz}", "s_{rz}"]
-        elif self.model_meca == "Tridimensionnal":
+        elif self.model_meca == "Tridimensional":
             self.s_name_list = ["s_{xx}", "s_{xy}", "s_{xz}", 
                                 "s_{yx}", "s_{yy}","s_{yz}", 
                                 "s_{zx}", "s_{zy}","s_{zz}"]       
@@ -338,7 +338,7 @@ class OptimizedCSVExport:
                 data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key)}
             elif self.model_meca =="Axisymetric":
                 data = {"r": specific(dof_coords, 0, key), "z": specific(dof_coords, 1, key)}
-            elif self.model_meca =="Tridimensionnal":
+            elif self.model_meca =="Tridimensional":
                 data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key), "z" : specific(dof_coords, 2, key)}
             return data
 

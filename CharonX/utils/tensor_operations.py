@@ -16,7 +16,7 @@ Created on Tue Oct 15 15:32:00 2024
 
 @author: bouteillerp
 """
-from ufl import as_matrix, cos, sin
+from ufl import as_matrix, cos, sin, as_vector, as_tensor
 from ufl import dot as ufl_dot
 from numpy import array, ndarray
 from numpy import dot as np_dot
@@ -162,3 +162,41 @@ def symetrized_tensor_product(S1, S2):
     mat_tot = [[list1[i] * list2[j] for j in range(6)] for i in range(6)]
     ufl_mat = as_matrix(mat_tot)
     return ufl_mat + ufl_mat.T
+
+def fourt_on_second_order(C, tens):
+    pass
+    
+def tridim_to_Voigt(tens):
+    """
+    Convert a 3D tensor to its Voigt representation.
+    
+    The components order is: [11, 22, 33, 12, 13, 23]
+
+    Parameters
+    ----------
+    tens : Tensor 3D tensor
+
+    Returns
+    -------
+    Vector Voigt representation
+    """
+    return as_vector([tens[0,0], tens[1,1], tens[2,2],
+                    2 * tens[1,2], 2 * tens[0,2], 2 * tens[0,1]])
+
+def Voigt_to_tridim(Voigt):
+    """
+    Convert a Voigt representation to a 3D tensor.
+    
+    Note: Doesn't work for strains due to the factor 2.
+
+    Parameters
+    ----------
+    Voigt : Vector Voigt representation
+
+    Returns
+    -------
+    Tensor Corresponding 3D tensor
+    """
+    return as_tensor([[Voigt[0], Voigt[5], Voigt[4]],
+                     [Voigt[5], Voigt[1], Voigt[3]],
+                     [Voigt[4], Voigt[3], Voigt[2]]])

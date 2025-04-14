@@ -162,7 +162,7 @@ class ConstitutiveLaw:
         lin_Q = self.Klin * material.rho_0 * material.celerity * self.h * npart(div_v)
         if self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]: 
             quad_Q = self.Kquad * material.rho_0 * self.h**2 * npart(div_v) * div_v 
-        elif self.name in ["PlaneStrain", "Axisymetric", "Tridimensionnal"]:
+        elif self.name in ["PlaneStrain", "Axisymetric", "Tridimensional"]:
             quad_Q = self.Kquad * material.rho_0 * self.h**2 * dot(npart(div_v), div_v)
         if self.correction :
             lin_Q *= 1/jacobian

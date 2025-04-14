@@ -66,7 +66,7 @@ def optional_import(module_name, as_name=None):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
-    except ImportError:
+    except:
         print(f"Warning: Optional module {module_name} not found. Some functionality may be limited.")
         return None
 

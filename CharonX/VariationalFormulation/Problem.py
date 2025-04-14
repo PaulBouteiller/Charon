@@ -762,7 +762,12 @@ class Problem:
         
         self.sig_expr = Expression(self.sig, self.V_Sig.element.interpolation_points())
         self.sig_func = Function(self.V_Sig, name="Stress")
-        
+        if not self.is_pure_hydro:
+            s_expr = self.extract_deviatoric(self.constitutive.s)
+            # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
+            # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
+            self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
+            self.s_func = Function(self.V_devia, name = "Deviateur")  
         self.p_expr = Expression(self.constitutive.p, self.V_quad_UD.element.interpolation_points())
         self.p_func = Function(self.V_quad_UD, name="Pression")
 

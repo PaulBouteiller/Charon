@@ -28,7 +28,7 @@ from ufl import (TrialFunction, TestFunction, dot, grad, inner, derivative)
 from dolfinx.fem.petsc import assemble_vector, create_matrix
 
 from petsc4py.PETSc import TAO, SNES, COMM_SELF
-from dolfinx.fem import (form, Function)
+from dolfinx.fem import form, Function
 from dolfinx.la import create_petsc_vector
 
 try:
@@ -75,8 +75,11 @@ class DamageSolve:
         """
         prev_d = self.dam.d.copy()
         self.compute_damage()
-        diff = Function(self.dam.V_d)
-        diff.x.array[:] = self.dam.d.x.array - prev_d.x.array
+        diff = self.dam.d.x.petsc_vec.copy()
+        diff.axpy(-1.0, prev_d.x.petsc_vec)
+        
+        # diff = Function(self.dam.V_d)
+        # diff.x.array[:] = self.dam.d.x.array - prev_d.x.array
         evol_dam =  diff.x.norm() > self.tol
         return evol_dam
         

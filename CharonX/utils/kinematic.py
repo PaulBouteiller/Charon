@@ -61,7 +61,7 @@ class Kinematic:
         name : str
             Name of the mechanical model, must be one of:
             [CartesianUD, CylindricalUD, SphericalUD, 
-             PlaneStrain, Axisymetric, Tridimensionnal]
+             PlaneStrain, Axisymetric, Tridimensional]
         r : Function or None
             Radial coordinate in axisymmetric, cylindrical, and spherical cases
         """
@@ -71,7 +71,7 @@ class Kinematic:
         # Configurations for different model types
         self._model_config = {"dim1": ["CartesianUD", "CylindricalUD", "SphericalUD"],
                               "dim2": ["PlaneStrain", "Axisymetric"],
-                              "dim3": ["Tridimensionnal"]}
+                              "dim3": ["Tridimensional"]}
 
     def _is_1d(self):
         """Check if the model is one-dimensional"""
@@ -386,7 +386,7 @@ class Kinematic:
                                 tens3D[0, 2], tens3D[2, 0]])
         
         # 3D model
-        elif self.name == "Tridimensionnal":
+        elif self.name == "Tridimensional":
             if sym:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
                                 tens3D[0, 1], tens3D[0, 2], tens3D[1, 2]])
@@ -420,7 +420,7 @@ class Kinematic:
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 2]])
         
         # 3D model
-        elif self.name == "Tridimensionnal":
+        elif self.name == "Tridimensional":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
                             sq2 * tens3D[0, 1], sq2 * tens3D[0, 2], sq2 * tens3D[1, 2]])
     
@@ -453,45 +453,10 @@ class Kinematic:
                              [red[3]/sq2, 0, red[2]]])
         
         # 3D model
-        elif self.name == "Tridimensionnal":
+        elif self.name == "Tridimensional":
             return as_tensor([[red[0], red[3]/sq2, red[4]/sq2], 
                              [red[3]/sq2, red[1], red[5]/sq2], 
                              [red[4]/sq2, red[5]/sq2, red[2]]])
-    
-    def tridim_to_Voigt(self, tens):
-        """
-        Convert a 3D tensor to its Voigt representation.
-        
-        The components order is: [11, 22, 33, 12, 13, 23]
-
-        Parameters
-        ----------
-        tens : Tensor 3D tensor
-
-        Returns
-        -------
-        Vector Voigt representation
-        """
-        return as_vector([tens[0,0], tens[1,1], tens[2,2],
-                        2 * tens[1,2], 2 * tens[0,2], 2 * tens[0,1]])
-    
-    def Voigt_to_tridim(self, Voigt):
-        """
-        Convert a Voigt representation to a 3D tensor.
-        
-        Note: Doesn't work for strains due to the factor 2.
-
-        Parameters
-        ----------
-        Voigt : Vector Voigt representation
-
-        Returns
-        -------
-        Tensor Corresponding 3D tensor
-        """
-        return as_tensor([[Voigt[0], Voigt[5], Voigt[4]],
-                         [Voigt[5], Voigt[1], Voigt[3]],
-                         [Voigt[4], Voigt[3], Voigt[2]]])
     
     # =========================================================================
     # Transformation methods
@@ -755,7 +720,7 @@ class Kinematic:
         Expression
             Adapted integration measure
         """
-        if self.name in ["CartesianUD", "PlaneStrain", "Tridimensionnal"]:
+        if self.name in ["CartesianUD", "PlaneStrain", "Tridimensional"]:
             return a * dx
         elif self.name in ["CylindricalUD", "Axisymetric"]:
             return a * self.r * dx

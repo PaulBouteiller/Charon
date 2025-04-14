@@ -100,7 +100,7 @@ class TridimensionalLoading(Loading):
         ----------
         mesh, u_, dx , kinematic : see Loading parameters in Problem.py
         """
-        Loading.__init__(self, mesh, u_[0], dx)
+        Loading.__init__(self, mesh, u_[0], dx, kinematic)
 
     def add_Fx(self, value, u_, dx):
         """
