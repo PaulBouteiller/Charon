@@ -200,3 +200,14 @@ def Voigt_to_tridim(Voigt):
     return as_tensor([[Voigt[0], Voigt[5], Voigt[4]],
                      [Voigt[5], Voigt[1], Voigt[3]],
                      [Voigt[4], Voigt[3], Voigt[2]]])
+
+def bulk_anisotropy_tensor(Rigi):
+    unit_tensor_voigt = array([1, 1, 1, 0, 0, 0])
+    M0 = np_dot(Rigi, unit_tensor_voigt)  
+    return Voigt_to_tridim(M0)
+
+def polynomial_expand(x, point, coeffs):
+    return coeffs[0] + sum(coeff * (x - point)**(i+1) for i, coeff in enumerate(coeffs[1:]))
+
+def polynomial_derivative(x, point, coeffs):
+    return coeffs[1] * (x - point) + sum(coeff * (i+2) * (x - point)**(i+1) for i, coeff in enumerate(coeffs[2:]))
