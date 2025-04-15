@@ -252,14 +252,7 @@ class AnisotropicDeviator(BaseDeviator):
         Returns
         -------
         Function Deviatoric stress tensor
-        """
-        
-        def rig_lin_derivative(C, f_func, J):
-            size = len(C)
-            deriv_C_list = [[C[i][j] * polynomial_derivative(J, 1, f_func[i][j]) 
-                             for i in range(size)] for j in range(size)]
-            return deriv_C_list
-        
+        """        
         def compute_pibar_contribution(M0, J, u):
             g_func = self.g_func_coeffs
             if g_func is None:
@@ -277,7 +270,8 @@ class AnisotropicDeviator(BaseDeviator):
             if g_func is None:
                 D = 1./3 * symetrized_tensor_product(M0, inv_C)
             elif isinstance(g_func, ndarray):
-                D = 1./3 * ((J-1) * polynomial_derivative(J, 1, g_func) + polynomial_expand(J, 1, g_func)) * symetrized_tensor_product(M0, inv_C)
+                D = 1./3 * ((J-1) * polynomial_derivative(J, 1, g_func) + 
+                            polynomial_expand(J, 1, g_func)) * symetrized_tensor_product(M0, inv_C)
             elif isinstance(g_func, list):
                 pibar_derivative = 1./3 * as_tensor([[M0[i, j] * (polynomial_expand(J, 1, g_func[i][j]) 
                                                                   + (J - 1) * polynomial_derivative(J, 1, g_func[i][j]))
@@ -329,17 +323,8 @@ class AnisotropicDeviator(BaseDeviator):
         
         # Optional fourth term
         if self.f_func_coeffs is not None:
-            # DerivRigiLinBar = rig_lin_derivative(RigLin, self.f_func_coeffs, J)
-            # EE = Voigt_to_tridim(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
             term_4 = compute_EEbar_contribution(RigLin, J, u, GLDBar_V, inv_C, GLD_bar)
             
             return term_1 + term_2 + term_3 + term_4
-            # return term_2 + term_3 + term_4
-            # return term_3 + term_4
-            # return term_1 + term_3
-            # return term_3
-            # return term_1
         else:
             return term_1 + term_2 + term_3
-            # return term_1
-            # return term_3

@@ -170,7 +170,7 @@ def tridim_to_Voigt(tens):
     """
     Convert a 3D tensor to its Voigt representation.
     
-    The components order is: [11, 22, 33, 12, 13, 23]
+    The components order is: [11, 22, 33, 23, 13, 12]
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def Voigt_to_tridim(Voigt):
 
     Returns
     -------
-    Tensor Corresponding 3D tensor
+    Tensor Corresponding 3D tensor, see tridim_to_Voigt for convention used
     """
     return as_tensor([[Voigt[0], Voigt[5], Voigt[4]],
                      [Voigt[5], Voigt[1], Voigt[3]],
