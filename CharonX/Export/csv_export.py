@@ -45,6 +45,7 @@ class OptimizedCSVExport:
         self.setup_displacement_export()
         self.setup_velocity_export()
         self.setup_damage_export()
+        self.setup_dilatation_export()
         self.setup_temperature_export()
         self.setup_pressure_export()
         self.setup_density_export()
@@ -93,6 +94,17 @@ class OptimizedCSVExport:
             self.csv_export_d = True
             self.d_dte = self.dofs_to_exp(V_d, self.dico_csv.get("d"))
             self.coordinate_data["d"] = self.get_coordinate_data(V_d, self.d_dte)
+        else:
+            self.csv_export_d = False
+
+    def setup_dilatation_export(self):
+        if "J" in self.dico_csv:
+            self.csv_export_J = True
+            V_J = self.pb.V_quad_UD
+            self.J_dte = self.dofs_to_exp(V_J, self.dico_csv.get("J"))
+            self.coordinate_data["J"] = self.get_coordinate_data(V_J, self.J_dte)
+            self.J_expr = Expression(self.pb.J_transfo, V_J.element.interpolation_points())
+            self.J_func = Function(V_J, name="Dilatation")
         else:
             self.csv_export_d = False
 
@@ -287,6 +299,9 @@ class OptimizedCSVExport:
         if self.csv_export_rho:
             self.rho_func.interpolate(self.rho_expr)
             self.export_field(t, "rho", self.rho_func, self.rho_dte)
+        if self.csv_export_J:
+            self.J_func.interpolate(self.J_expr)
+            self.export_field(t, "J", self.J_func, self.J_dte)
         if self.csv_export_eps_p:
             self.export_field(t, "eps_p", self.pb.constitutive.plastic.eps_p, self.epsp_cte, subfield_name = self.eps_p_name_list)
         if self.csv_export_Sig:
@@ -394,7 +409,7 @@ class OptimizedCSVExport:
                 for i in range(len(self.pb.material)):
                     conc_name = f"Concentration{i}"
                     self.post_process_csv(conc_name)
-            elif field_name in ["d", "T", "Pressure", "rho", "VonMises"]:
+            elif field_name in ["d", "T", "Pressure", "rho", "VonMises", "J"]:
                 self.post_process_csv(field_name)
             elif field_name == "U":
                 self.post_process_csv(field_name, subfield_name = self.u_name_list)
