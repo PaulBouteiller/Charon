@@ -75,9 +75,9 @@ class Cylindre_axi(model):
         self.bcs.add_Uz(region=1)
         self.bcs.add_Uz(region=4)
 
-    def set_loading(self):
-        self.loading.add_Fr(-Pint * self.load, self.u_, self.ds(2))
-        self.loading.add_Fr(Pext * self.load, self.u_, self.ds(3))
+    # def set_loading(self):
+    #     self.loading.add_Fr(-Pint * self.load, self.u_, self.ds(2))
+    #     self.loading.add_Fr(Pext * self.load, self.u_, self.ds(3))
         
     def csv_output(self):
         return {"U" : ["Boundary", 1]}

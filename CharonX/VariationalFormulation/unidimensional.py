@@ -33,8 +33,6 @@ Key components:
 
 """
 
-
-
 from .Problem import BoundaryConditions, Loading, Problem
 from ufl import as_vector, dot
 from petsc4py.PETSc import ScalarType

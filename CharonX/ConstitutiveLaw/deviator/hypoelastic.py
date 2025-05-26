@@ -103,7 +103,7 @@ class HypoelasticDeviator(BaseDeviator):
             self.V_s = quadrature.quadrature_space(["Vector", 2])
         elif self.model == "PlaneStrain":
             self.V_s = quadrature.quadrature_space(["Vector", 3])
-        elif self.model == "Axisymetric":
+        elif self.model == "Axisymmetric":
             self.V_s = quadrature.quadrature_space(["Vector", 4])
         elif self.model == "Tridimensionnal":
             self.V_s = quadrature.quadrature_space(["Tensor", 3, 3])

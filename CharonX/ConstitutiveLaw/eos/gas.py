@@ -94,7 +94,7 @@ class GPEOS(BaseEOS):
         """Calculate pressure using the ideal gas law.
         P = (gamma - 1) * rho_0 / J * C_mass * T
         
-        where C_mass*T is equivalent to the specific internal energy.
+        where C_mass *T  is equivalent to the specific internal energy.
         
         Parameters
         ----------

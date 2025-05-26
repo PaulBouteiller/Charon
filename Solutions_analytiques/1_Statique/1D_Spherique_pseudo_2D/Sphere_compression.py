@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 
-model = Axisymetric
+model = Axisymmetric
 ###### Modèle mécanique ######
 E = 1e5
 nu = 0.3

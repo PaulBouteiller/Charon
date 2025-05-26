@@ -70,21 +70,15 @@ class EOS:
         
         Parameters
         ----------
-        J : Function
-            Jacobian of the transformation (volumetric deformation)
-        T : Function
-            Current temperature
-        T0 : Function
-            Initial temperature
-        mat : Material
-            Material properties
-        quadrature : QuadratureHandler
-            Handler for quadrature integration
+        J : Function Jacobian of the transformation (volumetric deformation)
+        T : Function Current temperature
+        T0 : Function Initial temperature
+        mat : Material Material properties
+        quadrature : QuadratureHandler Handler for quadrature integration
             
         Returns
         -------
-        Expression
-            Pressure
+        Expression Pressure
         """
         # Delegate to the appropriate EOS model in the material
         pressure = mat.eos.pressure(J, T, T0, mat, quadrature)
