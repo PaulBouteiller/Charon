@@ -164,15 +164,16 @@ class AnisotropicDeviator(BaseDeviator):
         spherical_data = calibration_data.get("spherical_data", None)
         shear_data = calibration_data.get("shear_data", None)
         plot = calibration_data.get("plot", False)
+        save = calibration_data.get("save", False)
         
         # First calibrate the g_func (volumetric coupling functions)
         if spherical_data is not None:
-            self.g_data, self.g_func_coeffs = self._orthotropic_unified_gij_fit(spherical_data, plot = plot)
+            self.g_data, self.g_func_coeffs = self._orthotropic_unified_gij_fit(spherical_data, plot, save)
             
         # Then calibrate the f_func (shear modulation functions) if shear data available
         if shear_data is not None and spherical_data is not None:
             # gamma = shear_data.get("shear_magnitude", 0.1)
-            self.f_func_coeffs = self.calibrate_fij(shear_data, spherical_data, plot = plot)
+            self.f_func_coeffs = self.calibrate_fij(shear_data, spherical_data, plot, save)
         else:
             self.f_func_coeffs = None
     
@@ -285,7 +286,7 @@ class AnisotropicDeviator(BaseDeviator):
         # Apply rotation to stiffness tensor
         self.C = R.dot(self.C.dot(R.T))
         
-    def _orthotropic_unified_gij_fit(self, data, plot):
+    def _orthotropic_unified_gij_fit(self, data, plot, save):
         """Calibrate a unified gij function from the three components of data.
         This approach assumes g_xx = g_yy = g_zz for simplicity.
         
@@ -331,12 +332,12 @@ class AnisotropicDeviator(BaseDeviator):
         degree = data.get("degree")
         # Ajustement d'un polynôme unique pour toutes les composantes
         poly_fit_unified, r2_unified = fit_and_plot_shifted_polynomial_fixed(
-            J_combined, g_combined, degree, plot, xlabel='J', ylabel='g',
+            J_combined, g_combined, degree, plot, {"save" : save, "name" : "spherical"}, ylabel=r'$g$',
             title_prefix='Ajustement unifié de g_ij - ')  
         # Retourner les données originales et le polynôme unifié
         return [g_xx, g_yy, g_zz], poly_fit_unified
 
-    def calibrate_fij(self, shear_data, spherical_data, plot=False):
+    def calibrate_fij(self, shear_data, spherical_data, plot, save):
         """Calibrate the shear modulation functions (fij) from experimental data.
         
         Parameters
@@ -348,7 +349,8 @@ class AnisotropicDeviator(BaseDeviator):
             - "sxy", "syz", "sxz": Direct shear stress arrays
             - "Jxy", "Jyz", "Jxz": Corresponding Jacobian arrays
         degree : int, optional Polynomial degree for fitting, by default 3
-        plot : bool, optional Whether to display plots, by default False
+        plot : bool, Whether to display plots
+        save : bool, Whether to save plot
             
         Returns
         -------
@@ -371,8 +373,8 @@ class AnisotropicDeviator(BaseDeviator):
             # Prepare and fit data
             J, fij_values = self._prepare_fij_data(data, spherical_data.get("J"), mapping["C_idx"], mapping["m_idx"])
             poly_fit, r2 = fit_and_plot_shifted_polynomial_fixed(
-                J, fij_values, degree, plot,
-                xlabel='J', ylabel=mapping["name"],
+                J, fij_values, degree, plot, {"save" : save, "name" : direction},
+                xlabel='J', ylabel = mapping["name"],
                 title_prefix=f'Ajustement de {mapping["name"]} - ')
             # Store result
             fij_dict[mapping["name"]] = poly_fit

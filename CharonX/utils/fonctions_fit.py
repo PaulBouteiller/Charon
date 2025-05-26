@@ -36,8 +36,8 @@ def shifted_polynomial_fixed_constant(x, *params):
     
     return result
 
-def fit_and_plot_shifted_polynomial_fixed(x_data, y_data, degree, plot, plot_original=True,
-                                         xlabel='J', ylabel='f', title_prefix='', ):
+def fit_and_plot_shifted_polynomial_fixed(x_data, y_data, degree, plot, save_dict,
+                                         xlabel=r'$J$', ylabel=r'$f$', title_prefix='', ):
     """
     Ajuste un polynôme de la forme 1 + b*(x-1) + c*(x-1)^2 + ... sur les données
     et affiche les résultats graphiquement.
@@ -70,15 +70,22 @@ def fit_and_plot_shifted_polynomial_fixed(x_data, y_data, degree, plot, plot_ori
     r2 = 1 - np.sum((y_data - y_pred) ** 2) / np.sum((y_data - np.mean(y_data)) ** 2)
     if plot:
         plt.figure(figsize=(12, 7))
-        if plot_original:
-            plt.plot(x_data, y_data, 'b.', label='Données originales', alpha=0.5)
-        plt.plot(x_fit, y_fit, 'r-', label=f'Polynôme (x-1) degré {degree}')
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.title(f'Ajustement polynomial avec (x-1) et terme constant=1 (R² = {r2:.4f})')
-        plt.legend()
+        # plt.plot(x_data, y_data, 'b.', label='Données originales', alpha=0.5)
+        plt.plot(x_data, y_data, 'b.', label='Original Data', alpha=0.5)
+        # plt.plot(x_fit, y_fit, 'r-', label=f'Polynôme (x-1) degré {degree}')
+        plt.plot(x_fit, y_fit, 'r-', label=f'Polynomial degree {degree}')
+        plt.xlabel(xlabel, fontsize = 20)
+        plt.ylabel(ylabel, fontsize = 20)
+        plt.xticks(fontsize=16)  # Taille de police pour les graduations de l'axe x
+        plt.yticks(fontsize=16)  # Taille de police pour les graduations de l'axe y
+        # plt.title(f'Ajustement polynomial avec (x-1) et terme constant=1 (R² = {r2:.4f})')
+        plt.title(f'Polynomial fit (R² = {r2:.4f})', fontsize = 24)
+        plt.legend(fontsize = 18)
         plt.grid(True)
-        plt.show()
+        if save_dict.get("save"):
+            file_name = save_dict.get("name")
+            plt.savefig(f"{file_name}.pdf", bbox_inches = 'tight')
+            plt.close()
 
     print("\nCoefficients du polynôme:")
     print("a (terme constant): 1.000000 (fixé)")

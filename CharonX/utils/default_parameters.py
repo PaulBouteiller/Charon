@@ -139,7 +139,7 @@ def default_damping_parameters():
     damp = {}
     damp.update({"damping": True})
     damp.update({"linear_coeff": 0.1})
-    damp.update({"quad_coeff": 1})
+    damp.update({"quad_coeff": 0.1})
     damp.update({"correction": True})
     return damp
 

@@ -57,14 +57,14 @@ Acier = Material(rho, C, eos_type, "IsotropicHPP", dico_eos, dico_devia)
 
 ###### Paramètre géométrique ######
 e = 5
-R_int = 5
+R_int = 10
 R_ext = R_int + e
 
 
 ###### Temps simulation ######
 Tfin = 6e-4
 pas_de_temps = Tfin/12000
-magnitude = -1e4
+magnitude = -1e2
 T_unload = Tfin
 
 sortie = 1000

@@ -533,7 +533,7 @@ class Problem:
 
         self.is_tabulated = is_in_list(self.material, "eos_type", "Tabulated")
         self.is_hypoelastic = is_in_list(self.material, "dev_type", "Hypoelastic")
-        self.is_pure_hydro = is_in_list(self.material, "dev_type", "None")
+        self.is_pure_hydro = is_in_list(self.material, "dev_type", None)
     
     def _init_constitutive_law(self):
         """

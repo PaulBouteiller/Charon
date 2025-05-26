@@ -15,7 +15,7 @@ from pandas import read_csv
 from math import exp
 
 ######## Modèle mécanique ########
-model = Tridimensionnal
+model = Tridimensional
 
 ######## Modèle matériau ########
 rho_TATB = 1.9e-3

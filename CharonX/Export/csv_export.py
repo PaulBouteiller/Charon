@@ -106,7 +106,7 @@ class OptimizedCSVExport:
             self.J_expr = Expression(self.pb.J_transfo, V_J.element.interpolation_points())
             self.J_func = Function(V_J, name="Dilatation")
         else:
-            self.csv_export_d = False
+            self.csv_export_J = False
 
     def setup_temperature_export(self):
         if "T" in self.dico_csv:

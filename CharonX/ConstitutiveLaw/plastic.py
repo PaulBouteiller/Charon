@@ -439,6 +439,6 @@ class HPPPlastic(Plastic):
             dp = ppart(f_elas) / (3 * self.mu + self.H)
             Delta_eps_p = 3 * dp / sig_VM * s_mandel
             dp_test = ppart(sig_VM - self.sig_yield)/ (3 * self.mu + self.H)
-            self.dp_expression = Expression(dp_test, Vp.element.interpolation_points())
+            self.dp_expression = Expression(dp, Vp.element.interpolation_points())
         self.Delta_eps_p_expression = Expression(Delta_eps_p, self.Vepsp.element.interpolation_points())
         

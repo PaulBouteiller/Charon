@@ -43,7 +43,10 @@ class ExplicitDisplacementSolver:
         """
         self.u = u
         self.v = v
-        self.a = Function(self.u.function_space, name="Accelerations")
+        self.a = Function(u.function_space, name="Accelerations")
+        
+        self._residual_func = Function(u.function_space, name="residual_temp")
+        
         self.dt = dt
         self.bcs = bcs
         self.order = default_dynamic_parameters()["order"]
@@ -136,19 +139,19 @@ class ExplicitDisplacementSolver:
         dt : float Time step
         """
         # Assemble residual
-        res = assemble_vector(self.local_res)
-        self._update_ghost_values(res)
+        with self._residual_func.x.petsc_vec.localForm() as loc:
+            loc.set(0)
+        assemble_vector(self._residual_func.x.petsc_vec, self.local_res)
+        self._update_ghost_values(self._residual_func.x.petsc_vec)
         
         # Compute acceleration: a = M^(-1) * res
-        petsc_div(res, self.diag_M, self.a.x.petsc_vec)
+        petsc_div(self._residual_func.x.petsc_vec, self.diag_M, self.a.x.petsc_vec)
         set_bc(self.a.x.petsc_vec, self.bcs.a_bcs)
         
         # Update velocity: v += dt * a
         dt_update(self.v, self.a, dt)
         set_bc(self.v.x.petsc_vec, self.bcs.v_bcs)
         self.v.x.petsc_vec.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
-        
-        res.destroy()
 
     def u_solve(self):
         """Résout le problème de déplacement pour un pas de temps en utilisant le schéma symplectique."""

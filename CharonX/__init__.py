@@ -17,10 +17,17 @@ from .utils.tensor_operations import *
 from .ConstitutiveLaw.material import *
 from .ConstitutiveLaw.thermal_material import *
 
+
+from .utils.MyExpression import MyConstant
+
+# from .VariationalFormulation import (unidimensional, bidimensional, tridimensional)
+
 from .VariationalFormulation.unidimensional import *
 from .VariationalFormulation.bidimensional import *
 from .VariationalFormulation.tridimensional import *
-from .utils.MyExpression import MyConstant
+
+# from .utils import (default_parameters, tensor_operations)
+
 from pandas import read_csv
 
 from .Solve.Solve import *
