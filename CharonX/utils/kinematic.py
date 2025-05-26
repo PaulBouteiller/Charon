@@ -61,7 +61,7 @@ class Kinematic:
         name : str
             Name of the mechanical model, must be one of:
             [CartesianUD, CylindricalUD, SphericalUD, 
-             PlaneStrain, Axisymetric, Tridimensional]
+             PlaneStrain, Axisymmetric, Tridimensional]
         r : Function or None
             Radial coordinate in axisymmetric, cylindrical, and spherical cases
         """
@@ -70,7 +70,7 @@ class Kinematic:
         
         # Configurations for different model types
         self._model_config = {"dim1": ["CartesianUD", "CylindricalUD", "SphericalUD"],
-                              "dim2": ["PlaneStrain", "Axisymetric"],
+                              "dim2": ["PlaneStrain", "Axisymmetric"],
                               "dim3": ["Tridimensional"]}
 
     def _is_1d(self):
@@ -116,7 +116,7 @@ class Kinematic:
             return as_vector([grad_f, 0, 0])
         elif self.name == "PlaneStrain": 
             return as_vector([grad_f[0], grad_f[1], 0])
-        elif self.name == "Axisymetric": 
+        elif self.name == "Axisymmetric": 
             return as_vector([grad_f[0], 0, grad_f[1]])
         else:  # Tridimensional
             return grad_f
@@ -145,7 +145,7 @@ class Kinematic:
         elif self.name == "PlaneStrain":
             grad_u = grad(u)
             return self._get_2d_reduced_grad(grad_u, sym)
-        elif self.name == "Axisymetric":
+        elif self.name == "Axisymmetric":
             grad_u = grad(u)
             return self._get_axi_reduced_grad(grad_u, u, sym)
         else:  # Tridimensional
@@ -228,7 +228,7 @@ class Kinematic:
                 return as_vector([grad_red[i] * invF_reduit[i] for i in range(len(grad_red))])
         elif self.name == "PlaneStrain":
             return self.bidim_to_reduit(dot(self.reduit_to_2D(grad_red), inv(Identity(2) + grad(u))))
-        elif self.name == "Axisymetric":
+        elif self.name == "Axisymmetric":
             return self.tridim_to_reduit(dot(self.reduit_to_3D(grad_red), invF_reduit))
         else:  # Tridimensional
             return dot(grad_red, invF_reduit)
@@ -261,8 +261,8 @@ class Kinematic:
         # 2D models
         elif self.name == "PlaneStrain":
             return self._plane_strain_to_3D(red, sym)
-        elif self.name == "Axisymetric":
-            return self._axisymetric_to_3D(red, sym)
+        elif self.name == "Axisymmetric":
+            return self._Axisymmetric_to_3D(red, sym)
         
         # 3D model
         else:
@@ -291,7 +291,7 @@ class Kinematic:
         else:
             return as_tensor([[red[0], red[2], 0], [red[3], red[1], 0], [0, 0, 0]])
     
-    def _axisymetric_to_3D(self, red, sym):
+    def _Axisymmetric_to_3D(self, red, sym):
         """
         Private method to convert from Axisymmetric to 3D.
 
@@ -378,7 +378,7 @@ class Kinematic:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[0, 1]])
             else:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[0, 1], tens3D[1, 0]])
-        elif self.name == "Axisymetric":
+        elif self.name == "Axisymmetric":
             if sym:
                 return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], tens3D[0, 2]])
             else:
@@ -416,7 +416,7 @@ class Kinematic:
         # 2D models
         elif self.name == "PlaneStrain":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 1]])
-        elif self.name == "Axisymetric":
+        elif self.name == "Axisymmetric":
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 2]])
         
         # 3D model
@@ -447,7 +447,7 @@ class Kinematic:
             return as_tensor([[red[0], red[3]/sq2, 0], 
                              [red[3]/sq2, red[1], 0], 
                              [0, 0, red[2]]])
-        elif self.name == "Axisymetric":
+        elif self.name == "Axisymmetric":
             return as_tensor([[red[0], 0, red[3]/sq2], 
                              [0, red[1], 0], 
                              [red[3]/sq2, 0, red[2]]])
@@ -523,7 +523,7 @@ class Kinematic:
         # 2D models
         elif self.name == "PlaneStrain":
             return det(Identity(2) + grad(u))
-        elif self.name == "Axisymetric":
+        elif self.name == "Axisymmetric":
             F = self.F_reduit(u)
             return F[1, 1] * (F[0, 0] * F[2, 2] - F[0, 2] * F[2, 0])
         
@@ -555,14 +555,14 @@ class Kinematic:
         elif self.name == "PlaneStrain":
             inv_F2 = inv(Identity(2) + grad(u))
             return as_tensor([[inv_F2[0,0], inv_F2[0,1], 0], [inv_F2[1,0], inv_F2[1,1], 0], [0, 0, 1]])
-        elif self.name == "Axisymetric":
-            return self._get_axisymetric_invF(u)
+        elif self.name == "Axisymmetric":
+            return self._get_Axisymmetric_invF(u)
         
         # 3D model
         else:
             return inv(Identity(3) + grad(u))
     
-    def _get_axisymetric_invF(self, u):
+    def _get_Axisymmetric_invF(self, u):
         """
         Private method to calculate the inverse deformation gradient in axisymmetric case.
 
@@ -722,7 +722,7 @@ class Kinematic:
         """
         if self.name in ["CartesianUD", "PlaneStrain", "Tridimensional"]:
             return a * dx
-        elif self.name in ["CylindricalUD", "Axisymetric"]:
+        elif self.name in ["CylindricalUD", "Axisymmetric"]:
             return a * self.r * dx
         elif self.name == "SphericalUD":
             return a * self.r**2 * dx

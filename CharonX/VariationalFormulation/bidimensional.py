@@ -35,7 +35,7 @@ Key components:
 - AxiLoading: Loading conditions for axisymmetric problems
 - Bidimensional: Base class for 2D problems
 - Plane_strain: Implementation for plane strain problems
-- Axisymetric: Implementation for axisymmetric problems
+- Axisymmetric: Implementation for axisymmetric problems
 
 """
 
@@ -425,7 +425,7 @@ class Plane_strain(Bidimensional):
             return vector_1[0] * vector_2[0] + vector_1[1] * vector_2[1] + \
                     + vector_1[2] * (vector_2[2] + vector_2[3]) 
 
-class Axisymetric(Bidimensional):
+class Axisymmetric(Bidimensional):
     """
     Class for axisymmetric mechanical problems.
     
@@ -442,9 +442,9 @@ class Axisymetric(Bidimensional):
         
         Returns
         -------
-        str Axisymetric"
+        str Axisymmetric"
         """
-        return "Axisymetric"
+        return "Axisymmetric"
     
     def bidim_boundary_conditions_class(self):
         """

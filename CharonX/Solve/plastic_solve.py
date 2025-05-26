@@ -143,13 +143,10 @@ class PlasticSolve:
         Projection et actualisation de la déformation plastique
         """
         if self.plastic.plastic_model == "HPP_Plasticity":
-            if self.plastic.hardening == "Iso":
-                self.plastic.dp.interpolate(self.plastic.dp_expression)
-                print("L'incrément de plasticité cumulée vaut", self.plastic.dp.x.array)
-                # print("La plasticite cumulée vaut", self.plastic.p.x.array)
-                petsc_add(self.plastic.p.x.petsc_vec, self.plastic.dp.x.petsc_vec)
+            if self.plastic.hardening == "Isotropic":
+                self.plastic.Delta_p.interpolate(self.plastic.Delta_p_expression)
+                petsc_add(self.plastic.p.x.petsc_vec, self.plastic.Delta_p.x.petsc_vec)
             self.plastic.delta_eps_p.interpolate(self.plastic.Delta_eps_p_expression)
-            # print(self.plastic.delta_eps_p.x.array)
             petsc_add(self.plastic.eps_p.x.petsc_vec, self.plastic.delta_eps_p.x.petsc_vec)
                 
                 

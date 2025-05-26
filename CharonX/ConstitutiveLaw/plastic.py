@@ -127,10 +127,8 @@ class Plastic():
         """
         self.hardening = hardening
         self.sig_yield = sigY
-        if self.hardening == "Iso":
-            self.H = kwargs.get("H") 
-        elif self.hardening == "CinLin":
-            self.H = kwargs.get("H") 
+        if self.hardening in ["Isotropic", "Kinematic"]:
+            self.H = kwargs.get("H")
         if self.plastic_model == "J2_JAX":
             self.yield_stress = kwargs.get("Hardening_func")
             assert hasattr(self, "yield_stress"), "yield_stress doit être défini pour le modèle J2_JAX"
@@ -423,22 +421,21 @@ class HPPPlastic(Plastic):
         s_3D : Expression 3D deviatoric stress tensor
         """
         eps = 1e-10
-        if self.hardening == "CinLin":
+        if self.hardening == "Kinematic":
             self.A = self.kin.tridim_to_mandel(s_3D - self.H * self.eps_P_3D)
             norm_A = sqrt(dot(self.A, self.A)) + eps
             Delta_eps_p = ppart(1 - (2/3.)**(1./2) * self.sig_yield / norm_A) / \
                                 (2 * self.mu + self.H) *self.A
 
-        elif self.hardening == "Iso":
+        elif self.hardening == "Isotropic":
             Vp = self.quadrature.quadrature_space(["Scalar"])
             self.p = Function(Vp, name = "Cumulative_plastic_strain")
-            self.dp = Function(Vp, name = "Plastic_strain_increment")
+            self.Delta_p = Function(Vp, name = "Plastic_strain_increment")
             s_mandel = self.kin.tridim_to_mandel(s_3D)
             sig_VM = sqrt(3.0 / 2.0 * dot(s_mandel, s_mandel)) + eps
             f_elas = sig_VM - self.sig_yield - self.H * self.p
-            dp = ppart(f_elas) / (3 * self.mu + self.H)
-            Delta_eps_p = 3 * dp / sig_VM * s_mandel
-            dp_test = ppart(sig_VM - self.sig_yield)/ (3 * self.mu + self.H)
-            self.dp_expression = Expression(dp, Vp.element.interpolation_points())
+            Delta_p = ppart(f_elas) / (3. * self.mu + self.H)
+            Delta_eps_p = 3. * Delta_p / (2. * sig_VM) * s_mandel
+            self.Delta_p_expression = Expression(Delta_p, Vp.element.interpolation_points())
         self.Delta_eps_p_expression = Expression(Delta_eps_p, self.Vepsp.element.interpolation_points())
         

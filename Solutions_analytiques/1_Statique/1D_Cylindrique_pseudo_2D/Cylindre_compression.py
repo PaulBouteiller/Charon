@@ -1,29 +1,29 @@
 """
-Test de compression d'un cylindre creux en axisymÃ©trique (pseudo-2D).
+Test de compression d'un cylindre creux en axisymétrique (pseudo-2D).
 
-Ce script simule la compression d'un cylindre creux soumis Ã  des pressions interne et externe
-en utilisant un modÃ¨le axisymÃ©trique, puis compare la solution numÃ©rique avec la solution
-analytique de LamÃ©.
+Ce script simule la compression d'un cylindre creux soumis à des pressions interne et externe
+en utilisant un modèle axisymétrique, puis compare la solution numérique avec la solution
+analytique de Lamé.
 
-ParamÃ¨tres gÃ©omÃ©triques:
+Paramètres géométriques:
     - Rayon interne (Rint): 9
     - Rayon externe (Rext): 11
     - Hauteur du cylindre: 1
-    - DiscrÃ©tisation: maillage 20Ã—10 (quadrilatÃ¨res)
+    - Discrétisation: maillage 20Ã—10 (quadrilatères)
 
 Chargement:
     - Pression interne (Pint): -5
     - Pression externe (Pext): -10
 
 Conditions aux limites:
-    - DÃ©placement vertical bloquÃ© sur les faces supÃ©rieure et infÃ©rieure
+    - Déplacement vertical bloqué sur les faces supérieure et inférieure
     - Pressions sur les faces internes et externes
 
-Une vÃ©rification est effectuÃ©e pour comparer le champ de dÃ©placement radial calculÃ©
-numÃ©riquement avec la solution analytique.
+Une vérification est effectuée pour comparer le champ de déplacement radial calculé
+numériquement avec la solution analytique.
 
 Auteur: bouteillerp
-Date de crÃ©ation: 11 Mars 2022
+Date de création: 11 Mars 2022
 """
 from CharonX import *
 import time
@@ -31,8 +31,8 @@ import matplotlib.pyplot as plt
 import pytest
 from numpy import pi
 
-model = Axisymetric
-###### ModÃ¨le mÃ©canique ######
+model = Axisymmetric
+###### Modèle mécanique ######
 E = 210e3
 nu = 0.3 
 lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
@@ -41,7 +41,7 @@ dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
 dico_devia = {"E" : E, "nu" : nu}
 Acier = Material(1, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
 
-###### ParamÃ¨tre gÃ©omÃ©trique ######
+###### Paramètre géométrique ######
 L = 2
 Nx = 100
 Rint = 9
@@ -101,9 +101,9 @@ class Cylindre_axi(model):
         def ur(r):
             return  a * r + b / r
         solution_analytique = np.array([ur(x) for x in r_result])
-        # On calcule la diffÃ©rence entre les deux courbes
+        # On calcule la différence entre les deux courbes
         diff_tot = solution_analytique - solution_numerique
-        # Puis on rÃ©alise une sorte d'intÃ©gration discrÃ¨te
+        # Puis on réalise une sorte d'intégration discrète
         integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
         print("La difference est de", integrale_discrete)
         # assert integrale_discrete < 1e-3, "Cylindrical static compression fail"
@@ -113,7 +113,7 @@ class Cylindre_axi(model):
             
             plt.xlim(Rint, Rext)
             plt.xlabel(r"$r$", size = 18)
-            plt.ylabel(r"DÃ©placement radial", size = 18)
+            plt.ylabel(r"Déplacement radial", size = 18)
             plt.savefig("../../../Notice/fig/1D_Cylindrique_compression_pseudo_2D.pdf", bbox_inches = 'tight')
             # plt.show()
             

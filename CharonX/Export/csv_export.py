@@ -171,7 +171,7 @@ class OptimizedCSVExport:
         elif self.model_meca == "PlaneStrain":
             self.sig_cte = [self.comp_to_export(self.sig_dte, i) for i in range(3)]
             self.sig_name_list = [r"\sigma_{xx}", r"\sigma_{yy}", r"\sigma_{xy}"]
-        elif self.model_meca == "Axisymetric":
+        elif self.model_meca == "Axisymmetric":
             self.sig_cte = [self.comp_to_export(self.sig_dte, i) for i in range(4)]
             self.sig_name_list = [r"\sigma_{rr}", r"\sigma_{tt}", r"\sigma_{zz}", r"\sigma_{rz}"]
         elif self.model_meca == "Tridimensional":
@@ -215,7 +215,7 @@ class OptimizedCSVExport:
             self.s_name_list = ["s_{rr}", "s_{tt}", "s_{phiphi}"]
         elif self.model_meca == "PlaneStrain":
             self.s_name_list = ["s_{xx}", "s_{yy}", "s_{zz}", "s_{xy}"]
-        elif self.model_meca == "Axisymetric":
+        elif self.model_meca == "Axisymmetric":
             self.s_name_list = ["s_{rr}", "s_{tt}", "s_{zz}", "s_{rz}"]
         elif self.model_meca == "Tridimensional":
             self.s_name_list = ["s_{xx}", "s_{xy}", "s_{xz}", 
@@ -351,7 +351,7 @@ class OptimizedCSVExport:
                 data = {"r": specific(dof_coords, 0, key)}
             elif self.model_meca == "PlaneStrain":
                 data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key)}
-            elif self.model_meca =="Axisymetric":
+            elif self.model_meca =="Axisymmetric":
                 data = {"r": specific(dof_coords, 0, key), "z": specific(dof_coords, 1, key)}
             elif self.model_meca =="Tridimensional":
                 data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key), "z" : specific(dof_coords, 2, key)}
