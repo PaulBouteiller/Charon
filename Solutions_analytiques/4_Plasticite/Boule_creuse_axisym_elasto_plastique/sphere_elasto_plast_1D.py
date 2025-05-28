@@ -1,3 +1,42 @@
+"""
+Simulation élasto-plastique d'une sphère creuse en coordonnées sphériques 1D.
+
+Ce script implémente et exécute une simulation élasto-plastique d'une sphère creuse
+soumise à une pression interne croissante en utilisant un modèle 1D en coordonnées
+sphériques. Il compare les résultats numériques aux solutions analytiques élastique
+et plastique.
+
+Modèle numérique:
+    - Géométrie: SphericalUD (coordonnées sphériques 1D)
+    - Maillage: 100 éléments radiaux entre Ri et Re
+    - Analyse: Statique avec plasticité HPP_Plasticity
+    - Écrouissage: Isotrope
+
+Paramètres de simulation:
+    - Pression appliquée: 1.1 × q_lim (10% au-dessus de la limite élastique)
+    - Nombre de pas: 20000 (chargement progressif) Attention un nombre très important
+    de pas peut être requis pour la convergence à cause du caractère explicite
+    du traitement de la plasticité
+    - Fréquence de sortie: tous les 100 pas
+
+Conditions aux limites:
+    - Surface interne (r=Ri): Pression imposée progressive
+    - Surface externe (r=Re): Libre
+
+Validation:
+    La simulation génère une courbe pression-déplacement comparée aux solutions
+    analytiques pour valider:
+    - Le comportement élastique linéaire (p < q_lim)
+    - La transition élasto-plastique (p ≈ q_lim)
+    - Le comportement plastique non-linéaire (p > q_lim)
+
+Sortie:
+    - Fichier CSV: déplacements de la surface interne
+    - Graphique: courbe pression vs déplacement avec solutions analytiques
+
+Auteur: bouteillerp
+Date de création: 28 Mai 2025
+"""
 
 from CharonX import *
 import matplotlib.pyplot as plt

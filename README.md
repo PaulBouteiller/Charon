@@ -17,13 +17,12 @@ CharonX solves solid mechanics problems using the finite element method. The cur
   - Hyperelastic (Neo-Hookean, Mooney-Rivlin)
   - Various U-model EOS (U1, U5, U8)
   - Mie-Grüneisen, Vinet, JWL, MACAW
-  - Gas and fluid models
+  - Gas model
 - **Deviatoric behaviors**:
   - Isotropic linear elasticity
   - Neo-Hookean and Mooney-Rivlin hyperelasticity
   - Transversely isotropic models
   - Fully anisotropic models
-  - Newtonian fluid deviatoric stress
 - **Advanced material behaviors**:
   - Plasticity (small strain and finite strain)
   - Damage models (Phase Field, Johnson-Cook)
@@ -39,7 +38,6 @@ CharonX solves solid mechanics problems using the finite element method. The cur
 CharonX is designed for simulations involving complex material behaviors such as:
 - Damage and fracture mechanics
 - Multiphase material behaviors
-- Explosive deformation
 - Thermomechanical coupling effects
 
 ## Installation

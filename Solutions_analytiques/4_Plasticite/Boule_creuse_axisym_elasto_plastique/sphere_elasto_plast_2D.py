@@ -1,3 +1,49 @@
+"""
+Simulation élasto-plastique d'une sphère creuse en modèle 2D axisymétrique.
+
+Ce script implémente et exécute une simulation élasto-plastique d'une sphère creuse
+soumise à une pression interne en utilisant un modèle 2D axisymétrique . 
+Il compare les résultats numériques aux solutions analytiques pour valider l'approche bidimensionnelle.
+
+Modèle numérique:
+    - Géométrie: Axisymmetric (modèle 2D de révolution)
+    - Maillage: Maillage sphérique généré par axi_sphere()
+        * 40 éléments circonférentiels
+        * 10 éléments radiaux
+    - Analyse: Statique avec plasticité HPP_Plasticity
+    - Écrouissage: Cinématique
+
+Paramètres de simulation:
+    - Pression appliquée: 1.1 × q_lim
+    - Nombre de pas: 4000 Attention un nombre très important
+    de pas peut être requis pour la convergence à cause du caractère explicite
+    - Chargement: Pression surfacique via add_pressure()
+
+Conditions aux limites:
+    - Axe de symétrie: Déplacements bloqués (Uz=0, Ur=0)
+    - Surface interne: Pression imposée progressive
+    - Surface externe: Libre
+
+Différences avec le modèle 1D:
+    - Maillage 2D complet vs maillage 1D radial
+    - Écrouissage cinématique vs isotrope
+    - Chargement par pression surfacique vs force nodale
+    - Conditions aux limites axisymétriques
+
+Validation:
+    Compare les résultats 2D aux solutions analytiques 1D pour évaluer:
+    - La cohérence entre approches 1D et 2D
+    - L'influence de la modélisation géométrique
+    - La précision du maillage 2D
+
+Sortie:
+    - Fichier CSV: déplacements et déformations plastiques
+    - Graphique: courbe pression vs déplacement avec solutions analytiques
+
+Auteur: bouteillerp
+Date de création: 28 Mai 2025
+"""
+
 from CharonX import *
 import time
 import matplotlib.pyplot as plt
@@ -69,8 +115,9 @@ lambda_val = 1 - H / (3 * G)
 w_a_elastique = deplacement_elastique(p_int_elastique_range, Ri, Re, G, K, p_ext)
 w_a = deplacement_ilyushin(p_int_range, Ri, Re, G, K, sig0, lambda_val, p_ext)
 plt.plot(w_a_elastique, p_int_elastique_range, color="black", linewidth=2, 
-         label=f'Elastique', linestyle='-')
+         label='Elastique', linestyle='-')
 plt.plot(w_a, p_int_range, color="black", linewidth=2, 
-         label=f'Elastique', linestyle='-')
+         label='Plastique', linestyle='--')
+plt.legend()
 plt.xlim(0, 1.02 * max(inner_displacement))
 plt.ylim(0, 1.02 * p_applied)

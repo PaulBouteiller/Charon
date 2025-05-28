@@ -1,11 +1,28 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed May 28 09:45:54 2025
+Module de définition des paramètres matériaux et géométriques pour l'analyse élasto-plastique.
 
-@author: bouteillerp
+Paramètres matériaux:
+    - Module d'Young (E): 200 GPa
+    - Coefficient de Poisson (nu): 0.3
+    - Module de compressibilité (K): calculé selon la théorie élastique
+    - Module de cisaillement (G): calculé selon la théorie élastique
+
+Paramètres géométriques:
+    - Rayon externe (Re): 600 mm
+    - Rayon interne (Ri): 300 mm
+
+Paramètres élasto-plastiques:
+    - Contrainte d'écoulement (sig0): 300 MPa
+    - Module tangent (Et): E/100
+    - Module d'écrouissage (H): calculé selon la théorie de l'écrouissage
+    - Pression limite élastique (q_lim): 2·ln(Re/Ri)·sig0
+
+Remarque: Les valeurs sont définies pour un acier structural typique et peuvent
+être modifiées selon les besoins de l'analyse.
+
+Auteur: bouteillerp
+Date de création: 28 Mai 2025
 """
-from CharonX import Material
 import numpy as np
 ###### Modèle mécanique ######
 E = 200e3
