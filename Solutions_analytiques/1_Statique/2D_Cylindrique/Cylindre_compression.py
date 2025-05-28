@@ -1,7 +1,7 @@
 """
 Test de compression d'un cylindre creux en 2D axisymétrique.
 
-Ce script simule la compression d'un cylindre creux soumis à des pressions interne
+Ce script simule la compression d'un cylindre creux soumis �  des pressions interne
 et externe en utilisant un modèle axisymétrique, puis compare la solution numérique
 avec la solution analytique de Lamé.
 
@@ -48,7 +48,7 @@ hauteur = 1
 Pext = -10
 Pint = -5
 
-model = Axisymetric
+model = Axisymmetric
    
 class Cylindre_axi(model):
     def __init__(self, material):

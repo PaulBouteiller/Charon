@@ -58,8 +58,6 @@ from .none_deviator import NoneDeviator
 from .isotropic_hpp import IsotropicHPPDeviator
 from .neo_hook import NeoHookDeviator
 from .mooney_rivlin import MooneyRivlinDeviator
-#Fluid deviator
-from .newtonian_fluid import NewtonianFluidDeviator
 #Anisotropic deviator
 from .anisotropic import AnisotropicDeviator
 #Hypoelastic deviator

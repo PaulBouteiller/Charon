@@ -218,6 +218,7 @@ class Loading:
         self.my_constant_list = []
         self.function_list = []
         self.Wext = kinematic.measure(Constant(mesh, ScalarType(0)) * u_, dx)
+        self.n = FacetNormal(mesh)
         
     def add_loading(self, value, u_, dx):
         """
@@ -260,24 +261,22 @@ class Loading:
         if isinstance(value, function.Expression):
             return value
     
-    def add_pressure(self, p, mesh, u_, ds):
+    def add_pressure(self, p, u_, ds):
         """
         Add pressure (normal surface force) on the exterior surface.
         
         Parameters
         ----------
         p : ScalarType or Expression Pressure value
-        mesh : dolfinx.mesh.Mesh Computational mesh
         u_ : ufl.TestFunction Test function for the displacement field
         ds : ufl.Measure Surface integration measure
         """
-        n = FacetNormal(mesh)
         def value(value):
             if isinstance(value, MyConstant):
                 return value.Expression.constant
             else:
                 return value
-        self.Wext += self.kinematic.measure(-value(p) * dot(n, u_), ds)
+        self.Wext += self.kinematic.measure(-value(p) * dot(self.n, u_), ds)
         
 class Problem:
     """
@@ -886,7 +885,8 @@ class Problem:
         
         Creates default empty boundary tags if not overridden.
         """
-        print("Warning no boundary has been tagged inside CHARONX")
+        print("Warning no boundary has been tagged inside CHARONX \
+              Boundary conditions cannot be used")
         self.mesh_manager.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
     
     def set_loading(self):

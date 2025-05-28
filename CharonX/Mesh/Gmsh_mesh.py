@@ -37,7 +37,7 @@ def init_gmsh():
     geom = gmsh.model.geo
     return gdim, rank, geom
 
-def return_mesh(model, comm, rank, gdim, quad):
+def return_mesh(model, comm, rank, gdim, quad, write):
     gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
     if quad:
         gmsh.option.setNumber("Mesh.Algorithm", 8)
@@ -48,8 +48,9 @@ def return_mesh(model, comm, rank, gdim, quad):
     gmsh.model.mesh.optimize("Netgen")
     domain, meshtags, facets = model_to_mesh(model, comm, rank, gdim=gdim)
     gmsh.finalize()
-    with XDMFFile(COMM_WORLD, "mesh.xdmf", "w") as infile:
-        infile.write_mesh(domain)
+    if write:
+        with XDMFFile(COMM_WORLD, "mesh.xdmf", "w") as infile:
+            infile.write_mesh(domain)
     return domain, meshtags, facets
 
 
@@ -81,7 +82,7 @@ def generate_perforated_plate(W, H, R, mesh_size):
             gmsh.option.setNumber("Mesh.CharacteristicLengthMax", mesh_size)
     return return_mesh(gmsh.model, COMM_WORLD, model_rank, gdim)
     
-def axi_sphere(Ri, Re, N_theta, N_radius, tol_dyn = 0, quad = True):
+def axi_sphere(Ri, Re, N_theta, N_radius, tol_dyn = 0, quad = True, write = False):
     gdim, model_rank, geom = init_gmsh()
     center = geom.add_point(tol_dyn, 0, 0)
     p1 = geom.add_point(Ri, 0, 0)
@@ -110,7 +111,10 @@ def axi_sphere(Ri, Re, N_theta, N_radius, tol_dyn = 0, quad = True):
     gmsh.model.addPhysicalGroup(gdim - 1, [y_radius], 2, name="left")
     print("La partie où r = 0 se voit affecter le drapeau", 2)
     gmsh.model.addPhysicalGroup(gdim - 1, [outer_circ], 3, name="outer")
-    return return_mesh(gmsh.model, COMM_WORLD, model_rank, gdim, quad)
+    print("La surface extérieure se voit affecter le drapeau", 3)
+    gmsh.model.addPhysicalGroup(gdim - 1, [inner_circ], 4, name="inner")
+    print("La surface intérieure se voit affecter le drapeau", 4)
+    return return_mesh(gmsh.model, COMM_WORLD, model_rank, gdim, quad, write)
 
 def axi_double_coquille(Ri, Re, R_mid, N_theta, Nr_int, Nr_out, tol_dyn = 0, quad = True):
     gdim, model_rank, geom = init_gmsh()

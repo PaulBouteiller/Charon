@@ -58,8 +58,8 @@ class Cylindre_axi(model):
           
     def define_mesh(self):
         #Ne fonctionne qu'avec des triangles voir pourquoi
-        # return create_rectangle(MPI.COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10])
-        return create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10], CellType.quadrilateral)
+        return create_rectangle(MPI.COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10])
+        # return create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10], CellType.quadrilateral)
 
     def prefix(self):
         if __name__ == "__main__": 
@@ -75,9 +75,9 @@ class Cylindre_axi(model):
         self.bcs.add_Uz(region=1)
         self.bcs.add_Uz(region=4)
 
-    # def set_loading(self):
-    #     self.loading.add_Fr(-Pint * self.load, self.u_, self.ds(2))
-    #     self.loading.add_Fr(Pext * self.load, self.u_, self.ds(3))
+    def set_loading(self):
+        self.loading.add_Fr(-Pint * self.load, self.u_, self.ds(2))
+        self.loading.add_Fr(Pext * self.load, self.u_, self.ds(3))
         
     def csv_output(self):
         return {"U" : ["Boundary", 1]}
@@ -86,7 +86,7 @@ class Cylindre_axi(model):
         return {'U': True}
         
     def final_output(self):
-        u_csv = read_csv("Cylindre_axi-results/Displacement0.csv")
+        u_csv = read_csv("Cylindre_axi-results/U.csv")
         resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
         r_result = resultat[0]
         solution_numerique = -resultat[-2]
@@ -114,10 +114,10 @@ class Cylindre_axi(model):
             plt.xlim(Rint, Rext)
             plt.xlabel(r"$r$", size = 18)
             plt.ylabel(r"Déplacement radial", size = 18)
-            plt.savefig("../../../Notice/fig/1D_Cylindrique_compression_pseudo_2D.pdf", bbox_inches = 'tight')
+            # plt.savefig("../../../Notice/fig/1D_Cylindrique_compression_pseudo_2D.pdf", bbox_inches = 'tight')
             # plt.show()
             
 def test_Compression_Axi():
     pb = Cylindre_axi(Acier)
-    Solve(pb, compteur=1, npas=20)
+    Solve(pb, compteur=1, npas=100)
 test_Compression_Axi()

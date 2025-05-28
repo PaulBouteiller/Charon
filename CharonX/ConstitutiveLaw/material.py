@@ -37,7 +37,7 @@ Available models include:
 
 """
 from .eos import (IsotropicHPPEOS, UEOS, VinetEOS, JWLEOS, MACAWEOS,
-                  MGEOS, xMGEOS, PMGEOS, GPEOS, NewtonianFluidEOS, TabulatedEOS)
+                  MGEOS, xMGEOS, PMGEOS, GPEOS, TabulatedEOS)
 
 from .deviator import (NoneDeviator, IsotropicHPPDeviator, MooneyRivlinDeviator,
                        AnisotropicDeviator, NeoHookDeviator, HypoelasticDeviator)
@@ -111,7 +111,7 @@ class Material:
         eos_classes = {"IsotropicHPP": IsotropicHPPEOS, "U1": UEOS, "U5": UEOS, "U8": UEOS,
                        "Vinet": VinetEOS, "JWL": JWLEOS, "MACAW": MACAWEOS,
                        "MG": MGEOS, "xMG": xMGEOS, "PMG": PMGEOS, "GP": GPEOS,
-                       "NewtonianFluid": NewtonianFluidEOS, "Tabulated": TabulatedEOS}
+                       "Tabulated": TabulatedEOS}
         
         if eos_type not in eos_classes:
             raise ValueError(f"Unknown equation of state: {eos_type}")

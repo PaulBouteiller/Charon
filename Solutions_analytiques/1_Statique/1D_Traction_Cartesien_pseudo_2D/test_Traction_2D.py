@@ -1,28 +1,28 @@
 """
-Test de traction uniaxiale sur un rectangle en d√©formation plane (pseudo-1D).
+Test de traction uniaxiale sur un rectangle en déformation plane (pseudo-1D).
 
 Ce script simule un essai de traction uniaxiale sur une plaque rectangulaire
-en conditions de d√©formation plane, avec des conditions aux limites imposant
-un √©tat de d√©formation homog√®ne √©quivalent √† un probl√®me 1D.
+en conditions de déformation plane, avec des conditions aux limites imposant
+un état de déformation homogène équivalent à un problème 1D.
 
-Param√®tres g√©om√©triques:
+Paramètres géométriques:
     - Longueur: 1
     - Largeur: 0.5
-    - Discr√©tisation: maillage 20√ó20 (quadrilat√®res)
+    - Discrétisation: maillage 20x20 (quadrilatères)
 
 Chargement:
-    - D√©placement impos√© (Umax): 0.002 (0.2% de d√©formation)
+    - Déplacement imposé (Umax): 0.002 (0.2% de déformation)
 
 Conditions aux limites:
-    - Blocage lat√©ral sur les c√¥t√©s gauche et droite
+    - Blocage latéral sur les c√¥tés gauche et droite
     - Blocage vertical en bas et en haut
-    - D√©placement horizontal impos√© sur le c√¥t√© droit
+    - Déplacement horizontal imposé sur le c√¥té droit
 
-Une comparaison est effectu√©e entre la force calcul√©e num√©riquement et la solution analytique
-d√©riv√©e de la th√©orie 1D, corrig√©e pour tenir compte de l'√©tat de d√©formation plane.
+Une comparaison est effectuée entre la force calculée numériquement et la solution analytique
+dérivée de la théorie 1D, corrigée pour tenir compte de l'état de déformation plane.
 
 Auteur: bouteillerp
-Date de cr√©ation: 11 Mars 2022
+Date de création: 11 Mars 2022
 """
 
 from CharonX import *
@@ -35,7 +35,7 @@ from Generic_isotropic_material import Acier, kappa, mu, eos_type, devia_type
 
 model = Plane_strain
 
-###### Param√®tre g√©om√©trique ######
+###### Paramètre géométrique ######
 Largeur = 0.5
 Longueur = 1
 
@@ -85,10 +85,10 @@ class Plate(model):
         solution_analytique = array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in self.eps_list])
         eps_list_percent = [100 * eps for eps in self.eps_list]
         numerical_results = array(self.F_list)
-        # On calcule la diff√©rence entre les deux courbes
+        # On calcule la différence entre les deux courbes
         len_vec = len(solution_analytique)
         diff_tot = solution_analytique - numerical_results
-        # Puis on r√©alise une sorte d'int√©gration discr√®te
+        # Puis on réalise une sorte d'intégration discrète
         integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
         print("La difference est de", integrale_discrete)
         assert integrale_discrete < 0.001, "Static 1D traction fail"
@@ -97,7 +97,7 @@ class Plate(model):
             plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
             plt.xlim(0, 1.05 * eps_list_percent[-1])
             plt.ylim(0, 1.05 * numerical_results[-1])
-            plt.xlabel(r"D√©formation(%)", size = 18)
+            plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
             plt.show()

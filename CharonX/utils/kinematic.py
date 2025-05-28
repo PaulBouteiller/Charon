@@ -67,16 +67,8 @@ class Kinematic:
         """
         self.name = name
         self.r = r
-        
-        # Configurations for different model types
-        self._model_config = {"dim1": ["CartesianUD", "CylindricalUD", "SphericalUD"],
-                              "dim2": ["PlaneStrain", "Axisymmetric"],
-                              "dim3": ["Tridimensional"]}
+        self._is_1d = self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]
 
-    def _is_1d(self):
-        """Check if the model is one-dimensional"""
-        return self.name in self._model_config["dim1"]
-        
     # =========================================================================
     # Gradient methods
     # =========================================================================
@@ -93,7 +85,7 @@ class Kinematic:
         -------
         Expression Gradient adapted to dimension and geometry
         """
-        if self._is_1d():
+        if self._is_1d:
             return f.dx(0)
         else: 
             return grad(f)
@@ -112,7 +104,7 @@ class Kinematic:
         """
         grad_f = self.grad_scal(f)
         
-        if self._is_1d():
+        if self._is_1d:
             return as_vector([grad_f, 0, 0])
         elif self.name == "PlaneStrain": 
             return as_vector([grad_f[0], grad_f[1], 0])
@@ -187,7 +179,7 @@ class Kinematic:
             return as_vector([grad_u[0, 0], u[0] / self.r, grad_u[1, 1], grad_u[0, 1]])
         else:
             return as_vector([grad_u[0, 0], u[0] / self.r, grad_u[1, 1], 
-                            grad_u[0, 1], grad_u[1, 0]])
+                              grad_u[0, 1], grad_u[1, 0]])
     
     def grad_3D(self, u, sym=False):
         """
@@ -221,7 +213,7 @@ class Kinematic:
         invF_reduit = self.invF_reduit(u)
         grad_red = self.grad_reduit(v)
         
-        if self._is_1d():
+        if self._is_1d:
             if self.name == "CartesianUD":
                 return grad_red * invF_reduit[0]
             else:  # CylindricalUD or SphericalUD
@@ -260,9 +252,15 @@ class Kinematic:
         
         # 2D models
         elif self.name == "PlaneStrain":
-            return self._plane_strain_to_3D(red, sym)
+            if sym:
+                return as_tensor([[red[0], red[2], 0], [red[2], red[1], 0], [0, 0, 0]])
+            else:
+                return as_tensor([[red[0], red[2], 0], [red[3], red[1], 0], [0, 0, 0]])
         elif self.name == "Axisymmetric":
-            return self._Axisymmetric_to_3D(red, sym)
+            if sym:
+                return as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[3], 0, red[2]]])
+            else:
+                return as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[4], 0, red[2]]])
         
         # 3D model
         else:
@@ -272,56 +270,6 @@ class Kinematic:
                                   [red[4], red[5], red[2]]])
             else:
                 return red
-    
-    def _plane_strain_to_3D(self, red, sym):
-        """
-        Private method to convert from PlaneStrain to 3D.
-
-        Parameters
-        ----------
-        red : Expression Reduced form tensor
-        sym : bool If True, use a symmetric representation
-
-        Returns
-        -------
-        Tensor 3D tensor
-        """
-        if sym:
-            return as_tensor([[red[0], red[2], 0], [red[2], red[1], 0], [0, 0, 0]])
-        else:
-            return as_tensor([[red[0], red[2], 0], [red[3], red[1], 0], [0, 0, 0]])
-    
-    def _Axisymmetric_to_3D(self, red, sym):
-        """
-        Private method to convert from Axisymmetric to 3D.
-
-        Parameters
-        ----------
-        red : Expression Reduced form tensor
-        sym : bool If True, use a symmetric representation
-
-        Returns
-        -------
-        Tensor 3D tensor
-        
-        Notes
-        -----
-        When r is small (r < 1e-3), L'Hôpital's rule is applied to handle
-        the potential singularity near the axis. In this case, we approximate
-        red[1] ≈ red[0], which is the theoretically correct limit as r→0.
-        This avoids numerical instability while maintaining the physical meaning
-        of the solution near the symmetry axis.
-        """
-        condition = ge(self.r, 1e-3)
-        
-        if sym:
-            true_tens = as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[3], 0, red[2]]])
-            hop_tens = as_tensor([[red[0], 0, red[3]], [0, red[0], 0], [red[3], 0, red[2]]]) 
-        else:
-            true_tens = as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[4], 0, red[2]]])
-            hop_tens = as_tensor([[red[0], 0, red[3]], [0, red[0], 0], [red[4], 0, red[2]]]) 
-            
-        return conditional(condition, true_tens, hop_tens)
     
     def reduit_to_2D(self, red):
         """
@@ -410,7 +358,7 @@ class Kinematic:
         sq2 = sqrt(2)
         
         # 1D models
-        if self._is_1d():
+        if self._is_1d:
             return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2]])
         
         # 2D models
@@ -439,24 +387,24 @@ class Kinematic:
         sq2 = sqrt(2)
         
         # 1D models
-        if self._is_1d():
+        if self._is_1d:
             return as_tensor([[red[0], 0, 0], [0, red[1], 0], [0, 0, red[2]]])
         
         # 2D models
         elif self.name == "PlaneStrain":
-            return as_tensor([[red[0], red[3]/sq2, 0], 
-                             [red[3]/sq2, red[1], 0], 
+            return as_tensor([[red[0], red[3] / sq2, 0], 
+                             [red[3] / sq2, red[1], 0], 
                              [0, 0, red[2]]])
         elif self.name == "Axisymmetric":
-            return as_tensor([[red[0], 0, red[3]/sq2], 
+            return as_tensor([[red[0], 0, red[3] / sq2], 
                              [0, red[1], 0], 
-                             [red[3]/sq2, 0, red[2]]])
+                             [red[3] / sq2, 0, red[2]]])
         
         # 3D model
         elif self.name == "Tridimensional":
-            return as_tensor([[red[0], red[3]/sq2, red[4]/sq2], 
-                             [red[3]/sq2, red[1], red[5]/sq2], 
-                             [red[4]/sq2, red[5]/sq2, red[2]]])
+            return as_tensor([[red[0], red[3] / sq2, red[4] / sq2], 
+                             [red[3] / sq2, red[1], red[5] / sq2], 
+                             [red[4] / sq2, red[5] / sq2, red[2]]])
     
     # =========================================================================
     # Transformation methods
@@ -478,9 +426,9 @@ class Kinematic:
         if self.name == "CartesianUD":
             return as_vector([1 + u.dx(0), 1, 1])
         elif self.name == "CylindricalUD":
-            return as_vector([1 + u.dx(0), 1 + u/self.r, 1])
+            return as_vector([1 + u.dx(0), 1 + u / self.r, 1])
         elif self.name == "SphericalUD":
-            return as_vector([1 + u.dx(0), 1 + u/self.r, 1 + u/self.r])
+            return as_vector([1 + u.dx(0), 1 + u / self.r, 1 + u / self.r])
         
         # 2D and 3D models
         else:
@@ -547,54 +495,26 @@ class Kinematic:
         if self.name == "CartesianUD":
             return as_vector([1 / (1 + u.dx(0)), 1, 1])
         elif self.name == "CylindricalUD":
-            return as_vector([1 / (1 + u.dx(0)), 1/(1 + u/self.r), 1])
+            return as_vector([1 / (1 + u.dx(0)), 1/(1 + u / self.r), 1])
         elif self.name == "SphericalUD":
-            return as_vector([1 / (1 + u.dx(0)), 1 /(1 + u/self.r), 1 / (1 + u/self.r)])
+            return as_vector([1 / (1 + u.dx(0)), 1 /(1 + u / self.r), 1 / (1 + u / self.r)])
         
         # 2D models
         elif self.name == "PlaneStrain":
             inv_F2 = inv(Identity(2) + grad(u))
-            return as_tensor([[inv_F2[0,0], inv_F2[0,1], 0], [inv_F2[1,0], inv_F2[1,1], 0], [0, 0, 1]])
+            return as_tensor([[inv_F2[0, 0], inv_F2[0, 1], 0], 
+                              [inv_F2[1, 0], inv_F2[1, 1], 0], 
+                              [0, 0, 1]])
         elif self.name == "Axisymmetric":
-            return self._get_Axisymmetric_invF(u)
+            grad_u = grad(u)
+            prefacteur = (1 + grad_u[0, 0]) * (1 + grad_u[1, 1]) - grad_u[0, 1] * (1 + grad_u[1, 0])
+            return as_tensor([[(1 + grad_u[1, 1]) / prefacteur, 0, -grad_u[0, 1] / prefacteur],
+                                [0, 1 / (1 + u[0] / self.r), 0],
+                                [-grad_u[1,0] / prefacteur, 0, (1 + grad_u[0,0]) / prefacteur]])
         
         # 3D model
         else:
             return inv(Identity(3) + grad(u))
-    
-    def _get_Axisymmetric_invF(self, u):
-        """
-        Private method to calculate the inverse deformation gradient in axisymmetric case.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Tensor Inverse deformation gradient
-        
-        Notes
-        -----
-        When r is small (r < 1e-3), L'Hôpital's rule is applied to handle
-        the potential singularity near the axis. In this case, we approximate
-        red[1] ≈ red[0], which is the theoretically correct limit as r→0.
-        This avoids numerical instability while maintaining the physical meaning
-        of the solution near the symmetry axis.
-        """
-        grad_u = grad(u)
-        prefacteur = (1 + grad_u[0,0]) * (1 + grad_u[1,1]) - grad_u[0,1] * (1 + grad_u[1,0])
-        condition = ge(self.r, 1e-3)
-        
-        true_inv = as_tensor([[(1 + grad_u[1,1]) / prefacteur, 0, -grad_u[0,1] / prefacteur],
-                            [0, 1 / (1 + u[0]/self.r), 0],
-                            [-grad_u[1,0] / prefacteur, 0, (1 + grad_u[0,0]) / prefacteur]])
-        
-        hop_inv = as_tensor([[(1 + grad_u[1,1]) / prefacteur, 0, -grad_u[0,1] / prefacteur],
-                           [0, 1 / (1 + grad_u[0,0]), 0],
-                           [-grad_u[1,0] / prefacteur, 0, (1 + grad_u[0,0]) / prefacteur]])
-        
-        return conditional(condition, true_inv, hop_inv)
     
     def relative_gradient_3D(self, u, u_old):
         """
@@ -630,7 +550,7 @@ class Kinematic:
         Expression Left Cauchy-Green tensor (form adapted to dimension)
         """
         F = self.F_reduit(u)
-        if self._is_1d():
+        if self._is_1d:
             return as_vector([F[0]**2, F[1]**2, F[2]**2])
         else:
             return dot(F, F.T)
@@ -678,7 +598,7 @@ class Kinematic:
         Expression Trace of the left Cauchy-Green tensor
         """
         B = self.B(u)
-        if self._is_1d():
+        if self._is_1d:
             return sum(B[i] for i in range(3))
         else:
             return tr(B)
@@ -739,7 +659,7 @@ class Kinematic:
         -------
         Expression Divergence of the field
         """
-        if self._is_1d():
+        if self._is_1d:
             return v.dx(0)
         else:
             return div(v)

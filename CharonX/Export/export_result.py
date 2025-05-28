@@ -109,9 +109,6 @@ class ExportResults:
         if self.dico.get("v"):
             self.file_results.write_function(self.pb.v, t)
             
-        if self.dico.get("a"):
-            self.file_results.write_function(self.pb.a, t)
-            
         if self.dico.get("d") and self.pb.constitutive.damage_model != None:
             self.file_results.write_function(self.pb.constitutive.damage.d, t)
             

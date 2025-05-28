@@ -292,7 +292,7 @@ class Bidimensional(Problem):
         ufl.tensors.ListTensor Current stress represented as a vector in reduced form
         """
         sig3D = self.constitutive.stress_3D(u, v, T, T0, J)
-        return self.kinematic.tridim_to_reduit(sig3D, sym=True)
+        return self.kinematic.tridim_to_reduit(sig3D, sym = True)
     
     def dot_grad_scal(self, tensor1, tensor2):
         """
@@ -490,7 +490,7 @@ class Axisymmetric(Bidimensional):
         -------
         ufl.tensors.ListTensor Reduced form of the deviatoric stress
         """
-        return self.kinematic.tridim_to_reduit(deviatoric, sym=True)
+        return self.kinematic.tridim_to_reduit(deviatoric, sym = True)
     
     def inner(self, vector_1, vector_2):
         """

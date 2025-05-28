@@ -23,7 +23,7 @@ from CharonX import *
 import matplotlib.pyplot as plt
 import pytest
 import sys
-sys.path.append("../")
+sys.path.append("../../")
 from Generic_isotropic_material import *
 model = SphericalUD
 ###### Paramètre géométrique ######

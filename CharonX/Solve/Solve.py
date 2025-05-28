@@ -199,7 +199,7 @@ class Solve:
                 self.plastic_solver.solve()
                 evol_plas = False
             niter+=1
-            print("   Iteration {}".format(niter))
+            # print("   Iteration {}".format(niter))
 
     def iterative_solve(self, **kwargs):
         """

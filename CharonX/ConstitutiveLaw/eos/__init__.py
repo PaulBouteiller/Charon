@@ -39,7 +39,6 @@ from .jwl import JWLEOS
 from .macaw import MACAWEOS
 from .mie_gruneisen import MGEOS, xMGEOS, PMGEOS
 from .gas import GPEOS
-from .newtonian_fluid import NewtonianFluidEOS
 from .tabulated import TabulatedEOS, has_tabulated_eos
 
 __all__ = [
@@ -54,7 +53,6 @@ __all__ = [
     'xMGEOS',
     'PMGEOS',
     'GPEOS',
-    'NewtonianFluidEOS',
     'TabulatedEOS',
     'has_tabulated_eos'
 ]
