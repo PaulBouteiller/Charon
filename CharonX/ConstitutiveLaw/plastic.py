@@ -202,7 +202,7 @@ class FiniteStrainPlastic(Plastic):
         mu_bar = self.mu * self.barI_e
         F_charge = self.mu * norme_dev_Be_trial - sqrt(2/3) * self.sig_yield 
         Delta_gamma = F_charge / (2 * mu_bar)
-        if self.hardening == "Iso":
+        if self.hardening == "Isotropic":
             Delta_gamma *= 1 / (1 + self.H / (3 * mu_bar))
         eps = 1e-6
         dev_Be_expr_3D = (1 - (2 * self.barI_e * ppart(Delta_gamma)) / (norme_dev_Be_trial + eps)) * dev_Be_trial
