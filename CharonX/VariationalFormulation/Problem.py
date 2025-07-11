@@ -285,7 +285,7 @@ class Problem:
     This class is one of the main elements of the CharonX code. It defines
     the problem formulation by calling the selected mechanical models.
     """
-    def __init__(self, material, initial_mesh=None, **kwargs):
+    def __init__(self, material, simulation_dic):
         """
         Initialize the problem.
         
@@ -296,8 +296,6 @@ class Problem:
         ----------
         material : Material or list
             Material properties, or list of materials for multiphase problems
-        initial_mesh : dolfinx.mesh.Mesh, optional
-            Initial mesh, by default None (created using define_mesh)
         **kwargs : dict
             Additional parameters:
                 - analysis: Type of analysis
@@ -308,15 +306,15 @@ class Problem:
                 - Thermal_material: Material for thermal properties
         """
         # Initialize mesh and MPI configuration
-        self._init_mesh(initial_mesh)
+        self.mesh = simulation_dic["mesh"]
         self._init_mpi()
         
         # Initialize parameters and integration scheme
-        self._init_parameters(kwargs)
+        self._init_parameters(simulation_dic)
         self.quad = Quadrature(self.mesh, self.u_deg, self.schema)
         
         # Configure analysis type
-        self._init_analysis_type(kwargs)
+        self._init_analysis_type(simulation_dic)
         
         # Initialize material
         self.material = material
@@ -325,6 +323,13 @@ class Problem:
         self._init_mesh_manager()
         
         # Configure boundary conditions and integration measures
+        boundary_dic = simulation_dic["boundary_setup"]
+        if "tags" in boundary_dic and "coordinate" in boundary_dic and "positions" in boundary_dic:
+            self.mesh_manager.mark_boundary(boundary_dic["tags"], boundary_dic["coordinate"], boundary_dic["positions"])
+        elif "facet_tag" in boundary_dic:
+            self.mesh_manager.facet_tag = boundary_dic["facet_tag"]
+        else:
+            raise ValueError("At least on boundary must me marked")
         self._init_boundary_and_measures()
         
         # Initialize kinematics and damping
@@ -335,7 +340,7 @@ class Problem:
         self._init_spaces_and_functions()
         
         # Configure multiphase analysis
-        self._init_multiphase(kwargs)
+        self._init_multiphase(simulation_dic)
         
         # Initialize density fields
         self.rho_0_field_init, self.relative_rho_field_init_list = self.rho_0_field()
@@ -368,30 +373,13 @@ class Problem:
         self._init_thermal_analysis()
         
         # Initialize loading
-        self._init_loading()
+        self._init_loading(simulation_dic)
         
         # Configure variational forms
         self._init_variational_forms()
         
         # Configure boundary conditions
-        self._init_boundary_conditions()
-        
-        # Initialize initial velocity
-        self.set_initial_speed()
-    
-    def _init_mesh(self, initial_mesh):
-        """
-        Initialize the problem mesh.
-        
-        Parameters
-        ----------
-        initial_mesh : dolfinx.mesh.Mesh or None
-            Initial mesh, or None to create one using define_mesh
-        """
-        if initial_mesh is None:
-            self.mesh = self.define_mesh()
-        else:
-            self.mesh = initial_mesh
+        self._init_boundary_conditions(simulation_dic)
     
     def _init_mpi(self):
         """
@@ -472,7 +460,6 @@ class Problem:
         
         Sets up boundary markers and integration measures for the problem.
         """
-        self.set_boundary()
         self.set_measures()
         self.r = self.mesh_manager.r
         self.facet_tag = self.mesh_manager.facet_tag
@@ -575,7 +562,7 @@ class Problem:
             self.therm.set_tangent_thermal_capacity() 
             self.set_volumic_thermal_power()
     
-    def _init_loading(self):
+    def _init_loading(self, simulation_dic):
         """
         Initialize loading conditions.
         
@@ -583,7 +570,15 @@ class Problem:
         """
         self.load = Constant(self.mesh, ScalarType((1)))
         self.loading = self.loading_class()(self.mesh, self.u_, self.dx, self.kinematic)
-        self.set_loading()
+        loading_config = simulation_dic.get("loading_conditions", None)
+        for loading in loading_config:
+            loading_type = loading["type"]
+            tag = loading["tag"]
+            value = loading["value"]
+            if loading_type == "surfacique":
+                getattr(self.loading, "add_"+ loading["component"])(value * self.load, self.u_, self.ds(tag))
+            else:
+                raise ValueError("loading type must be either surfacique or volumique")
     
     def _init_variational_forms(self):
         """
@@ -604,7 +599,7 @@ class Problem:
         if self.plastic_analysis:
             self.constitutive.set_plastic_driving()
     
-    def _init_boundary_conditions(self):
+    def _init_boundary_conditions(self, simulation_dic):
         """
         Initialize boundary conditions.
         
@@ -612,57 +607,11 @@ class Problem:
         boundary conditions for the problem.
         """
         self.bcs = self.boundary_conditions_class()(self.V, self.facet_tag, self.name)
-        self.set_boundary_condition()
-
-    def set_output(self):
-        """
-        Configure output parameters.
-        
-        Returns
-        -------
-        dict Dictionary of output parameters
-        """
-        return {}
-    
-    def query_output(self, t):
-        """
-        Query output at a specific time.
-        
-        Parameters
-        ----------
-        t : float Current time
-            
-        Returns
-        -------
-        dict Dictionary of output values
-        """
-        return {}
-    
-    def final_output(self):
-        """
-        Process final output at the end of the simulation.
-        """
-        pass
-    
-    def csv_output(self):
-        """
-        Configure CSV output.
-        
-        Returns
-        -------
-        dict Dictionary of CSV output parameters
-        """
-        return {}
-    
-    def prefix(self):
-        """
-        Return a prefix for output files.
-        
-        Returns
-        -------
-        str "problem"
-        """
-        return "problem"
+        boundary_conditions_config = simulation_dic.get("boundary_conditions", [])
+        for bc_config in boundary_conditions_config:
+            tag = bc_config["tag"]
+            value = bc_config.get("value", ScalarType(0))
+            getattr(self.bcs, "add_" + bc_config["component"])(region = tag, value = value)
     
     def set_measures(self):
         """
@@ -844,7 +793,9 @@ class Problem:
         represent internal energy rather than temperature.
         """
         T0 = 293.15
-        self.T0 = Constant(self.mesh, ScalarType(T0))
+        self.T0 = Function(self.V_T)
+        self.T0.x.petsc_vec.set(T0)
+        # self.T0 = Constant(self.mesh, ScalarType(T0))
         self.T.x.petsc_vec.set(T0)
                 
     def set_volumic_thermal_power(self):
@@ -888,38 +839,6 @@ class Problem:
         print("Warning no boundary has been tagged inside CHARONX \
               Boundary conditions cannot be used")
         self.mesh_manager.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
-    
-    def set_loading(self):
-        """
-        Set up loading conditions.
-        
-        To be overridden in derived classes.
-        """
-        pass
-    
-    def set_boundary_condition(self):
-        """
-        Set up boundary conditions.
-        
-        To be overridden in derived classes.
-        """
-        pass
-
-    def set_velocity_boundary_condition(self):
-        """
-        Set up velocity boundary conditions.
-        
-        To be overridden in derived classes.
-        """
-        pass
-    
-    def set_initial_speed(self):
-        """
-        Set up initial velocity.
-        
-        To be overridden in derived classes.
-        """
-        pass
     
     def user_defined_constitutive_law(self):
         """
@@ -974,14 +893,6 @@ class Problem:
         t : float Current time
         """
         set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-    
-    def set_initial_conditions(self):
-        """
-        Set up initial conditions.
-        
-        To be overridden in derived classes.
-        """
-        pass
     
     def set_gen_F(self, boundary_flag, value):
         """

@@ -32,22 +32,36 @@ from dolfinx.fem import petsc
 from tqdm import tqdm
 
 class Solve:
-    def __init__(self, problem, restart = False, **kwargs):
+    def __init__(self, problem, dictionnaire, **kwargs):
         self.pb = problem
-        self.pb.set_initial_conditions()
         self.t = 0        
-        self.export = ExportResults(problem, kwargs.get("Prefix", self.pb.prefix()), \
-                                    self.pb.set_output(), self.pb.csv_output())
-        self.export.export_results(0)   
-        self.export.csv.csv_export(0)
+        self.setup_export(dictionnaire)
         self.set_iterative_solver_parameters()
         self.set_time_step(**kwargs)
         self.update_Pth()
         self.set_solver()
         self.pb.set_time_dependant_BCs(self.load_steps)
-        if not restart:
-            print("Start solving")       
-            self.iterative_solve(**kwargs)
+        self.compteur_output = kwargs.get("compteur", 1)
+
+    def setup_export(self, dictionnaire):
+        """
+        Configure the result export system.
+        
+        Sets up the export manager for VTK and CSV outputs based on the
+        problem's export settings.
+        
+        Parameters
+        ----------
+        **kwargs : dict Additional parameters, potentially including 'Prefix'
+        """
+        self.export = ExportResults(
+            self.pb, 
+            dictionnaire.get("Prefix", "Problem"), 
+            dictionnaire.get("output", {}),
+            dictionnaire.get("csv_output", {})
+        )
+        self.export.export_results(0)   
+        self.export.csv.csv_export(0)
         
     def set_solver(self):
         """
@@ -201,7 +215,7 @@ class Solve:
             niter+=1
             # print("   Iteration {}".format(niter))
 
-    def iterative_solve(self, **kwargs):
+    def solve(self):
         """
         Boucle temporelle, à chaque pas les différents solveurs 
         (déplacement, énergie...) sont successivement appelés        
@@ -211,9 +225,9 @@ class Solve:
         **kwargs : Int, si un compteur donné par un int est spécifié
                         l'export aura lieu tout les compteur-pas de temps.
         """
-        compteur_output = kwargs.get("compteur", 1)
+        
         num_time_steps = self.time_stepping.num_time_steps
-        if compteur_output !=1:
+        if self.compteur_output !=1:
             self.is_compteur = True
             self.compteur=0 
         else:
@@ -227,11 +241,11 @@ class Solve:
                 self.update_bcs(j)
                 self.problem_solve()
                 j += 1
-                self.output(compteur_output)
+                self.output(self.compteur_output)
                 pbar.update(1)
     
         self.export.csv.close_files()
-        self.pb.final_output()
+        self.final_output(self.pb)
         # self.energy_solver.print_statistics()
 
             
@@ -253,9 +267,15 @@ class Solve:
             self.in_loop_export(self.t)
             
     def in_loop_export(self, t):
-        self.pb.query_output(t)
+        self.query_output(self.pb, t)
         self.export.export_results(t)
         self.export.csv.csv_export(t)
+        
+    def query_output(self, problem, t):
+        pass
+    
+    def final_output(self, problem):
+        pass
             
     def update_time(self, j):
         """

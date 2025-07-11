@@ -44,45 +44,32 @@ Rext = 11
 
 ###### Chargement ######
 Pext = 10
-   
-class CoquilleAxi(model):
-    def __init__(self, material):
-        model.__init__(self, material, analysis = "static", isotherm = True)
-          
-    def define_mesh(self):
-        mesh, _, facets = axi_sphere(Rint, Rext, 40, 10, tol_dyn = 1e-5, quad = False)
-        self.facet_tag = facets
-        return mesh
 
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Sphere_axi"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        """
-        Set up boundary tags.
-        
-        Creates default empty boundary tags if not overridden.
-        """
-        self.mesh_manager.facet_tag = self.facet_tag
-        
-    def set_boundary_condition(self):
-        self.bcs.add_Uz(region = 1)
-        self.bcs.add_Ur(region = 2)
-        
-    def set_loading(self):
-        self.loading.add_pressure(Pext * self.load, self.u_, self.ds(3))
-        
-    def csv_output(self):
-        return {"U" : ["Boundary", 1]}
-        
-    def set_output(self):
-        return {"U" : True}
-         
-pb = CoquilleAxi(Acier)
-Solve(pb, compteur=1, npas=20)
+mesh, _, facets = axi_sphere(Rint, Rext, 40, 10, tol_dyn = 1e-5, quad = False)
+
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"facet_tag": facets},
+                "boundary_conditions": 
+                    [{"component": "Uz", "tag": 1},
+                     {"component": "Ur", "tag": 2}
+                     ],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "pressure", "tag": 3, "value" : Pext}],
+                "analysis" : "static",
+                "isotherm" : True
+                }
+
+pb = Axisymmetric(Acier, dictionnaire)
+
+###### Paramètre de la résolution ######
+dictionnaire_solve = {
+    "Prefix" : "Sphere_axi",
+    "csv_output" : {"U" : ["Boundary", 1]}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
+solve_instance.solve()
 
 u_csv = read_csv("Sphere_axi-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]

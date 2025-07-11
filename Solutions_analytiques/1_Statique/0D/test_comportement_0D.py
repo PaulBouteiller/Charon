@@ -23,7 +23,6 @@ from Analytique_EOS_deviateur import *
 from material_definition import set_material
 from numerical_analytical_comparison import comparison
 
-
 ###### Modèle mécanique ######
 model = CartesianUD
 
@@ -35,38 +34,33 @@ Mat = set_material(eos_type, devia_type)
 ###### Chargement ######
 varepsilon = -0.3
 T0 = 1e3
-   
-class IsotropicBeam(model):
-    def __init__(self, material):
-        model.__init__(self, material, analysis = "static", isotherm = True)
-          
-    def define_mesh(self):
-        return create_1D_mesh(0, 1, 1)
+
+mesh = create_1D_mesh(0, 1, 1)
+chargement = MyConstant(mesh, varepsilon, Type = "Rampe")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2],
+                     "coordinate": ["x", "x"], 
+                     "positions": [0, 1]
+                     },
+                "boundary_conditions": 
+                    [{"component": "U", "tag": 1},
+                     {"component": "U", "tag": 2, "value": chargement}
+                    ],
+                "analysis" : "static",
+                "isotherm" : True
+                }
     
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Test_0D_" + eos_type
-        else:
-            return "Test"
-            
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [0, 1])
+pb = CartesianUD(Mat, dictionnaire)
 
-    def set_initial_temperature(self):
-        self.T0 = Function(self.V_T)
-        self.T.x.petsc_vec.set(T0)
-        self.T0.x.petsc_vec.set(T0)
+pb.T.x.petsc_vec.set(T0)
+pb.T0.x.petsc_vec.set(T0)
 
-    def set_boundary_condition(self):
-        self.bcs.add_U(region=1)
-        chargement = MyConstant(self.mesh, varepsilon, Type = "Rampe")
-        self.bcs.add_U(value = chargement, region = 2)
-        
-    def csv_output(self):
-        return {"Pressure" : True, "U" : ["Boundary", 2], "deviateur" :  True}
-    
-    def final_output(self):
-        comparison(Mat, varepsilon, T0)
-
-pb = IsotropicBeam(Mat)
+dictionnaire_solve = {
+    "Prefix" : "Test_0D_" + eos_type,
+    "csv_output" : {"csv_output" : {"Pressure" : True, "U" : ["Boundary", 2], "deviateur" :  True}}
+    }
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
+solve_instance.final_output = comparison(Mat, varepsilon, T0)
+solve_instance.solve()
 Solve(pb, compteur=1, npas = 20)
