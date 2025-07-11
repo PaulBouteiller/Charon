@@ -73,46 +73,38 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
 
 t_etude =6e-4
 n = int(Tfin / t_etude)
-   
-class Isotropic_ball(model):
-    def __init__(self, material):
-        model.__init__(self, material, isotherm = True)
-          
-    def define_mesh(self):
-        Nx = 2000
-        return create_interval(MPI.COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Onde_cylindrique"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2], ["r", "r"], [R_int, R_ext])
-        
-    def set_loading(self):
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_F(chargement, self.u_, self.ds(2))
-        
-    def csv_output(self):
-        self.t_output_list = []
-        return {'Sig': True}
-        
-    def query_output(self, t):
-        self.t_output_list.append(t)
-        
-    def final_output(self):
-        # Lecture des données
-        df = read_csv("Onde_cylindrique-results/Sig.csv")
-        plt.plot(df['r'], df.iloc[:, -2], 
-                linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
 
-def test_Elasticite():
-    pb = Isotropic_ball(Acier)
-    Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    # Solve(pb, compteur = sortie, TFin=Tfin)
-test_Elasticite()
+
+Nx = 2000
+mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
+
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2],
+                     "coordinate": ["r", "r"], 
+                     "positions": [R_int, R_ext]
+                     },
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
+                    ],
+                "isotherm" : True
+                }
+
+pb = CylindricalUD(Acier, dictionnaire)
+
+dictionnaire_solve = {
+    "Prefix" : "Onde_cylindrique",
+    "csv_output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+solve_instance.solve()
+
+df = read_csv("Onde_cylindrique-results/Sig.csv")
+plt.plot(df['r'], df.iloc[:, -2], 
+        linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
+
 main_analytique(R_int, R_ext, lmbda, mu, rho, magnitude, t_etude, num_points= 4000)
 plt.legend()
 plt.xlabel('r (mm)')

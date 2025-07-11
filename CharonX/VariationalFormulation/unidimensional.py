@@ -68,7 +68,7 @@ class UnidimensionalBoundaryConditions(BoundaryConditions):
         self.add_component(self.V, None, self.bcs, region, value)
         self.add_associated_speed_acceleration(self.V, None, region, value)
         
-    def add_axi(self, region):
+    def add_axi(self, region, value=ScalarType(0)):
         """
         Add an axisymmetry boundary condition.
         

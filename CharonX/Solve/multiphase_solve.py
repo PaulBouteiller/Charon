@@ -224,7 +224,6 @@ class MultiphaseSolver:
         """
         Mise à jour des concentrations dans un modèle à deux phases.
         """
-        # print("coucou")
         self.c_list[0].interpolate(self.mult.c_expr)
         self.c_list[1].x.array[:] = 1 - self.c_list[0].x.array
         

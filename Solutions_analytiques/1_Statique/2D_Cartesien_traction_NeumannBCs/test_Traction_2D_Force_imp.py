@@ -43,13 +43,44 @@ Longueur = 1
 ###### Chargement ######
 f_surf = 1e3
 Npas = 20
+
+
+mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+T_unload = largeur_creneau/wave_speed
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2, 3],
+                     "coordinate": ["x", "y", "x"], 
+                     "positions": [0, 0, Longueur]
+                     },
+                "boundary_conditions": 
+                    [{"component": "Ux", "tag": 1},
+                     {"component": "Uy", "tag": 2}
+                    ],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "Fx", "tag": 3, "value" : f_surf}
+                    ],
+                "isotherm" : True,
+                }
+    
+pb = Plane_strain(Acier, dictionnaire)
+
+dictionnaire_solve = {
+    "Prefix" : "Test_elasticite",
+    "csv_output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+solve_instance.solve()
    
 class Plate(model):
     def __init__(self, material):
         model.__init__(self, material, analysis = "static", isotherm = True)
           
     def define_mesh(self):
-        return create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+        return 
 
     def prefix(self):
         if __name__ == "__main__": 

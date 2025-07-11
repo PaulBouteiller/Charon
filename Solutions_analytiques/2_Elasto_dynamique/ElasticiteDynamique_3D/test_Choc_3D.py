@@ -30,6 +30,10 @@ rho = 7.8e-3
 C = 500
 alpha=12e-6
 
+lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
+mu = E / 2. / (1 + nu)
+rigi = lmbda + 2 * mu
+
 dico_eos = {"E": E, "nu" : nu, "alpha" : alpha}
 dico_devia = {"E":E, "nu" : nu}
 Acier = Material(rho, C, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
@@ -71,9 +75,7 @@ class Isotropic_beam(model):
     #     self.bcs.add_Uz(region=3)
         
     def set_loading(self):
-        lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
-        mu = E / 2. / (1 + nu)
-        rigi = lmbda + 2 * mu
+
         wave_speed = (rigi/rho)**(1./2)
         T_unload = largeur_creneau/wave_speed
         chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")

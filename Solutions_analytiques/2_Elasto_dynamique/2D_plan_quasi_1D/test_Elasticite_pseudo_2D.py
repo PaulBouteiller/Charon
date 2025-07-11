@@ -65,73 +65,55 @@ sortie = 4000
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
+mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
+T_unload = largeur_creneau/wave_speed
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2, 3],
+                     "coordinate": ["x", "y", "y"], 
+                     "positions": [0, 0, Largeur]
+                     },
+                "boundary_conditions": 
+                    [{"component": "Uy", "tag": 2},
+                     {"component": "Uy", "tag": 3}
+                    ],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}
+                    ],
+                "isotherm" : True,
+                "damping" : {"damping" : True, 
+                             "linear_coeff" : 0.1,
+                             "quad_coeff" : 0.01,
+                             "correction" : True
+                             }
+                }
 
-class Isotropic_beam(model):
-    def __init__(self, material):
-        model.__init__(self, material)
-          
-    def define_mesh(self):
-        return create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Test_elasticite"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, Largeur])
-        
-    def set_boundary_condition(self):
-        self.bcs.add_Uy(region=2)
-        self.bcs.add_Uy(region=3)
-        
-    def set_loading(self):
-        T_unload = largeur_creneau/wave_speed
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_Fx(chargement, self.u_, self.ds(1))
-        
-    def set_damping(self):
-        """
-        Redéfini la viscosité
-        """
-        damp = {}
-        damp.update({"damping" : True})
-        damp.update({"linear_coeff" : 0.1})
-        damp.update({"quad_coeff" : 0.1})
-        damp.update({"correction" : True})
-        return damp
-        
-    def csv_output(self):
-        return {'Sig': True}
-    
-    def set_output(self):
-        self.t_output_list = []
-        return {'Sig': True}
-    
-    def query_output(self, t):
-        self.t_output_list.append(t)
-        
-    def final_output(self):
-        df = read_csv("Test_elasticite-results/Sig.csv")
-        resultat = [df[colonne].to_numpy() for colonne in df.columns]
-        n_sortie = (len(resultat)-2)//3
-        sigma_xx = [resultat[3 * i + 2] for i in range((len(resultat)-2)//3)]
-        pas_espace = np.linspace(0, Longueur, len(sigma_xx[0]))
-        for j, t in enumerate(self.t_output_list):
-            plt.plot(resultat[0], sigma_xx[j+1], linestyle = "--")
-            analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
-            plt.plot(pas_espace, analytics)
-        plt.xlim(0, Longueur)
-        plt.ylim(-1.1 * magnitude, 100)
-        plt.xlabel(r"Position (mm)", size = 18)
-        plt.ylabel(r"Contrainte (MPa)", size = 18)
-        plt.legend()
+pb = Plane_strain(Acier, dictionnaire)
 
-def test_Elasticite():
-    pb = Isotropic_beam(Acier)
-    tps1 = time.perf_counter()
-    Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    tps2 = time.perf_counter()
-    print("temps d'execution", tps2 - tps1)
-test_Elasticite()
+dictionnaire_solve = {
+    "Prefix" : "Test_elasticite",
+    "csv_output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+solve_instance.solve()
+
+df = read_csv("Test_elasticite-results/Sig.csv")
+import re
+temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
+                  for col in df.columns if "t=" in col])
+resultat = [df[colonne].to_numpy() for colonne in df.columns]
+sigma_xx = [resultat[3 * i + 2] for i in range((len(resultat)-2)//3)]
+pas_espace = np.linspace(0, Longueur, len(sigma_xx[0]))
+t_output = temps[3::3]
+for j, t in enumerate(t_output):
+    plt.plot(resultat[0], sigma_xx[j+1], linestyle = "--")
+    analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
+    plt.plot(pas_espace, analytics)
+plt.xlim(0, Longueur)
+plt.ylim(-1.1 * magnitude, 100)
+plt.xlabel(r"Position (mm)", size = 18)
+plt.ylabel(r"Contrainte (MPa)", size = 18)
+plt.legend()
+

@@ -41,8 +41,7 @@ import sys
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 from Analytical_wave_propagation import *
-###### Modèle géométrique ######
-model = CartesianUD
+
 ###### Paramètre géométrique ######
 L = 50
 bord_gauche = 0
@@ -55,67 +54,54 @@ pas_de_temps = Tfin/8000
 largeur_creneau = L/4
 magnitude = 1e3
 
-sortie =4000
-pas_de_temps_sortie = sortie * pas_de_temps
-n_sortie = int(Tfin/pas_de_temps_sortie)
-   
-class Isotropic_beam(model):
-    def __init__(self, material):
-        model.__init__(self, material, isotherm = False)
-          
-    def define_mesh(self):
-        Nx = 1000
-        return create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Test_elasticite"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
-        
-    def set_loading(self):
-        T_unload = largeur_creneau/wave_speed
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_F(chargement, self.u_, self.ds(1))
-        
-    def set_initial_temperature(self):
-        self.T0 = Function(self.V_T)
-        self.T0.x.array[:] = T0
-        self.T.x.array[:] = T0
-        
-    def csv_output(self):
-        return {'Sig': True}
-    
-    def set_output(self):
-        self.t_output_list = []
-        return {'Sig': True}
-        
-    def query_output(self, t):
-        self.t_output_list.append(t)
-        
-    def final_output(self):
-        df = read_csv("Test_elasticite-results/Sig.csv")
-        resultat = [df[colonne].to_numpy() for colonne in df.columns]
-        n_sortie = len(self.t_output_list)
-        pas_espace = np.linspace(bord_gauche, bord_droit, len(resultat[-1]))
-        for i, t in enumerate(self.t_output_list):
-            plt.plot(resultat[0], resultat[i + 2], linestyle = "--")
-            analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
-            plt.plot(pas_espace, analytics)
-        plt.xlim(0, L)
-        plt.ylim(-1.1 * magnitude, 100)
-        plt.xlabel(r"Position (mm)", size = 18)
-        plt.ylabel(r"Contrainte (MPa)", size = 18)
-        plt.legend()
+sortie = 4000
+Nx = 1000
 
-def test_Elasticite():
-    pb = Isotropic_beam(Acier)
-    tps1 = time.perf_counter()
-    Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    # Solve(pb, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    tps2 = time.perf_counter()
-    print("temps d'execution", tps2 - tps1)
-test_Elasticite()
+mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
+
+T_unload = largeur_creneau/wave_speed
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2],
+                     "coordinate": ["x", "x"], 
+                     "positions": [bord_gauche, bord_droit]
+                     },
+                "boundary_conditions": 
+                    [{"component": "U", "tag": 2}
+                    ],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "F", "tag": 1, "value" : chargement}
+                    ],
+                "isotherm" : True
+                }
+
+pb = CartesianUD(Acier, dictionnaire)
+
+dictionnaire_solve = {
+    "Prefix" : "Test_elasticite",
+    "csv_output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+tps1 = time.perf_counter()
+solve_instance.solve()
+tps2 = time.perf_counter()
+print("temps d'execution", tps2 - tps1)
+
+df = read_csv("Test_elasticite-results/Sig.csv")
+import re
+temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
+                  for col in df.columns if "t=" in col])
+resultat = [df[colonne].to_numpy() for colonne in df.columns]
+pas_espace = np.linspace(bord_gauche, bord_droit, len(resultat[-1]))
+t_output = temps[1:]
+for i, t in enumerate(t_output):
+    plt.plot(resultat[0], resultat[i + 2], linestyle = "--")
+    analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
+    plt.plot(pas_espace, analytics)
+plt.xlim(0, L)
+plt.ylim(-1.1 * magnitude, 100)
+plt.xlabel(r"Position (mm)", size = 18)
+plt.ylabel(r"Contrainte (MPa)", size = 18)
+plt.legend()

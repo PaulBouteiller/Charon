@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy import linspace
-model = CartesianUD
+
 ###### Modèle mécanique ######
 E = 210e3
 nu = 0.3
@@ -37,7 +37,7 @@ mu = E / 2. / (1 + nu)
 dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
 dico_devia = {"E":E, "nu" : nu}
 eos_type = "IsotropicHPP"
-devia_type = "NeoHook"
+devia_type = "IsotropicHPP"
 Acier = Material(1, 1, eos_type, devia_type, dico_eos, dico_devia)
 
 ###### Modèle mécanique ######
@@ -48,7 +48,7 @@ mu_alu = E_alu / 2. / (1 + nu_alu)
 dico_eos_alu = {"E" : E_alu, "nu" : nu_alu, "alpha" : 1}
 dico_devia_alu = {"E" : E_alu, "nu" : nu_alu}
 eos_type_alu = "IsotropicHPP"
-devia_type_alu = "NeoHook"
+devia_type_alu = "IsotropicHPP"
 Alu = Material(1, 1, eos_type_alu, devia_type_alu, dico_eos_alu, dico_devia_alu)
 
 Mat = [Acier, Alu]
@@ -63,20 +63,6 @@ mesh = create_interval(MPI.COMM_WORLD, 20, [np.array(0), np.array(Longueur)])
 
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
-    
-def set_multiphase(problem):
-    x = SpatialCoordinate(problem.mesh)
-    mult = problem.multiphase
-    interp = mult.V_c.element.interpolation_points()
-    demi_long = Longueur / 2
-    ufl_condition_1 = conditional(x[0]<demi_long, 1, 0)
-    c1_expr = Expression(ufl_condition_1, interp)
-    ufl_condition_2 = conditional(x[0]>=demi_long, 1, 0)
-    c2_expr = Expression(ufl_condition_2, interp)
-    mult.multiphase_evolution =  [False, False]
-    mult.explosive = False
-    mult.set_multiphase([c1_expr, c2_expr])
-    
 dictionnaire = {"mesh" : mesh,
                 "boundary_setup": 
                     {"tags": [1, 2],
@@ -88,20 +74,25 @@ dictionnaire = {"mesh" : mesh,
                      {"component": "U", "tag": 2, "value": chargement}
                     ],
                 "analysis" : "static",
-                "isotherm" : True,
-                "multiphase" : set_multiphase
+                "isotherm" : True
                 }
 
-   
-class IsotropicBeam(model):
-    def __init__(self, material):
-        model.__init__(self, material, analysis = "static", isotherm = True)
+pb = CartesianUD(Mat, dictionnaire)
+x = SpatialCoordinate(pb.mesh)
+mult = pb.multiphase
+interp = mult.V_c.element.interpolation_points()
+demi_long = Longueur / 2
+ufl_condition_1 = conditional(x[0]<demi_long, 1, 0)
+c1_expr = Expression(ufl_condition_1, interp)
+ufl_condition_2 = conditional(x[0]>=demi_long, 1, 0)
+c2_expr = Expression(ufl_condition_2, interp)
+mult.set_multiphase([c1_expr, c2_expr])
         
 
         
 dictionnaire_solve = {
     "Prefix" : "Traction_1D",
-    "output" : {"U" : True}
+    "csv_output" : {"U" : True}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)

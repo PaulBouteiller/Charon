@@ -334,7 +334,7 @@ class Problem:
         
         # Initialize kinematics and damping
         self.kinematic = Kinematic(self.name, self.r)
-        self.damping = self.set_damping()
+        self.damping = simulation_dic.get("damping", default_damping_parameters())
         
         # Configure function spaces and unknown functions
         self._init_spaces_and_functions()
@@ -475,22 +475,19 @@ class Problem:
         self.set_function_space()
         self.set_functions()
     
-    def _init_multiphase(self, kwargs):
+    def _init_multiphase(self, dictionnaire):
         """
         Initialize multiphase analysis if needed.
         
         Sets up the multiphase object and configuration if the material
         is defined as a list of materials.
-        
-        Parameters
-        ----------
-        kwargs : dict Additional configuration parameters
+
         """
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
             self.n_mat = len(self.material)
             self.multiphase = Multiphase(self.n_mat, self.quad)
-            self.set_multiphase()
+            # self.set_multiphase()
         else:
             self.n_mat = 1
             self.multiphase = None
@@ -570,13 +567,15 @@ class Problem:
         """
         self.load = Constant(self.mesh, ScalarType((1)))
         self.loading = self.loading_class()(self.mesh, self.u_, self.dx, self.kinematic)
-        loading_config = simulation_dic.get("loading_conditions", None)
+        loading_config = simulation_dic.get("loading_conditions", [])
         for loading in loading_config:
             loading_type = loading["type"]
             tag = loading["tag"]
             value = loading["value"]
-            if loading_type == "surfacique":
+            if loading_type == "surfacique" and self.analysis == "static":
                 getattr(self.loading, "add_"+ loading["component"])(value * self.load, self.u_, self.ds(tag))
+            elif loading_type == "surfacique" and self.analysis == "explicit_dynamic":
+                getattr(self.loading, "add_"+ loading["component"])(value, self.u_, self.ds(tag))
             else:
                 raise ValueError("loading type must be either surfacique or volumique")
     
@@ -718,16 +717,6 @@ class Problem:
             self.s_func = Function(self.V_devia, name = "Deviateur")  
         self.p_expr = Expression(self.constitutive.p, self.V_quad_UD.element.interpolation_points())
         self.p_func = Function(self.V_quad_UD, name="Pression")
-
-    def set_damping(self):
-        """
-        Initialize damping parameters.
-        
-        Returns
-        -------
-        dict Dictionary of damping parameters
-        """
-        return default_damping_parameters()
         
     def rho_0_field(self):
         """

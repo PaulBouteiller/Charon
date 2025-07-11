@@ -30,8 +30,7 @@ import time
 import pandas as pd
 from Solution_analytique_spherique import main_analytique
 
-###### Modèle géométrique ######
-model = SphericalUD
+
 ###### Modèle matériau ######
 E = 210e3
 nu = 0.3 
@@ -40,8 +39,8 @@ mu = E / 2. / (1 + nu)
 rho = 7.8e-3
 rigi = lmbda + 2 * mu
 wave_speed = (rigi/rho)**(1./2)
-dico_eos = {"E" : 210e3, "nu" : 0.3, "alpha" : 1}
-dico_devia = {"E" : 210e3, "nu" : 0.3}
+dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
+dico_devia = {"E" : E, "nu" : nu}
 Acier = Material(rho, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
     
 ###### Paramètre géométrique ######
@@ -61,57 +60,43 @@ sortie = 2500
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
    
-class Isotropic_ball(model):
-    def __init__(self, material):
-        model.__init__(self, material, isotherm = True)
-          
-    def define_mesh(self):
-        Nx = 2000
-        return create_interval(MPI.COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Onde_spherique"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mark_boundary([1, 2], ["r", "r"], [R_int, R_ext])
-        
-    def set_boundary_condition(self):
-        self.bcs.add_axi(region=1)
-        
-    def set_loading(self):
+Nx = 2000
+mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
 
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_F(chargement, self.u_, self.ds(2))
-    
-    def csv_output(self):
-        self.t_output_list = []
-        return {'Sig': True}
-        
-    def query_output(self, t):
-        self.t_output_list.append(t)
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2],
+                     "coordinate": ["r", "r"], 
+                     "positions": [R_int, R_ext]
+                     },
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
+                    ],
+                "isotherm" : True
+                }
+
+pb = SphericalUD(Acier, dictionnaire)
+
+dictionnaire_solve = {
+    "Prefix" : "Onde_spherique",
+    "csv_output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+solve_instance.solve()
                
-    def final_output(self):
-        # Lecture des données
-        df = pd.read_csv("Onde_spherique-results/Sig.csv")
-        plt.plot(df['r'], df.iloc[:, -3], 
-                linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
 
-def test_Elasticite():
-    pb = Isotropic_ball(Acier)
-    tps1 = time.perf_counter()
-    Solve(pb, compteur=sortie, TFin=Tfin, scheme="fixed", dt=pas_de_temps)
-    tps2 = time.perf_counter()
-    print("temps d'execution", tps2 - tps1)
+df = pd.read_csv("Onde_spherique-results/Sig.csv")
+plt.plot(df['r'], df.iloc[:, -3], 
+        linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
+
+
     
 # Exécution des deux solutions
-test_Elasticite()
 main_analytique(R_int, R_ext, lmbda, mu, rho, magnitude, Tfin)
 plt.legend()
 plt.xlabel('r (mm)')
 plt.ylabel(r'$\sigma_{rr}$ (MPa)')
 plt.xlim(5, 10)
-plt.savefig(f"../../../Notice/fig/Compression_spherique_dynamique.pdf", bbox_inches = 'tight')
 plt.show()

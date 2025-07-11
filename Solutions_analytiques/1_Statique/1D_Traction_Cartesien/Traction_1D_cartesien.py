@@ -60,30 +60,6 @@ def query_output(problem, t):
     problem.eps_list.append(Umax / Longueur * t)
     problem.F_list.append(problem.get_F(problem.Force))
     
-def final_output(problem):
-    kappa = E / (3. * (1 - 2 * nu))
-    mu = E / (2. * (1 + nu))            
-    solution_analytique = array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in problem.eps_list])
-    eps_list_percent = [100 * eps for eps in problem.eps_list]
-    numerical_results = array(problem.F_list)
-    
-    # On calcule la différence entre les deux courbes
-    len_vec = len(solution_analytique)
-    diff_tot = solution_analytique - numerical_results
-    # Puis on réalise une sorte d'intégration discrète
-    integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
-    print("La difference est de", integrale_discrete)
-    # assert integrale_discrete < 0.001, "Static 1D traction fail"
-    if __name__ == "__main__": 
-        plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
-        plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
-        plt.xlim(0, 1.05 * eps_list_percent[-1])
-        plt.ylim(0, 1.05 * numerical_results[-1])
-        plt.xlabel(r"Déformation(%)", size = 18)
-        plt.ylabel(r"Force (N)", size = 18)
-        plt.legend()
-        plt.show()
-
 dictionnaire_solve = {
     "Prefix" : "Traction_1D",
     "output" : {"U" : True}
@@ -91,5 +67,27 @@ dictionnaire_solve = {
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
 solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
-solve_instance.final_output = final_output
 solve_instance.solve()
+
+kappa = E / (3. * (1 - 2 * nu))
+mu = E / (2. * (1 + nu))            
+solution_analytique = array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
+eps_list_percent = [100 * eps for eps in pb.eps_list]
+numerical_results = array(pb.F_list)
+
+# On calcule la différence entre les deux courbes
+len_vec = len(solution_analytique)
+diff_tot = solution_analytique - numerical_results
+# Puis on réalise une sorte d'intégration discrète
+integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
+print("La difference est de", integrale_discrete)
+# assert integrale_discrete < 0.001, "Static 1D traction fail"
+if __name__ == "__main__": 
+    plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
+    plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
+    plt.xlim(0, 1.05 * eps_list_percent[-1])
+    plt.ylim(0, 1.05 * numerical_results[-1])
+    plt.xlabel(r"Déformation(%)", size = 18)
+    plt.ylabel(r"Force (N)", size = 18)
+    plt.legend()
+    plt.show()

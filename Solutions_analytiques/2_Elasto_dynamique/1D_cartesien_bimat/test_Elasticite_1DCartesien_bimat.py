@@ -35,7 +35,7 @@ from Solution_analytique import compute_sigma_tot
 ###### Modèle mécanique ######
 E_acier = 210e3
 nu_acier = 0.3
-mu_acier = E_acier / 2. / (1 + nu_acier)
+# mu_acier = E_acier / 2. / (1 + nu_acier)
 rho_acier = 7.8e-3
 dico_eos = {"E" : E_acier, "nu" : nu_acier, "alpha" : 1}
 dico_devia = {"E":E_acier, "nu" : nu_acier}
@@ -46,7 +46,7 @@ Acier = Material(rho_acier, 1, eos_type, devia_type, dico_eos, dico_devia)
 ###### Modèle mécanique ######
 E_alu = 70e3
 nu_alu = 0.34
-mu_alu = E_alu / 2. / (1 + nu_alu)
+# mu_alu = E_alu / 2. / (1 + nu_alu)
 rho_alu = 2.7e-3
 dico_eos_alu = {"E" : E_alu, "nu" : nu_alu, "alpha" : 1}
 dico_devia_alu = {"E" : E_alu, "nu" : nu_alu}
@@ -55,9 +55,6 @@ devia_type_alu = "IsotropicHPP"
 Alu = Material(rho_alu, 1, eos_type_alu, devia_type_alu, dico_eos_alu, dico_devia_alu)
 
 Mat = [Acier, Alu]
-
-###### Modèle géométrique ######
-model = CartesianUD
 
 ###### Paramètre géométrique ######
 L = 50
@@ -68,7 +65,9 @@ bord_droit = bord_gauche + L
 ###### Temps simulation ######
 wave_speed = Acier.celerity
 
-Tfin = 3./4 * L / wave_speed
+
+Tfin = 1./8 * L / wave_speed
+# Tfin = 3./4 * L / wave_speed
 print("le temps de fin de simulation est", Tfin )
 pas_de_temps = Tfin/8000
 largeur_creneau = L/4
@@ -78,80 +77,72 @@ magnitude = 1e3
 sortie = 4000
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
-   
-class Isotropic_beam(model):
-    def __init__(self, material):
-        model.__init__(self, material, isotherm = True)
-          
-    def define_mesh(self):
-        Nx = 2000
-        return create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
+
+Nx = 2000
+mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2],
+                     "coordinate": ["x", "x"], 
+                     "positions": [bord_gauche, bord_droit]
+                     },
+                "boundary_conditions": 
+                    [{"component": "U", "tag": 2}
+                    ],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "F", "tag": 1, "value" : chargement}
+                    ],
+                "isotherm" : True
+                }
     
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Test_elasticite"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [bord_gauche, bord_droit])
-        
-    def set_loading(self):
+# pb = CartesianUD(Mat, dictionnaire)
+# x = SpatialCoordinate(pb.mesh)
+# mult = pb.multiphase
+# interp = mult.V_c.element.interpolation_points()
+# ufl_condition_1 = conditional(x[0]<demi_longueur, 1, 0)
+# c1_expr = Expression(ufl_condition_1, interp)
+# ufl_condition_2 = conditional(x[0]>=demi_longueur, 1, 0)
+# c2_expr = Expression(ufl_condition_2, interp)
+# mult.set_multiphase([c1_expr, c2_expr])
 
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_F(chargement, self.u_, self.ds(1))
-        
-    def set_initial_temperature(self):
-        self.T0 = Function(self.V_T)
-        self.T0.x.array[:] = 293.15
-        self.T.x.array[:] = 293.15
-        
-    def set_multiphase(self):
-        x = SpatialCoordinate(self.mesh)
-        mult = self.multiphase
-        interp = mult.V_c.element.interpolation_points()
+pb = CartesianUD([Acier, Acier], dictionnaire)
+x = SpatialCoordinate(pb.mesh)
+mult = pb.multiphase
+interp = mult.V_c.element.interpolation_points()
+ufl_condition_1 = conditional(x[0]<99, 1, 0)
+c1_expr = Expression(ufl_condition_1, interp)
+ufl_condition_2 = conditional(x[0]>=99, 1, 0)
+c2_expr = Expression(ufl_condition_2, interp)
+mult.set_multiphase([c1_expr, c2_expr])
 
-        ufl_condition_1 = conditional(x[0]<demi_longueur, 1, 0)
-        c1_expr = Expression(ufl_condition_1, interp)
-        ufl_condition_2 = conditional(x[0]>=demi_longueur, 1, 0)
-        c2_expr = Expression(ufl_condition_2, interp)
-        mult.multiphase_evolution =  [False, False]
-        mult.explosive = False
-        mult.set_multiphase([c1_expr, c2_expr])
         
-    def csv_output(self):
-        return {'Sig': True}
+dictionnaire_solve = {
+    "Prefix" : "Test_elasticite",
+    "csv_output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+tps1 = time.perf_counter()
+solve_instance.solve()
+tps2 = time.perf_counter()
+print("temps d'execution", tps2 - tps1)
+
+df = read_csv("Test_elasticite-results/Sig.csv")
+import re
+temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
+                  for col in df.columns if "t=" in col])
+resultat = [df[colonne].to_numpy() for colonne in df.columns]
+pas_espace = np.linspace(bord_gauche, bord_droit, len(resultat[-1]))
+t_output = temps[1:]
+x_vals = np.linspace(0, L, 1000)
+for i, t in enumerate(t_output):
+    plt.plot(resultat[0], resultat[i + 2], linestyle = "--")
+    # sigma_vals = compute_sigma_tot(t, T_unload, L, demi_longueur, magnitude, rho_acier, rho_alu, E_acier, E_alu, nu_acier, nu_alu)
+    # plt.plot(x_vals, sigma_vals, color='r')
     
-    def set_output(self):
-        self.t_output_list = []
-
-        return {}
-        
-    def query_output(self, t):
-        self.t_output_list.append(t)
-        
-    def final_output(self):
-        df = read_csv("Test_elasticite-results/Sig.csv")
-        resultat = [df[colonne].to_numpy() for colonne in df.columns]
-        n_sortie = len(self.t_output_list)
-
-        x_vals = np.linspace(0, L, 1000)
-        for i, t in enumerate(self.t_output_list):
-            plt.plot(resultat[0], resultat[i + 2], linestyle = "--")
-            sigma_vals = compute_sigma_tot(t, T_unload, L, demi_longueur, magnitude, rho_acier, rho_alu, E_acier, E_alu, nu_acier, nu_alu)
-            plt.plot(x_vals, sigma_vals, color='r')
-            
-        plt.xlim(0, L)
-        plt.ylim(-1.1 * magnitude, 1.1 * magnitude)
-        plt.xlabel(r"Position (mm)", size = 18)
-        plt.ylabel(r"Contrainte (MPa)", size = 18)
-        plt.legend()
-        
-
-def test_Elasticite():
-    pb = Isotropic_beam(Mat)
-    tps1 = time.perf_counter()
-    Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    tps2 = time.perf_counter()
-    print("temps d'execution", tps2 - tps1)
-test_Elasticite()
+plt.xlim(0, L)
+plt.ylim(-1.1 * magnitude, 1.1 * magnitude)
+plt.xlabel(r"Position (mm)", size = 18)
+plt.ylabel(r"Contrainte (MPa)", size = 18)
+plt.legend()
