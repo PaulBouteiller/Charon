@@ -18,23 +18,22 @@ Une comparaison est effectuée entre la force calculée numériquement et analyt
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import *
+from CharonX import create_1D_mesh, CartesianUD, Solve, MyConstant
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import sys
 sys.path.append("../")
-from Traction_1D_cartesien_solution_analytique import *
+from Traction_1D_cartesien_solution_analytique import sigma_xx
 sys.path.append("../../")
-from Generic_isotropic_material import *
-model = CartesianUD
+from Generic_isotropic_material import Acier, E, nu, eos_type, devia_type
 
 ###### Paramètre géométrique ######
 Longueur = 1
-
+Nx = 2
 ###### Chargement ######
 Umax=1e-3   
-mesh = create_interval(MPI.COMM_WORLD, 2, [np.array(0), np.array(Longueur)])
+mesh = create_1D_mesh(0, Longueur, Nx)
 
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 dictionnaire = {"mesh" : mesh,
@@ -71,9 +70,9 @@ solve_instance.solve()
 
 kappa = E / (3. * (1 - 2 * nu))
 mu = E / (2. * (1 + nu))            
-solution_analytique = array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
+solution_analytique = np.array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
 eps_list_percent = [100 * eps for eps in pb.eps_list]
-numerical_results = array(pb.F_list)
+numerical_results = np.array(pb.F_list)
 
 # On calcule la différence entre les deux courbes
 len_vec = len(solution_analytique)

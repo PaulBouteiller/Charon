@@ -19,8 +19,6 @@ model = Tridimensional
 
 ######## Modèle matériau ########
 rho_TATB = 1.9e-3
-
-# iso_T_K0 = 14e3
 #Rigidité cohérente
 iso_T_K0 = 28333.
 T_dep_K0 = 0
@@ -41,8 +39,6 @@ Rigi[5,5] = 2e3
 print("La rigidité est", Rigi)
 kappa_eq = 1./9 * sum(Rigi[i,j] for i in range(3) for j in range(3))
 print("Compressibilité équivalente", kappa_eq)
-
-
 
 
 matrix_f_func = [[[1, 0] for _ in range(6)] for _ in range(6)]

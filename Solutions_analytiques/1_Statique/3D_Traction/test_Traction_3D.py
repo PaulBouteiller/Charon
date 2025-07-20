@@ -1,28 +1,28 @@
 """
-Test de traction uniaxiale sur un cube 3D avec mat√©riau isotrope.
+Test de traction uniaxiale sur un cube 3D avec matériau isotrope.
 
 Ce script simule un essai de traction uniaxiale sur un cube 3D et compare
-les r√©sultats num√©riques avec la solution analytique.
+les résultats numériques avec la solution analytique.
 
-Param√®tres g√©om√©triques:
+Paramètres géométriques:
     - Dimensions du cube: 0.5 √ó 2.0 √ó 2.0
-    - Discr√©tisation: maillage 10√ó10√ó10
+    - Discrétisation: maillage 10√ó10√ó10
 
 Chargement:
-    - D√©formation impos√©e (eps): 0.005 (0.5% de d√©formation)
+    - Déformation imposée (eps): 0.005 (0.5% de déformation)
 
 Conditions aux limites:
-    - D√©placement horizontal bloqu√© sur la face gauche
-    - D√©placement vertical bloqu√© sur la face inf√©rieure
-    - D√©placement selon Z bloqu√© sur la face arri√®re
-    - D√©placement selon Z impos√© sur la face avant
+    - Déplacement horizontal bloqué sur la face gauche
+    - Déplacement vertical bloqué sur la face inférieure
+    - Déplacement selon Z bloqué sur la face arrière
+    - Déplacement selon Z imposé sur la face avant
 
-Le script calcule la force r√©sultante et la compare avec la solution analytique
-pour un probl√®me de traction uniaxiale 3D. Une assertion v√©rifie que l'erreur
-relative est inf√©rieure √† 1%.
+Le script calcule la force résultante et la compare avec la solution analytique
+pour un problème de traction uniaxiale 3D. Une assertion vérifie que l'erreur
+relative est inférieure √† 1%.
 
 Auteur: bouteillerp
-Date de cr√©ation: 11 Mars 2022
+Date de création: 11 Mars 2022
 """
 from CharonX import *
 import matplotlib.pyplot as plt
@@ -31,9 +31,9 @@ import sys
 sys.path.append("../")
 from Generic_isotropic_material import *
 
-######## Mod√®le m√©canique ########
+######## Modèle mécanique ########
 model = Tridimensionnal
-######## Param√®tres g√©om√©triques et de maillage ########
+######## Paramètres géométriques et de maillage ########
 L, l, h = 0.5, 2., 2.
 Nx, Ny, Nz = 10, 10, 10
 
@@ -81,10 +81,10 @@ class Cube3D(model):
         solution_analytique = array([force_elast(eps) for eps in self.eps_list])
         eps_list_percent = [100 * eps for eps in self.eps_list]
         numerical_results = array(self.F_list)
-        # On calcule la diff√©rence entre les deux courbes
+        # On calcule la différence entre les deux courbes
         len_vec = len(solution_analytique)
         diff_tot = solution_analytique - numerical_results
-        # Puis on r√©alise une sorte d'int√©gration discr√®te
+        # Puis on réalise une sorte d'intégration discrète
         integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
         print("La difference est de", integrale_discrete)
         assert integrale_discrete < 0.01, "Static 1D traction fail"
@@ -93,7 +93,7 @@ class Cube3D(model):
             plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
             plt.xlim(0, 1.1 * eps_list_percent[-1])
             plt.ylim(0, 1.1 * self.F_list[-1])
-            plt.xlabel(r"D√©formation(%)", size = 18)
+            plt.xlabel(r"Déformation(%)", size = 18)
             plt.ylabel(r"Force (N)", size = 18)
             plt.legend()
             plt.show()

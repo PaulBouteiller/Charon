@@ -424,7 +424,7 @@ class OptimizedCSVExport:
             elif field_name == "FreeSurf_1D":
                 pass
             else:
-                raise ValueError("Wrong field name to post process")
+                raise ValueError(f"{field_name} can not be post process")
 
 
     def post_process_csv(self, field_name, subfield_name=None):

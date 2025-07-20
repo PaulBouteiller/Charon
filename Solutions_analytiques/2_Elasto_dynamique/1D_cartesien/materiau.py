@@ -3,11 +3,10 @@ Created on Thu Jun  6 10:00:48 2024
 
 @author: bouteillerp
 """
-from CharonX import *
-from pandas import read_csv
+from CharonX import Material
+from ufl import exp
 try:
-    from jax.numpy import searchsorted, clip, array
-    from jax import vmap, jit
+    from jax.numpy import array
 except Exception:
     print("JAX has not been loaded therefore tabulated law cannot be used")
 eos_type = "U1"
@@ -27,10 +26,6 @@ def set_material():
         
     elif eos_type == "Tabulated":
         rigi_eos = 175e3
-        df = read_csv('Exemple_tabule.csv', index_col='T/J')
-
-        # T_list, J_list, P_list = Dataframe_to_array(df)
-
         def tabulated_P(J):
             return -rigi_eos * (J - 1)
         T_list = array([0., 1000])
@@ -38,8 +33,6 @@ def set_material():
         P_list = array([[tabulated_P(J) for J in J_list] for T in T_list])
         
         dico_eos = {"c0": 4736, "T" : T_list, "J" : J_list, "P" : P_list}
-        
-        
 
     elif eos_type == "Vinet":
         iso_T_K0 = 200e3

@@ -18,8 +18,8 @@ except Exception:
 from dolfinx.io import XDMFFile
 from dolfinx.io.gmshio import model_to_mesh
 from mpi4py.MPI import COMM_WORLD
-from dolfinx.mesh import create_interval, create_unit_interval, create_rectangle, CellType
-from numpy import array, linspace
+from dolfinx.mesh import create_interval, create_rectangle, CellType
+from numpy import array
 from ..utils.default_parameters import default_fem_degree
 
 def create_1D_mesh(x_left, x_right, N_el):

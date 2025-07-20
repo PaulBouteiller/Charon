@@ -27,20 +27,21 @@ La solution analytique pour une onde progressive est de la forme:
 où f et g représentent respectivement les ondes se propageant vers la droite et vers la gauche.
 """
 
-from CharonX import *
+from CharonX import create_interval, MyConstant, CartesianUD, Solve
+from pandas import read_csv
+import numpy as np
+from mpi4py import MPI
 import matplotlib.pyplot as plt
 import pytest
 import time
-import sys
 from materiau import set_material
 Acier, wave_speed, isotherm, T0  = set_material()
 
 import os
 import sys
-# Obtenir le chemin absolu du dossier parent
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
-from Analytical_wave_propagation import *
+from Analytical_wave_propagation import cartesian1D_progressive_wave
 
 ###### Paramètre géométrique ######
 L = 50

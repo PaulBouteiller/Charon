@@ -18,38 +18,23 @@ Matériaux:
     - Aluminium: Module d'Young E/ratio (ratio = 3)
     - MÃªme coefficient de Poisson pour les deux matériaux
 
-Solution analytique basée sur la continuité des contraintes Ã  l'interface
-et la répartition des déformations proportionnellement Ã  l'inverse du module d'Young.
+Solution analytique basée sur la continuité des contraintes à l'interface
+et la répartition des déformations proportionnellement à l'inverse du module d'Young.
 
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import *
+from CharonX import create_1D_mesh, MyConstant, CartesianUD, Solve
+from pandas import read_csv
+from ufl import conditional, SpatialCoordinate
+from dolfinx.fem import Expression
 import matplotlib.pyplot as plt
-import numpy as np
 import pytest
 from numpy import linspace
 
-###### Modèle mécanique ######
-E = 210e3
-nu = 0.3
-mu = E / 2. / (1 + nu)
-dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E":E, "nu" : nu}
-eos_type = "IsotropicHPP"
-devia_type = "IsotropicHPP"
-Acier = Material(1, 1, eos_type, devia_type, dico_eos, dico_devia)
-
-###### Modèle mécanique ######
-ratio = 3
-E_alu = E / ratio
-nu_alu = nu
-mu_alu = E_alu / 2. / (1 + nu_alu)
-dico_eos_alu = {"E" : E_alu, "nu" : nu_alu, "alpha" : 1}
-dico_devia_alu = {"E" : E_alu, "nu" : nu_alu}
-eos_type_alu = "IsotropicHPP"
-devia_type_alu = "IsotropicHPP"
-Alu = Material(1, 1, eos_type_alu, devia_type_alu, dico_eos_alu, dico_devia_alu)
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, Alu, ratio
 
 Mat = [Acier, Alu]
 
@@ -59,7 +44,8 @@ Longueur = 1
 ###### Chargement ######
 Umax=1e-2
 
-mesh = create_interval(MPI.COMM_WORLD, 20, [np.array(0), np.array(Longueur)])
+Nx = 20
+mesh = create_1D_mesh(0, Longueur, Nx)
 
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
@@ -89,7 +75,6 @@ c2_expr = Expression(ufl_condition_2, interp)
 mult.set_multiphase([c1_expr, c2_expr])
         
 
-        
 dictionnaire_solve = {
     "Prefix" : "Traction_1D",
     "csv_output" : {"U" : True}
@@ -115,5 +100,6 @@ if __name__ == "__main__":
     plt.scatter(x_result, solution_numerique, marker = "x", color = "red")
     plt.plot(x_result, dep_tot, linestyle = "--", color = "blue")            
     plt.xlim(0, 1)
+    plt.ylim(0, 1.1 * max(dep_tot))
     plt.xlabel(r"Position (mm)", size = 18)
     plt.ylabel(r"Déplacement (mm)", size = 18)

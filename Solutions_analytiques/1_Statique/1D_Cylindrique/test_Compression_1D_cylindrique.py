@@ -17,8 +17,7 @@ Chargement:
 La solution analytique utilise les équations de Lamé pour un cylindre à paroi épaisse.
 Une assertion vérifie que l'erreur relative entre les solutions est inférieure à 0.1%.
 """
-from CharonX import create_interval, CylindricalUD, Solve, MPI
-import numpy as np
+from CharonX import CylindricalUD, Solve, create_1D_mesh
 import pytest
 from depouillement import validation_analytique
 import sys
@@ -36,7 +35,7 @@ Pext = -10
 Pint = -5
 
 ###### Maillage ######
-mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(Rint), np.array(Rext)])
+mesh = create_1D_mesh(Rint, Rext, Nx)
 
 ###### Paramètre du problème ######
 dictionnaire = {"mesh" : mesh,

@@ -19,12 +19,13 @@ Une assertion vérifie que l'erreur relative entre les solutions est inférieure
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import *
+from CharonX import create_1D_mesh, SphericalUD, Solve, MPI
+import numpy as np
 import matplotlib.pyplot as plt
 import pytest
 import sys
 sys.path.append("../../")
-from Generic_isotropic_material import *
+from Generic_isotropic_material import E, Acier, nu
 
 ###### Paramètre géométrique ######
 e = 2
@@ -33,7 +34,7 @@ Rint = 9
 Rext = Rint + e
 Pext = 10
 
-mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(Rint), np.array(Rext)])
+mesh = create_1D_mesh(Rint, Rext, Nx)
 dictionnaire = {"mesh" : mesh,
                 "boundary_setup": 
                     {"tags": [1, 2],

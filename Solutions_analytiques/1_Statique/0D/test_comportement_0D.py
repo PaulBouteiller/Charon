@@ -58,9 +58,8 @@ pb.T0.x.petsc_vec.set(T0)
 
 dictionnaire_solve = {
     "Prefix" : "Test_0D_" + eos_type,
-    "csv_output" : {"csv_output" : {"Pressure" : True, "U" : ["Boundary", 2], "deviateur" :  True}}
+    "csv_output" : {"Pressure" : True, "U" : ["Boundary", 2], "deviateur" :  True}
     }
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
-solve_instance.final_output = comparison(Mat, varepsilon, T0)
+# solve_instance.final_output = comparison(Mat, varepsilon, T0)
 solve_instance.solve()
-Solve(pb, compteur=1, npas = 20)

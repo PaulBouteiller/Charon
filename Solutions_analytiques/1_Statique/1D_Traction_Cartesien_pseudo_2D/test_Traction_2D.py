@@ -24,13 +24,15 @@ dérivée de la théorie 1D, corrigée pour tenir compte de l'état de déformation pl
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-
-from CharonX import *
+from numpy import array
 import matplotlib.pyplot as plt
 import pytest
 import sys
+
+from CharonX import create_rectangle, MPI, MyConstant, Plane_strain, Solve, CellType
 sys.path.append("../")
-from Traction_1D_cartesien_solution_analytique import *
+from Traction_1D_cartesien_solution_analytique import sigma_xx
+sys.path.append("../../")
 from Generic_isotropic_material import Acier, kappa, mu, eos_type, devia_type
 
 ###### Paramètre géométrique ######
@@ -41,6 +43,7 @@ Longueur = 1
 Umax = 0.002
 
 mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
 ###### Paramètre du problème ######
 dictionnaire = {"mesh" : mesh,
@@ -68,9 +71,7 @@ def query_output(problem, t):
     problem.eps_list.append(Umax / Longueur * t)
     problem.F_list.append(2 * problem.get_F(problem.Force))
     
-dictionnaire_solve = {
-    "Prefix" : "Plaque_2D_pseudo_1D"
-    }
+dictionnaire_solve = {}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
 solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps

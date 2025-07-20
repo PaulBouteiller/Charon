@@ -24,19 +24,11 @@ numériquement et la solution analytique pour un domaine sphérique creux.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import *
-import time
+from CharonX import axi_sphere, Axisymmetric, Solve, read_csv
+import numpy as np
 import matplotlib.pyplot as plt
 import pytest
-
-
-model = Axisymmetric
-###### Modèle mécanique ######
-E = 1e5
-nu = 0.3
-dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E" : E, "nu" : nu}
-Acier = Material(1, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
+from Generic_isotropic_material import E, Acier, nu
 
 ###### Paramètre géométrique ######
 Rint = 9
@@ -44,7 +36,6 @@ Rext = 11
 
 ###### Chargement ######
 Pext = 10
-
 mesh, _, facets = axi_sphere(Rint, Rext, 40, 10, tol_dyn = 1e-5, quad = False)
 
 dictionnaire = {"mesh" : mesh,

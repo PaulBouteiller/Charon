@@ -65,12 +65,29 @@ T_dep_K1 = 0
 eos_type = "Vinet"
 dico_eos = {"iso_T_K0": iso_T_K0, "T_dep_K0" : T_dep_K0, "iso_T_K1": iso_T_K1, "T_dep_K1" : T_dep_K1}
 
-
-    
 devia_type = "Anisotropic"
 dico_devia = {"C" : C}
 rho0 = 1
 Fibre = Material(rho0, 1, eos_type, devia_type, dico_eos, dico_devia)
+
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2, 3, 4, 5, 6],
+                     "coordinate": ["x", "x", "y", "y", "z", "z"], 
+                     "positions": [0, Longueur, 0, Largeur, 0, hauteur]
+                     },
+                "boundary_conditions": 
+                    [{"component": "Ux", "tag": 1},
+                     {"component": "Uy", "tag": 3},
+                     {"component": "Uz", "tag": 5},
+                     {"component": "Uy", "tag": 4},
+                     {"component": "Uz", "tag": 5},
+                     {"component": "Uz", "tag": 6, "value": chargement},
+                    ],
+                "analysis" : "static",
+                "isotherm" : True
+                }
+if traction == "Fibre";
 
 
 

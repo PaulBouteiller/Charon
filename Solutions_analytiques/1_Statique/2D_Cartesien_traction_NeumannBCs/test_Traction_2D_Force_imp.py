@@ -25,16 +25,14 @@ conditions aux limites de Neumann.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import *
-import time
+from CharonX import create_rectangle, Plane_strain, CellType, Solve
+from mpi4py import MPI
 import matplotlib.pyplot as plt
 import pytest
-from numpy import pi
+import numpy as np
 import sys
 sys.path.append("../")
-from Generic_isotropic_material import *
-
-model = Plane_strain
+from Generic_isotropic_material import Acier
 
 ###### Paramètre géométrique ######
 Largeur = 0.5
@@ -44,11 +42,7 @@ Longueur = 1
 f_surf = 1e3
 Npas = 20
 
-
 mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
-T_unload = largeur_creneau/wave_speed
-chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
-
 dictionnaire = {"mesh" : mesh,
                 "boundary_setup": 
                     {"tags": [1, 2, 3],
@@ -63,65 +57,31 @@ dictionnaire = {"mesh" : mesh,
                     [{"type": "surfacique", "component" : "Fx", "tag": 3, "value" : f_surf}
                     ],
                 "isotherm" : True,
+                "analysis" : "static"
                 }
     
 pb = Plane_strain(Acier, dictionnaire)
+pb.sig_list = []
+pb.Force = pb.set_F(1, "x")
 
-dictionnaire_solve = {
-    "Prefix" : "Test_elasticite",
-    "csv_output" : {"Sig" : True}
-    }
+def query_output(problem, t):
+    problem.sig_list.append(-problem.get_F(problem.Force)/Largeur)
 
-solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+dictionnaire_solve = {}
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
+solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
-   
-class Plate(model):
-    def __init__(self, material):
-        model.__init__(self, material, analysis = "static", isotherm = True)
-          
-    def define_mesh(self):
-        return 
 
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Plaque_2D"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "x"], [0, 0, Longueur])
-        
-    def set_boundary_condition(self):
-        self.bcs.add_Ux(region=1)
-        self.bcs.add_Uy(region=2)
-        
-    def set_loading(self):
-        self.loading.add_Fx(f_surf * self.load, self.u_, self.ds(3))
-        
-    def set_output(self):
-        self.sig_list = []
-        self.Force = self.set_F(1, "x")
-        return {'Sig':True, 'U': True}
+virtual_t = np.linspace(0, 1, Npas)
+force_elast_list = np.linspace(0, f_surf, len(virtual_t))
 
-    def query_output(self, t):
-        self.sig_list.append(-self.get_F(self.Force)/Largeur)
-    
-    def final_output(self):
-        virtual_t = np.linspace(0, 1, Npas)
-        force_elast_list = np.linspace(0, f_surf, len(virtual_t))
-        
-        if __name__ == "__main__": 
-            plt.scatter(virtual_t, self.sig_list, marker = "x", color = "blue", label="CHARON")
-            plt.plot(virtual_t, force_elast_list, linestyle = "--", color = "red", label = "Analytical")
-            plt.xlim(0, 1.1 * virtual_t[-1])
-            plt.ylim(0, 1.1 * self.sig_list[-1])
-            plt.xlabel(r"Temps virtuel", size = 18)
-            plt.ylabel(r"Contrainte (MPa)", size = 18)
-            plt.legend()
-            plt.savefig("../../../Notice/fig/Traction_2D_Neumann.pdf", bbox_inches = 'tight')
-            plt.show()
+if __name__ == "__main__": 
+    plt.scatter(virtual_t, pb.sig_list, marker = "x", color = "blue", label="CHARON")
+    plt.plot(virtual_t, force_elast_list, linestyle = "--", color = "red", label = "Analytical")
+    plt.xlim(0, 1.1 * virtual_t[-1])
+    plt.ylim(0, 1.1 * pb.sig_list[-1])
+    plt.xlabel(r"Temps virtuel", size = 18)
+    plt.ylabel(r"Contrainte (MPa)", size = 18)
+    plt.legend()
+    plt.show()
             
-def test_Traction2D():
-    pb = Plate(Acier)
-    Solve(pb, compteur=1, npas = Npas)
-test_Traction2D()
