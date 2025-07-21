@@ -14,14 +14,12 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from CharonX import *
+from CharonX import Solve, CylindricalUD, MyConstant, create_1D_mesh, Axisymmetric, axi_sphere
+from pandas import read_csv
 import matplotlib.pyplot as plt
-###### Modèle mécanique ######
-E = 1e5
-nu = 0.3
-dico_eos = {"E":E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E":E, "nu" : nu}
-Acier = Material(1, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier
 
 ###### Paramètre géométrique ######
 Rint = 8
@@ -31,7 +29,7 @@ Rext = 11
 Pext = 10
 
 ###### Temps simulation ######
-Tfin = 1e-2
+Tfin = 1e-3
 print("le temps de fin de simulation est", Tfin )
 pas_de_temps = Tfin / 3e3
 largeur_creneau = (Rext - Rint) / 4
@@ -104,4 +102,4 @@ for j in range(len(ur_axi)-1):
     
 for j in range(len(ur_1D)-1):
     plt.scatter(resultat_1D[0], ur_1D[j+1], marker = "x")
-    # plt.plot(resultat_1D[0], ur_1D[j+1], linestyle = "-")
+    plt.plot(resultat_1D[0], ur_1D[j+1], linestyle = "-")

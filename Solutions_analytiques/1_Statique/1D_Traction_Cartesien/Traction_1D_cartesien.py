@@ -18,7 +18,7 @@ Une comparaison est effectuée entre la force calculée numériquement et analyt
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import create_1D_mesh, CartesianUD, Solve, MyConstant
+from CharonX import create_1D_mesh, CartesianUD, Solve, MyConstant, MeshManager
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -26,7 +26,7 @@ import sys
 sys.path.append("../")
 from Traction_1D_cartesien_solution_analytique import sigma_xx
 sys.path.append("../../")
-from Generic_isotropic_material import Acier, E, nu, eos_type, devia_type
+from Generic_isotropic_material import Acier, eos_type, devia_type, mu, kappa
 
 ###### Paramètre géométrique ######
 Longueur = 1
@@ -35,8 +35,12 @@ Nx = 2
 Umax=1e-3   
 mesh = create_1D_mesh(0, Longueur, Nx)
 
+
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, Longueur]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
-dictionnaire = {"mesh" : mesh,
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_setup": 
                     {"tags": [1, 2],
                      "coordinate": ["x", "x"], 
@@ -68,8 +72,7 @@ solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
 solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
 
-kappa = E / (3. * (1 - 2 * nu))
-mu = E / (2. * (1 + nu))            
+#%%Validation et tracé du résultat      
 solution_analytique = np.array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
 eps_list_percent = [100 * eps for eps in pb.eps_list]
 numerical_results = np.array(pb.F_list)

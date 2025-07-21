@@ -19,7 +19,7 @@ Une assertion vérifie que l'erreur relative entre les solutions est inférieure
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_1D_mesh, SphericalUD, Solve, MPI
+from CharonX import create_1D_mesh, SphericalUD, Solve
 import numpy as np
 import matplotlib.pyplot as plt
 import pytest
@@ -51,6 +51,7 @@ pb = SphericalUD(Acier, dictionnaire)
 solve_instance = Solve(pb, {}, compteur=1, npas=10)
 solve_instance.solve()
 
+#%%Validation et tracé du résultat
 solution_numerique = pb.u.x.array
 len_vec = len(solution_numerique)
 def ur(r, p_ext):

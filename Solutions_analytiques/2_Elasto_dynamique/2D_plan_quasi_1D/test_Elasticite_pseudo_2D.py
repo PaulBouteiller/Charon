@@ -22,33 +22,24 @@ longitudinale, permettant ainsi une comparaison avec la solution analytique 1D.
 Auteur: bouteillerp
 """
 
-from CharonX import *
+from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType
+from pandas import read_csv
+import numpy as np
+from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pytest
-import time
-from pandas import read_csv
 import os
 import sys
 # Obtenir le chemin absolu du dossier parent
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
-from Analytical_wave_propagation import *
+from Analytical_wave_propagation import cartesian1D_progressive_wave
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, lmbda, mu, rho
 
-###### Modèle géométrique ######
-model = Plane_strain
-###### Modèle matériau ######
-E = 210e3
-nu = 0.3 
-lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
-mu = E / 2. / (1 + nu)
-rho = 7.8e-3
-C = 500
-alpha=12e-6
+
 rigi = lmbda + 2 * mu
 wave_speed = (rigi/rho)**(1./2)
-dico_eos = {"E" : 210e3, "nu" : 0.3, "alpha" : 12e-6}
-dico_devia = {"E":210e3, "nu" : 0.3}
-Acier = Material(rho, C, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
 
 ###### Paramètre géométrique ######
 Nx = 1000
@@ -65,7 +56,7 @@ sortie = 4000
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
-mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
+mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
 T_unload = largeur_creneau/wave_speed
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
 dictionnaire = {"mesh" : mesh,

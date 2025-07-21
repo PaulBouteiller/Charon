@@ -80,10 +80,10 @@ dictionnaire_solve = {
     "csv_output" : {"U" : True}
     }
 
-solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=100)
 solve_instance.solve()
 
-
+#%%Validation et tracé du résultat
 u_csv = read_csv("Traction_1D-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 x_result = resultat[0]

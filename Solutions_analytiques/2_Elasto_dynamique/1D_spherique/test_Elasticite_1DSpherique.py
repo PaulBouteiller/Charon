@@ -23,25 +23,16 @@ La solution analytique est implémentée dans le module Solution_analytique_sphe
 Auteur: bouteillerp
 """
 
-from CharonX import *
+from CharonX import Solve, SphericalUD, MyConstant, create_interval
+from pandas import read_csv
+from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pytest
-import time
-import pandas as pd
+import numpy as np
 from Solution_analytique_spherique import main_analytique
-
-
-###### Modèle matériau ######
-E = 210e3
-nu = 0.3 
-lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
-mu = E / 2. / (1 + nu)
-rho = 7.8e-3
-rigi = lmbda + 2 * mu
-wave_speed = (rigi/rho)**(1./2)
-dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E" : E, "nu" : nu}
-Acier = Material(rho, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, lmbda, mu, rho
     
 ###### Paramètre géométrique ######
 e = 5
@@ -61,7 +52,7 @@ pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
    
 Nx = 2000
-mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
+mesh = create_interval(COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
 
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
 dictionnaire = {"mesh" : mesh,
@@ -87,7 +78,7 @@ solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, schem
 solve_instance.solve()
                
 
-df = pd.read_csv("Onde_spherique-results/Sig.csv")
+df = read_csv("Onde_spherique-results/Sig.csv")
 plt.plot(df['r'], df.iloc[:, -3], 
         linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
 

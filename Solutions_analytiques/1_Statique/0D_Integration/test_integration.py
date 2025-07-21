@@ -12,9 +12,10 @@ Tests effectués:
 
 Auteur: bouteillerp
 """
-from CharonX import *
+from CharonX import CartesianUD, Material, create_1D_mesh, CellType, Axisymmetric, create_rectangle, MeshManager
+from mpi4py import MPI
+from dolfinx.fem import Function
 import pytest
-from sympy import Symbol, integrate
 import sys
 sys.path.append("../../")
 from Generic_isotropic_material import Acier
@@ -24,7 +25,11 @@ tol = 1e-16
 DummyMat = Material(rho, 1, "IsotropicHPP", "IsotropicHPP", {"E" : 1, "nu" : 0, "alpha" : 1}, {"E":1, "nu" : 0})
 
 mesh = create_1D_mesh(0, 1, 1)
-dictionnaire = {"mesh" : mesh,
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+
+dictionnaire_1D = {"mesh_manager" : mesh_manager,
                 "boundary_setup": 
                     {"tags": [1, 2],
                      "coordinate": ["x", "x"], 
@@ -33,44 +38,22 @@ dictionnaire = {"mesh" : mesh,
                 "analysis" : "static",
                 "isotherm" : True
                 }
-pb_1D = CartesianUD(Acier, dictionnaire)
-
-# class Mesh_1D(CartesianUD):
-#     def __init__(self, material):
-#         CartesianUD.__init__(self, material)
-          
-#     def define_mesh(self):
-#         return create_interval(MPI.COMM_WORLD, 1, [np.array(0), np.array(1)])
-
-#     def set_boundary(self):
-#         self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [0, 1])
-    
-#     def fem_parameters(self):
-#         self.u_deg =1
-#         self.schema = "default"
-
-# pb_1D = Mesh_1D(DummyMat)
+pb_1D = CartesianUD(Acier, dictionnaire_1D)
 quad_func = Function(pb_1D.V_quad_UD)
 print("Longueur du vecteur quadrature", len(quad_func.x.array))
 assert len(quad_func.x.array) == 1
 
-# class Mesh_2D_Plan(Plane_strain):
-#     def __init__(self, material):
-#         Plane_strain.__init__(self, material)
-          
-#     def define_mesh(self):
-#         return create_rectangle(MPI.COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral) 
-    
-#     def set_boundary(self):
-#         self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [0, 1])
+mesh_2D = create_rectangle(MPI.COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [0, 1],
+                     "fem_parameters" : {"u_degree" : 2, "schema" : "reduit"}}
+mesh_manager2D = MeshManager(mesh_2D, dictionnaire_mesh)
 
-#     def fem_parameters(self):
-#         self.u_deg = 2
-#         self.schema = "reduit"
-  
-# pb_2D = Mesh_2D_Plan(DummyMat)
-# u = Function(pb_2D.V)
-# print("Nombre de noeuds", len(u.x.array)//2)
-# quad_func = Function(pb_2D.V_quad_UD)
-# print("Longueur du vecteur quadrature", len(quad_func.x.array))
-# assert len(quad_func.x.array) == 4
+dictionnaire_2D = dictionnaire_1D
+dictionnaire_2D["mesh_manager"] = mesh_manager2D
+    
+pb_2D = Axisymmetric(DummyMat, dictionnaire_2D)
+u = Function(pb_2D.V)
+print("Nombre de noeuds", len(u.x.array)//2)
+quad_func = Function(pb_2D.V_quad_UD)
+print("Longueur du vecteur quadrature", len(quad_func.x.array))
+assert len(quad_func.x.array) == 4

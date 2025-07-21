@@ -26,6 +26,8 @@ from dolfinx.mesh import locate_entities_boundary, meshtags
 from ufl import SpatialCoordinate, Measure
 from numpy import hstack, argsort, finfo, full_like, array, zeros, where, unique
 from dolfinx.fem import functionspace, Function
+from .quadrature import Quadrature
+from ..utils.default_parameters import default_fem_parameters
 
 class MeshManager:
     """
@@ -45,7 +47,7 @@ class MeshManager:
     facet_tag : dolfinx.mesh.MeshTags, optional
         Tags identifying different regions of the boundary
     """
-    def __init__(self, mesh, name):
+    def __init__(self, mesh, dictionnaire):
         """
         Initialize the mesh manager.
         
@@ -54,11 +56,24 @@ class MeshManager:
         mesh : dolfinx.mesh.Mesh Main computational mesh
         name : str Problem type identifier (e.g., "Axisymmetric", "PlaneStrain")
         """
+        # Initialize FEM parameters
+        fem_parameters_dic = dictionnaire.get("fem_parameters", default_fem_parameters())
+        self.u_deg = fem_parameters_dic["u_degree"]
+        self.schema= fem_parameters_dic["schema"]
+
+        # Initialize quadrature
+        self.quad = Quadrature(mesh, self.u_deg, self.schema)
         self.mesh = mesh
-        self.name = name
         self.dim = mesh.topology.dim
         self.fdim = self.dim - 1
         self.h = self.calculate_mesh_size()
+        if "tags" in dictionnaire and "coordinate" in dictionnaire and "positions" in dictionnaire:
+            self.mark_boundary(dictionnaire["tags"], dictionnaire["coordinate"], dictionnaire["positions"])
+        elif "facet_tag" in dictionnaire:
+            self.facet_tag = dictionnaire["facet_tag"]
+        else:
+            raise ValueError("At least on boundary must me marked")
+        self.set_measures(self.quad)
         
     def mark_boundary(self, flag_list, coord_list, localisation_list, tol=finfo(float).eps):
         """
@@ -170,7 +185,7 @@ class MeshManager:
         elif coord == "y":
             return 1
         elif coord == "z":
-            if self.name == "Axisymmetric":
+            if self.dim == 2:  # Axisymmetric
                 return 1
             else:
                 return 2
@@ -273,17 +288,10 @@ class MeshManager:
         ----------
         quadrature : Quadrature Quadrature scheme to use for integration
         """
-        # Radial coordinate for axisymmetric models
-        if self.name in ["Axisymmetric", "CylindricalUD", "SphericalUD"]:
-            self.r = SpatialCoordinate(self.mesh)[0]
-        else: 
-            self.r = None
-            
         # Define integration measures
-        self.dx = Measure("dx", domain=self.mesh, metadata = quadrature.metadata)
-        self.dx_l = Measure("dx", domain=self.mesh, metadata = quadrature.lumped_metadata)
-        self.ds = Measure('ds')(subdomain_data=self.facet_tag)
-        self.dS = Measure('dS')(subdomain_data=self.facet_tag)
+        self.dx = Measure("dx", domain = self.mesh, metadata = quadrature.metadata)
+        self.dx_l = Measure("dx", domain = self.mesh, metadata = quadrature.lumped_metadata)
+        self.ds = Measure('ds')(subdomain_data = self.facet_tag)
         
     def calculate_mesh_size(self):
         """

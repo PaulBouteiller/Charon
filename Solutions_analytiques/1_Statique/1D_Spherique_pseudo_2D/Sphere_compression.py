@@ -62,6 +62,7 @@ dictionnaire_solve = {
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
 solve_instance.solve()
 
+#%%Validation et tracé du résultat
 u_csv = read_csv("Sphere_axi-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 r_result = resultat[0]

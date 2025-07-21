@@ -33,13 +33,13 @@ Key components:
 from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 from ..utils.kinematic import Kinematic
-from ..utils.default_parameters import default_damping_parameters, default_fem_parameters
+from ..utils.default_parameters import default_damping_parameters
 from ..utils.MyExpression import MyConstant, Tabulated_BCs
-from ..utils.quadrature import Quadrature
+# from ..utils.quadrature import Quadrature
 from ..utils.interpolation import create_function_from_expression
 
 from .multiphase import Multiphase
-from .mesh_manager import MeshManager
+
 
 from mpi4py import MPI
 from basix.ufl import element
@@ -51,7 +51,7 @@ from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc,
                          form, assemble_scalar, Constant, Function, Expression, function)
 from dolfinx.mesh import meshtags
 
-from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot)
+from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, SpatialCoordinate)
 
 class BoundaryConditions:
     """
@@ -296,8 +296,7 @@ class Problem:
         ----------
         material : Material or list
             Material properties, or list of materials for multiphase problems
-        **kwargs : dict
-            Additional parameters:
+        simulation_dic : dict
                 - analysis: Type of analysis
                 - damage: Damage model
                 - plastic: Plasticity model
@@ -305,32 +304,30 @@ class Problem:
                 - adiabatic: Whether to use adiabatic analysis
                 - Thermal_material: Material for thermal properties
         """
-        # Initialize mesh and MPI configuration
-        self.mesh = simulation_dic["mesh"]
-        self._init_mpi()
-        
-        # Initialize parameters and integration scheme
-        self._init_parameters(simulation_dic)
-        self.quad = Quadrature(self.mesh, self.u_deg, self.schema)
-        
         # Configure analysis type
         self._init_analysis_type(simulation_dic)
         
         # Initialize material
         self.material = material
         
-        # Initialize mesh manager
-        self._init_mesh_manager()
+        self._init_mpi()
         
-        # Configure boundary conditions and integration measures
-        boundary_dic = simulation_dic["boundary_setup"]
-        if "tags" in boundary_dic and "coordinate" in boundary_dic and "positions" in boundary_dic:
-            self.mesh_manager.mark_boundary(boundary_dic["tags"], boundary_dic["coordinate"], boundary_dic["positions"])
-        elif "facet_tag" in boundary_dic:
-            self.mesh_manager.facet_tag = boundary_dic["facet_tag"]
-        else:
-            raise ValueError("At least on boundary must me marked")
-        self._init_boundary_and_measures()
+        # Initialize mesh and MPI configuration
+        self.mesh_manager = simulation_dic["mesh_manager"]
+        self.mesh = self.mesh_manager.mesh
+        self.quad = self.mesh_manager.quad
+        self.h = self.mesh_manager.h
+        self.dim = self.mesh_manager.dim
+        self.fdim = self.mesh_manager.fdim
+        self.dx = self.mesh_manager.dx
+        self.dx_l = self.mesh_manager.dx_l
+        self.ds = self.mesh_manager.ds
+        self.u_deg = self.mesh_manager.u_deg
+        if self.name in ["Axisymmetric", "CylindricalUD", "SphericalUD"]:
+            self.r = SpatialCoordinate(self.mesh)[0]
+        else: 
+            self.r = None
+        self.facet_tag = self.mesh_manager.facet_tag
         
         # Initialize kinematics and damping
         self.kinematic = Kinematic(self.name, self.r)
@@ -394,21 +391,8 @@ class Problem:
         else:
             print("Serial computation")
             self.mpi_bool = False
-            
-    def _init_parameters(self, kwargs):
-        """
-        Initialize FEM parameters.
-        
-        Sets up the finite element parameters such as polynomial degree
-        and quadrature scheme.
-        
-        Parameters
-        ----------
-        kwargs : dict Additional parameters
-        """
-        self.fem_parameters()
     
-    def _init_analysis_type(self, kwargs):
+    def _init_analysis_type(self, dictionnaire):
         """
         Configure the type of analysis to perform.
         
@@ -417,7 +401,7 @@ class Problem:
         
         Parameters
         ----------
-        kwargs : dict Configuration parameters:
+        dictionnaire : dict Configuration parameters:
                         - analysis: Type of analysis
                         - damage: Damage model
                         - plastic: Plasticity model
@@ -425,44 +409,21 @@ class Problem:
                         - adiabatic: Whether to use adiabatic analysis
                         - Thermal_material: Material for thermal properties
         """
-        self.analysis = kwargs.get("analysis", "explicit_dynamic")
-        self.damage_model = kwargs.get("damage", None)
-        self.plastic_model = kwargs.get("plastic", None)
-        self.iso_T = kwargs.get("isotherm", False)
-        
+        self.analysis = dictionnaire.get("analysis", "explicit_dynamic")
+        self.damage_model = dictionnaire.get("damage", None)
+        self.plastic_model = dictionnaire.get("plastic", None)        
         if self.analysis == "Pure_diffusion":
             self.adiabatic = False
-            assert not self.iso_T
+            self.iso_T = False
         else:
-            self.adiabatic = kwargs.get("adiabatic", True)
+            self.iso_T = dictionnaire.get("isotherm", False)
+            self.adiabatic = dictionnaire.get("adiabatic", True)
 
         if not self.adiabatic:
-            self.mat_th = kwargs.get("Thermal_material", None)
+            self.mat_th = dictionnaire.get("Thermal_material", None)
             
         self.plastic_analysis = self.plastic_model is not None
         self.damage_analysis = self.damage_model is not None
-    
-    def _init_mesh_manager(self):
-        """
-        Initialize the mesh manager.
-        
-        Creates a MeshManager object to handle mesh-related operations
-        and stores mesh properties.
-        """
-        self.mesh_manager = MeshManager(self.mesh, self.name)
-        self.h = self.mesh_manager.h
-        self.dim = self.mesh_manager.dim
-        self.fdim = self.mesh_manager.fdim
-    
-    def _init_boundary_and_measures(self):
-        """
-        Initialize boundary conditions and integration measures.
-        
-        Sets up boundary markers and integration measures for the problem.
-        """
-        self.set_measures()
-        self.r = self.mesh_manager.r
-        self.facet_tag = self.mesh_manager.facet_tag
     
     def _init_spaces_and_functions(self):
         """
@@ -611,18 +572,6 @@ class Problem:
             tag = bc_config["tag"]
             value = bc_config.get("value", ScalarType(0))
             getattr(self.bcs, "add_" + bc_config["component"])(region = tag, value = value)
-    
-    def set_measures(self):
-        """
-        Configure integration measures for the problem.
-        
-        Uses the mesh manager to define integration measures with the
-        appropriate polynomial degree.
-        """
-        self.mesh_manager.set_measures(self.quad)
-        self.dx = self.mesh_manager.dx
-        self.dx_l = self.mesh_manager.dx_l
-        self.ds = self.mesh_manager.ds
         
     def set_function_space(self):
         """
@@ -784,7 +733,6 @@ class Problem:
         T0 = 293.15
         self.T0 = Function(self.V_T)
         self.T0.x.petsc_vec.set(T0)
-        # self.T0 = Constant(self.mesh, ScalarType(T0))
         self.T.x.petsc_vec.set(T0)
                 
     def set_volumic_thermal_power(self):
@@ -829,14 +777,6 @@ class Problem:
               Boundary conditions cannot be used")
         self.mesh_manager.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
     
-    def user_defined_constitutive_law(self):
-        """
-        Define user-defined constitutive law.
-        
-        To be overridden in derived classes.
-        """
-        pass
-    
     def set_T_dependant_massic_capacity(self):
         """
         Set temperature-dependent specific heat capacity.
@@ -863,16 +803,7 @@ class Problem:
         """
         pass
     
-    def fem_parameters(self):
-        """
-        Set up FEM parameters.
-        
-        Loads default parameters for polynomial degree and quadrature scheme.
-        """
-        fem_parameters = default_fem_parameters()
-        self.u_deg = fem_parameters.get("u_degree")
-        self.schema= fem_parameters.get("schema")
-        
+
     def user_defined_displacement(self, t):
         """
         Apply user-defined displacement at time t.

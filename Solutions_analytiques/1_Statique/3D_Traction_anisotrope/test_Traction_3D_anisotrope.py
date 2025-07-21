@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul 21 14:20:06 2025
+
+@author: bouteillerp
+"""
+
 """
 Test de traction 3D sur un matériau orthotrope selon différentes directions.
 
@@ -28,15 +36,12 @@ la cohérence de l'équation d'état.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import *
+from CharonX import Orthotropic
 import time
 import matplotlib.pyplot as plt
 import pytest
 import csv
 import pandas as pd
-
-######## Modèle mécanique ########
-model = Tridimensionnal
 
 ###### Modèle mécanique ######
 EL = 12827
@@ -70,6 +75,15 @@ dico_devia = {"C" : C}
 rho0 = 1
 Fibre = Material(rho0, 1, eos_type, devia_type, dico_eos, dico_devia)
 
+Longueur, Largeur, hauteur = 1, 1, 1.
+Nx, Ny, Nz = 5, 5, 5
+mesh = create_box(MPI.COMM_WORLD, [np.array([0, 0, 0]), 
+                                   np.array([Longueur, Largeur, hauteur])],
+                                  [Nx, Ny, Nz])
+eps = 0.1
+Umax = eps * hauteur
+chargement = MyConstant(mesh, Umax, Type = "Rampe")
+
 dictionnaire = {"mesh" : mesh,
                 "boundary_setup": 
                     {"tags": [1, 2, 3, 4, 5, 6],
@@ -79,91 +93,48 @@ dictionnaire = {"mesh" : mesh,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 3},
-                     {"component": "Uz", "tag": 5},
-                     {"component": "Uy", "tag": 4},
-                     {"component": "Uz", "tag": 5},
-                     {"component": "Uz", "tag": 6, "value": chargement},
+                     {"component": "Uz", "tag": 5}
                     ],
                 "analysis" : "static",
                 "isotherm" : True
                 }
-if traction == "Fibre";
+    
+if traction == "Fibre":
+    dictionnaire["boundary_conditions"].append({"component": "Ux", "tag": 2, "value": chargement})
+elif traction == "maty":
+    dictionnaire["boundary_conditions"].append({"component": "Uy", "tag": 4, "value": chargement})
+elif traction == "matz":
+    dictionnaire["boundary_conditions"].append({"component": "Uz", "tag": 6, "value": chargement})
+    
+pb = Tridimensional(Fibre, dictionnaire)
+pb.eps_list = [0]
+pb.F_list = [0]
+if traction == "Fibre":
+    pb.Force = pb.set_F(2, "x")
+elif traction == "maty":
+    pb.Force = pb.set_F(4, "y")
+elif traction == "matz":
+    pb.Force = pb.set_F(6, "z")
+
+for traction in ["Fibre", "maty", "matz"]:
+    pb = Tridimensional(Fibre, dictionnaire)
+    dictionnaire_solve = {}
+    
+    solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
+    solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
+    solve_instance.solve()
+    numerical_results = array(pb.F_list)
+    with open("Deformation", "w", newline = '') as fichier:
+        writer = csv.writer(fichier)
+        writer.writerow(pb.eps_list)
+    with open("Test" + traction, "w", newline = '') as fichier:
+        writer = csv.writer(fichier)
+        writer.writerow(numerical_results)
 
 
-
-######## Paramètres géométriques et de maillage ########
-Longueur, Largeur, hauteur = 1, 1, 1.
-Nx, Ny, Nz = 5, 5, 5
-
-eps = 0.1
 
 F_max = EL * eps * Largeur * hauteur
 
-class Cube3D(model):
-    def __init__(self, material):
-        model.__init__(self, material, analysis="static", isotherm = True)
-        
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Traction_3D"+traction
-        else:
-            return "Test"
-          
-    def define_mesh(self):
-        return create_box(MPI.COMM_WORLD, [np.array([0, 0, 0]), 
-                                           np.array([Longueur, Largeur, hauteur])],
-                                          [Nx, Ny, Nz])
-    
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2, 3, 4, 5, 6, ], ["x", "y", "z", "x", "y", "z"], [0, 0, 0, Longueur, Largeur, hauteur])
-
-    def set_boundary_condition(self):
-        self.bcs.add_Ux(region=1)
-        self.bcs.add_Uy(region=2)
-        self.bcs.add_Uz(region=3)
-        Umax = eps * hauteur
-        chargement = MyConstant(self.mesh, Umax, Type = "Rampe")
-        if traction == "Fibre":
-            self.bcs.add_Ux(value = chargement, region = 4)
-        elif traction == "maty":
-            self.bcs.add_Uy(value = chargement, region = 5)
-        elif traction == "matz":
-            self.bcs.add_Uz(value = chargement, region = 6)
-            
-    def csv_output(self):
-        return {"Pressure" : True, "rho" : True}
-        
-    def set_output(self):
-        self.eps_list = []
-        self.F_list = []
-        if traction == "Fibre":
-            self.Force = self.set_F(4, "x")
-        elif traction == "maty":
-            self.Force = self.set_F(5, "y")
-        elif traction == "matz":
-            self.Force = self.set_F(6, "z")
-        return {"U": True}
-    
-    def query_output(self, t):
-        self.eps_list.append(eps * t)
-        self.F_list.append(self.get_F(self.Force))
-        
-    def final_output(self):
-        numerical_results = array(self.F_list)
-        with open("Deformation", "w", newline = '') as fichier:
-            writer = csv.writer(fichier)
-            writer.writerow(self.eps_list)
-        with open("Test" + traction, "w", newline = '') as fichier:
-            writer = csv.writer(fichier)
-            writer.writerow(numerical_results)
-
-def test_Traction_3D():
-    pb = Cube3D(Fibre)
-    Solve(pb, compteur=1, npas=10)
-
-for traction in ["Fibre", "maty", "matz"]:
-    test_Traction_3D()
-    
 def lire_csv_en_numpy(nom_du_fichier):
     with open(nom_du_fichier, 'r') as fichier:
         reader=csv.reader(fichier)

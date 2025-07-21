@@ -134,7 +134,7 @@ class Unidimensional(Problem):
         Initialize the finite element types for the displacement and stress fields.
         """
         cell = self.mesh.basix_cell()
-        self.U_e = element("Lagrange", cell, degree=self.u_deg)   
+        self.U_e = element("Lagrange", cell, degree = self.u_deg)   
         if self.name == "CartesianUD" :
             self.Sig_e = self.quad.quad_element(["Scalar"])
         elif self.name == "CylindricalUD":

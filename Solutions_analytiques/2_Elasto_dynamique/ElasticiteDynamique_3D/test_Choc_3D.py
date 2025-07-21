@@ -16,27 +16,16 @@ et à évaluer les performances de calcul pour des problèmes tridimensionnels.
 Auteur: bouteillerp
 """
 
-from CharonX import *
-import matplotlib.pyplot as plt
+from CharonX import Solve, MyConstant, create_box, Tridimensional, CellType
+from mpi4py.MPI import COMM_WORLD
 import pytest
-import time
-
-###### Modèle géométrique ######
-model = Tridimensionnal
-###### Modèle matériau ######
-E = 210e3
-nu = 0.3 
-rho = 7.8e-3
-C = 500
-alpha=12e-6
-
-lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
-mu = E / 2. / (1 + nu)
+import numpy as np
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, lmbda, mu, rho
 rigi = lmbda + 2 * mu
+wave_speed = (rigi/rho)**(1./2)
 
-dico_eos = {"E": E, "nu" : nu, "alpha" : alpha}
-dico_devia = {"E":E, "nu" : nu}
-Acier = Material(rho, C, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
 
 ######## Paramètres géométriques et de maillage ########
 L, b, h = 50, 4, 4
@@ -52,42 +41,33 @@ magnitude = 1e2
 sortie = 200
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
+
+Nx = 200
+mesh = create_box(COMM_WORLD, [np.array([0,0,0]), np.array([L, b, h])],
+          [Nx, Ny, Nz], cell_type = CellType.hexahedron)
+T_unload = largeur_creneau/wave_speed
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2, 3],
+                     "coordinate": ["x", "y", "z"], 
+                     "positions": [0, 0, 0]
+                     },
+                "boundary_conditions": 
+                    [{"component": "Uy", "tag": 2}, {"component": "Uz", "tag": 3}],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}
+                    ],
+                "isotherm" : True,
+                }
    
-class Isotropic_beam(model):
-    def __init__(self, material):
-        model.__init__(self, material)
-          
-    def define_mesh(self):
-        return create_box(MPI.COMM_WORLD, [np.array([0,0,0]), np.array([L, b, h])],
-                  [Nx, Ny, Nz], cell_type = CellType.hexahedron)
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Test_elasticite"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2, 3, 4], ["x", "y", "z"], [0, 0, 0])
+pb = Tridimensional(Acier, dictionnaire)
 
-    # def set_boundary_condition(self):
-    #     self.bcs.add_Uy(region=2)
-    #     self.bcs.add_Uz(region=3)
-        
-    def set_loading(self):
+dictionnaire_solve = {
+    "Prefix" : "Test_elasticite",
+    "csv_output" : {"Sig" : True},
+    "output" : {"Sig" : True}
+    }
 
-        wave_speed = (rigi/rho)**(1./2)
-        T_unload = largeur_creneau/wave_speed
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_Fx(chargement, self.u_, self.ds(1))
-        
-    def set_output(self):
-        return {'Sig': True}
-
-def test_Elasticite():
-    pb = Isotropic_beam(Acier)
-    tps1 = time.perf_counter()
-    Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    tps2 = time.perf_counter()
-    print("temps d'execution", tps2 - tps1)
-test_Elasticite()
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+solve_instance.solve()

@@ -25,19 +25,15 @@ numériquement avec la solution analytique.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import MPI, Axisymmetric, Solve, Material, create_rectangle, read_csv
+from CharonX import Axisymmetric, Solve, create_rectangle
+from mpi4py.MPI import COMM_WORLD
+from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
 import pytest
-
-###### Modèle mécanique ######
-E = 210e3
-nu = 0.3 
-lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
-mu = E / 2. / (1 + nu)
-dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E" : E, "nu" : nu}
-Acier = Material(1, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, E, nu, mu
 
 ###### Paramètre géométrique ######
 L = 2
@@ -50,7 +46,7 @@ hauteur = 1
 Pext = -10
 Pint = -5
 
-mesh = create_rectangle(MPI.COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10])
+mesh = create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10])
 
 ###### Paramètre du problème ######
 dictionnaire = {"mesh" : mesh,
@@ -82,6 +78,7 @@ dictionnaire_solve = {
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=100)
 solve_instance.solve()
 
+#%%Validation et tracé du résultat
 u_csv = read_csv("Cylindre_axi-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 r_result = resultat[0]

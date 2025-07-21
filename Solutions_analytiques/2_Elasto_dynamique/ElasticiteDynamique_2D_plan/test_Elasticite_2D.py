@@ -17,27 +17,15 @@ et à évaluer les performances de calcul.
 Auteur: bouteillerp
 """
 
-from CharonX import *
-import matplotlib.pyplot as plt
+from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType
+from mpi4py.MPI import COMM_WORLD
 import pytest
-import time
 
-###### Modèle géométrique ######
-model = Plane_strain
-materiau = "Linear_Hook"
-###### Modèle matériau ######
-E = 210e3
-nu = 0.3 
-lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
-mu = E / 2. / (1 + nu)
-rho = 7.8e-3
-C = 500
-alpha=12e-6
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, lmbda, mu, rho
 rigi = lmbda + 2 * mu
 wave_speed = (rigi/rho)**(1./2)
-dico_eos = {"E" : 210e3, "nu" : 0.3, "alpha" : 12e-6}
-dico_devia = {"mu": mu}
-Acier = Material(rho, C, "IsotropicHPP", "Hypoelastic", dico_eos, dico_devia)
 
 ###### Paramètre géométrique ######
 Largeur = 1
@@ -53,41 +41,33 @@ magnitude = 1e4
 sortie = 1000
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
-   
-class Isotropic_beam(model):
-    def __init__(self, material):
-        model.__init__(self, material)
-          
-    def define_mesh(self):
-        return create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [200, 1], CellType.quadrilateral)
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Test_elasticite"
-        else:
-            return "Test"
-        
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2, 3], ["x", "y", "y"], [0, 0, Largeur])
-        
-    def set_boundary_condition(self):
-        self.bcs.add_Uy(region=2)
-        
-    def set_loading(self):
-        T_unload = largeur_creneau/wave_speed
-        chargement = MyConstant(self.mesh, T_unload, magnitude, Type = "Creneau")
-        self.loading.add_Fx(chargement, self.u_, self.ds(1))
-        
-    def csv_output(self):
-        return {'Sig': True}
-    
-    def set_output(self):
-        return {'Sig': True}
 
-def test_Elasticite():
-    pb = Isotropic_beam(Acier)
-    tps1 = time.perf_counter()
-    Solve(pb, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-    tps2 = time.perf_counter()
-    print("temps d'execution", tps2 - tps1)
-test_Elasticite()
+Nx = 200
+mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
+T_unload = largeur_creneau/wave_speed
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+dictionnaire = {"mesh" : mesh,
+                "boundary_setup": 
+                    {"tags": [1, 2],
+                     "coordinate": ["x", "y"], 
+                     "positions": [0, 0]
+                     },
+                "boundary_conditions": 
+                    [{"component": "Uy", "tag": 2},
+                    ],
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}
+                    ],
+                "isotherm" : True,
+                }
+
+pb = Plane_strain(Acier, dictionnaire)
+
+dictionnaire_solve = {
+    "Prefix" : "Test_elasticite",
+    "csv_output" : {"Sig" : True},
+    "output" : {"Sig" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
+solve_instance.solve()

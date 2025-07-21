@@ -24,11 +24,15 @@ Pour le cas axisymétrique, la masse théorique est calculée par:
 Auteur: bouteillerp
 """
 
-from CharonX import *
+from CharonX import (create_1D_mesh, Material, CartesianUD, create_rectangle, 
+                    Axisymmetric, CellType, Plane_strain, Tridimensional, create_box)
+from mpi4py.MPI import COMM_WORLD
 import pytest
 from sympy import Symbol, integrate
 from dolfinx.fem.petsc import assemble_vector
-from dolfinx.fem import form
+from dolfinx.fem import form, Function
+from ufl import action
+import numpy as np
 rho = 2
 tol = 1e-16
 DummyMat = Material(rho, 1, "IsotropicHPP", "IsotropicHPP", {"E" : 1, "nu" : 0, "alpha" : 1}, {"E":1, "nu" : 0})
@@ -40,7 +44,7 @@ def assemble_diagonal_mass_matrix(m_form, V):
     diag_M = assemble_vector(form(action(m_form, u1)))
     return diag_M.array
 
-dictionnaire_1D = {"mesh" : create_interval(MPI.COMM_WORLD, 1, [np.array(0), np.array(1)]),
+dictionnaire_1D = {"mesh" : create_1D_mesh(0, 1, 1),
                 "boundary_setup": 
                     {"tags": [1], "coordinate": ["x"],  "positions": [0]},
                 }
@@ -58,7 +62,7 @@ print("La diagonale de la matrice de masse pour le cas 1D est", mass_array)
 R_int = 0.1
 R_ext = 1
         
-dictionnaire_axi = {"mesh" : create_rectangle(MPI.COMM_WORLD, [(R_int, 0), (R_ext, 1)], [1, 1], CellType.quadrilateral),
+dictionnaire_axi = {"mesh" : create_rectangle(COMM_WORLD, [(R_int, 0), (R_ext, 1)], [1, 1], CellType.quadrilateral),
                 "boundary_setup": 
                     {"tags": [1], "coordinate": ["x"],  "positions": [R_int]},
                 }
@@ -79,7 +83,7 @@ print("La diagonale de la matrice de masse axisymétrique est", mass_array)
 
 
 #%%Vérification en 2D plan
-dictionnaire_2D = {"mesh" : create_rectangle(MPI.COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral),
+dictionnaire_2D = {"mesh" : create_rectangle(COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral),
                 "boundary_setup": 
                     {"tags": [1], "coordinate": ["x"],  "positions": [0]},
                 }
@@ -91,7 +95,7 @@ print("La diagonale de la matrice de masse 2D plan est", mass_array)
 
 
 #%%Vérification en 3D
-dictionnaire_3D = {"mesh" : create_box(MPI.COMM_WORLD, [np.array([0,0,0]), np.array([1, 1, 1])], [1, 1, 1], CellType.hexahedron),
+dictionnaire_3D = {"mesh" : create_box(COMM_WORLD, [np.array([0,0,0]), np.array([1, 1, 1])], [1, 1, 1], CellType.hexahedron),
                 "boundary_setup": 
                     {"tags": [1], "coordinate": ["x"],  "positions": [0]},
                 }

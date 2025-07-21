@@ -28,8 +28,9 @@ from numpy import array
 import matplotlib.pyplot as plt
 import pytest
 import sys
+from mpi4py import MPI
 
-from CharonX import create_rectangle, MPI, MyConstant, Plane_strain, Solve, CellType
+from CharonX import create_rectangle, MyConstant, Plane_strain, Solve, CellType
 sys.path.append("../")
 from Traction_1D_cartesien_solution_analytique import sigma_xx
 sys.path.append("../../")
@@ -77,6 +78,7 @@ solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
 solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
 
+#%%Validation et tracé du résultat
 solution_analytique = array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
 eps_list_percent = [100 * eps for eps in pb.eps_list]
 numerical_results = array(pb.F_list)

@@ -26,13 +26,21 @@ La solution analytique complète est implémentée dans le module Solution_analy
 Auteur: bouteillerp
 """
 
-from CharonX import *
+from CharonX import CartesianUD, create_interval, MyConstant, SpatialCoordinate, Solve, Material
+from ufl import conditional
+from dolfinx.fem import Expression
+from pandas import read_csv
+import numpy as np
+from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pytest
 import time
 from Solution_analytique import compute_sigma_tot
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, Alu
 
-###### Modèle mécanique ######
+# ###### Modèle mécanique ######
 E_acier = 210e3
 nu_acier = 0.3
 # mu_acier = E_acier / 2. / (1 + nu_acier)
@@ -54,7 +62,8 @@ eos_type_alu = "IsotropicHPP"
 devia_type_alu = "IsotropicHPP"
 Alu = Material(rho_alu, 1, eos_type_alu, devia_type_alu, dico_eos_alu, dico_devia_alu)
 
-Mat = [Acier, Alu]
+# Mat = [Acier, Acier]
+Mat = Acier
 
 ###### Paramètre géométrique ######
 L = 50
@@ -79,7 +88,7 @@ pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
 Nx = 2000
-mesh = create_interval(MPI.COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
+mesh = create_interval(COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
 dictionnaire = {"mesh" : mesh,
                 "boundary_setup": 
@@ -106,15 +115,15 @@ dictionnaire = {"mesh" : mesh,
 # c2_expr = Expression(ufl_condition_2, interp)
 # mult.set_multiphase([c1_expr, c2_expr])
 
-pb = CartesianUD([Acier, Acier], dictionnaire)
-x = SpatialCoordinate(pb.mesh)
-mult = pb.multiphase
-interp = mult.V_c.element.interpolation_points()
-ufl_condition_1 = conditional(x[0]<99, 1, 0)
-c1_expr = Expression(ufl_condition_1, interp)
-ufl_condition_2 = conditional(x[0]>=99, 1, 0)
-c2_expr = Expression(ufl_condition_2, interp)
-mult.set_multiphase([c1_expr, c2_expr])
+pb = CartesianUD([Acier, Alu], dictionnaire)
+# x = SpatialCoordinate(pb.mesh)
+# mult = pb.multiphase
+# interp = mult.V_c.element.interpolation_points()
+# ufl_condition_1 = conditional(x[0]<99, 1, 0)
+# c1_expr = Expression(ufl_condition_1, interp)
+# ufl_condition_2 = conditional(x[0]>=99, 1, 0)
+# c2_expr = Expression(ufl_condition_2, interp)
+# mult.set_multiphase([c1_expr, c2_expr])
 
         
 dictionnaire_solve = {
@@ -123,10 +132,7 @@ dictionnaire_solve = {
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-tps1 = time.perf_counter()
 solve_instance.solve()
-tps2 = time.perf_counter()
-print("temps d'execution", tps2 - tps1)
 
 df = read_csv("Test_elasticite-results/Sig.csv")
 import re

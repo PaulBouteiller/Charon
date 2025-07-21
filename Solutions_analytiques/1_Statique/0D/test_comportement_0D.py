@@ -16,15 +16,12 @@ Le test vérifie la cohérence entre les contraintes calculées numériquement e
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import *
+from CharonX import create_1D_mesh, Solve, MyConstant, CartesianUD, MeshManager
 
 import pytest
-from Analytique_EOS_deviateur import *
+# from Analytique_EOS_deviateur import *
 from material_definition import set_material
 from numerical_analytical_comparison import comparison
-
-###### Modèle mécanique ######
-model = CartesianUD
 
 ###### Materiau ######
 eos_type = "Tabulated"
@@ -35,14 +32,15 @@ Mat = set_material(eos_type, devia_type)
 varepsilon = -0.3
 T0 = 1e3
 
+
+
+
 mesh = create_1D_mesh(0, 1, 1)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]}
+mesh_manager = MeshManager(mesh, CartesianUD, dictionnaire_mesh)
+
 chargement = MyConstant(mesh, varepsilon, Type = "Rampe")
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["x", "x"], 
-                     "positions": [0, 1]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
                      {"component": "U", "tag": 2, "value": chargement}

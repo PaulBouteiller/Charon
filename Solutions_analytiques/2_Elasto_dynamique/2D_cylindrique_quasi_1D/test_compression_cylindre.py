@@ -16,14 +16,13 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from CharonX import *
+from CharonX import Solve, CylindricalUD, MyConstant, create_1D_mesh, create_rectangle, Axisymmetric
+from pandas import read_csv
+from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
-###### Modèle mécanique ######
-E = 1e5
-nu = 0.3
-dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E" : E, "nu" : nu}
-Acier = Material(1, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier
 
 ###### Paramètre géométrique ######
 Rint = 9
@@ -40,7 +39,7 @@ Nz = int(Nr / rapport)
 Pext = 10
 
 ###### Temps simulation ######
-Tfin = 7e-3
+Tfin = 7e-4
 T_unload = Tfin/10
 print("le temps de fin de simulation est", Tfin )
 pas_de_temps = Tfin / 7000
@@ -75,7 +74,7 @@ solve_instance = Solve(pb1D, dictionnaire1D_solve, compteur=sortie, TFin=Tfin, s
 solve_instance.solve()
 
 #%%Problème 2D
-mesh2D =create_rectangle(MPI.COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [Nr, Nz])
+mesh2D =create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [Nr, Nz])
 chargement2D = MyConstant(mesh2D, T_unload, magnitude, Type = "Creneau")
 dictionnaire2D = {"mesh" : mesh2D,
                 "boundary_setup": 

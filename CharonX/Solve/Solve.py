@@ -42,6 +42,102 @@ class Solve:
         self.set_solver()
         self.pb.set_time_dependant_BCs(self.load_steps)
         self.compteur_output = kwargs.get("compteur", 1)
+        self._create_time_and_bcs_update()
+        self._create_problem_solve()
+        self._create_output()
+        
+    def _create_time_and_bcs_update(self):
+        """Fusionne update_time et update_bcs en une seule fonction optimisée"""
+        load_steps = self.load_steps
+        pb_load = self.pb.load
+        pb_update_bcs = self.pb.update_bcs
+        bcs_refs = [(bc.constant, bc.value_array, bc.v_constant, bc.speed_array) 
+                    for bc in self.pb.bcs.my_constant_list]
+        loading_refs = [(load.constant, load.value_array) 
+                        for load in self.pb.loading.my_constant_list]
+        
+        def update_time_and_bcs(j):
+            t = load_steps[j]
+            pb_load.value = t
+            self.t = t
+            pb_update_bcs(j)
+            for constant, values, v_constant, speeds in bcs_refs:
+                constant.value = values[j]
+                v_constant.value = speeds[j]
+            for constant, values in loading_refs:
+                constant.value = values[j]
+        self.update_time_and_bcs = update_time_and_bcs
+    
+    def _create_output(self):
+        """Crée une version optimisée de output() sans test conditionnel"""
+        if self.compteur_output == 1:
+            def always_export(compteur_output):
+                self.in_loop_export(self.t)
+            self.output = always_export
+        else:
+            self.compteur = 0
+            
+            def output_with_counter(compteur_output):
+                if self.compteur == compteur_output:
+                    self.in_loop_export(self.t)
+                    self.compteur = 0
+                self.compteur += 1
+            
+            self.output = output_with_counter
+    
+    def _create_problem_solve(self):
+        """
+        Crée une version optimisée de problem_solve en fonction de l'analyse
+        et des options activées, éliminant tous les tests conditionnels.
+        """
+        # Liste des opérations à effectuer
+        operations = []
+        if self.pb.analysis == "explicit_dynamic":
+            operations.append(lambda: self.explicit_displacement_solver.u_solve())
+            
+            if self.pb.is_tabulated:
+                operations.append(lambda: self.update_pressure())
+            
+            if self.pb.is_hypoelastic:
+                operations.append(lambda: self.hypo_elastic_solver.solve())
+            
+            if self.pb.damage_analysis:
+                operations.append(lambda: self.damage_solver.explicit_damage())
+            
+            if self.pb.plastic_analysis:
+                operations.append(lambda: self.plastic_solver.solve())
+    
+        elif self.pb.analysis == "static":
+            if self.pb.damage_analysis or self.pb.plastic_analysis:
+                operations.append(lambda: self.staggered_solve())
+            else:
+                operations.append(lambda: self.solver.solve(self.pb.u))
+            
+            if self.pb.is_tabulated:
+                operations.append(lambda: self.update_pressure())
+        
+        elif self.pb.analysis == "User_driven":
+            operations.append(lambda: self.pb.user_defined_displacement(self.t))
+            
+            if self.pb.is_tabulated:
+                operations.append(lambda: self.update_pressure())
+            
+            if self.pb.is_hypoelastic:
+                operations.append(lambda: self.hypo_elastic_solver.solve())
+        
+        # Opérations communes à tous les types d'analyse
+        if self.pb.multiphase_analysis and hasattr(self.pb.multiphase, 'evol') and self.pb.multiphase.evol:
+            operations.append(lambda: self.multiphase_solver.solve())
+        
+        if not self.pb.iso_T:
+            operations.append(lambda: self.energy_solver.energy_solve())
+        
+        if self.pb.multiphase_analysis and hasattr(self.pb.multiphase, 'explosive') and self.pb.multiphase.explosive:
+            operations.append(lambda: self.multiphase_solver.update_c_old())
+        def problem_solve():
+            for op in operations:
+                op()
+        self.problem_solve = problem_solve
 
     def setup_export(self, dictionnaire):
         """
@@ -140,50 +236,6 @@ class Solve:
 
     def set_iterative_solver_parameters(self):
         pass
-    
-    def problem_solve(self):
-        """
-        Fonction appelant successivement les différents solveurs.
-        """
-        if self.pb.analysis == "explicit_dynamic":
-            self.explicit_displacement_solver.u_solve()
-            
-            if self.pb.is_tabulated:
-                self.update_pressure()
-            
-            if self.pb.is_hypoelastic:
-                self.hypo_elastic_solver.solve()
-
-            if self.pb.damage_analysis:
-                self.damage_solver.explicit_damage()
-                
-            if self.pb.plastic_analysis:
-                self.plastic_solver.solve()
-                
-        elif self.pb.analysis =="static":
-            if self.pb.damage_analysis or self.pb.plastic_analysis:
-                self.staggered_solve()
-            else:
-                self.solver.solve(self.pb.u)
-            if self.pb.is_tabulated:
-                self.update_pressure()
-            
-        elif self.pb.analysis == "User_driven":
-            self.pb.user_defined_displacement(self.t)
-            if self.pb.is_tabulated:
-                self.update_pressure()
-            
-            if self.pb.is_hypoelastic:
-                self.hypo_elastic_solver.solve()
-                
-        if self.pb.multiphase_analysis and self.pb.multiphase.evol:
-                self.multiphase_solver.solve()
-          
-        if not self.pb.iso_T:
-            self.energy_solver.energy_solve()
-            
-        if self.pb.multiphase_analysis and self.pb.multiphase.explosive:
-            self.multiphase_solver.update_c_old()
             
     def update_pressure(self):
         if not self.pb.multiphase_analysis:
@@ -227,18 +279,11 @@ class Solve:
         """
         
         num_time_steps = self.time_stepping.num_time_steps
-        if self.compteur_output !=1:
-            self.is_compteur = True
-            self.compteur=0 
-        else:
-            self.is_compteur = False            
-
         # Utilisation de tqdm pour créer une barre de progression
         with tqdm(total=num_time_steps, desc="Progression", unit="pas") as pbar:
             j = 0
             while self.t < self.Tfin:
-                self.update_time(j)
-                self.update_bcs(j)
+                self.update_time_and_bcs(j)
                 self.problem_solve()
                 j += 1
                 self.output(self.compteur_output)
@@ -246,26 +291,7 @@ class Solve:
     
         self.export.csv.close_files()
         self.final_output(self.pb)
-        # self.energy_solver.print_statistics()
 
-            
-    def output(self, compteur_output):
-        """
-        Permet l'export de résultats tout les 'compteur_output' - pas de temps
-        ('compteur_output' doit être un entier), tout les pas de temps sinon        
-
-        Parameters
-        ----------
-        compteur_output : Int ou None, compteur donnant la fréuence d'export des résultats.
-        """
-        if self.is_compteur:
-            if self.compteur == compteur_output:
-                self.in_loop_export(self.t)
-                self.compteur=0
-            self.compteur+=1
-        else:
-            self.in_loop_export(self.t)
-            
     def in_loop_export(self, t):
         self.query_output(self.pb, t)
         self.export.export_results(t)
@@ -276,27 +302,3 @@ class Solve:
     
     def final_output(self, problem):
         pass
-            
-    def update_time(self, j):
-        """
-        Actualise le temps courant
-
-        Parameters
-        ----------
-        j : Int, numéro du pas de temps.
-        """
-        t = self.load_steps[j]           
-        self.pb.load.value = t
-        self.t = t
-            
-    def update_bcs(self, num_pas):
-        """
-        Mise à jour des CL de Dirichlet et de Neumann
-        """
-        self.pb.update_bcs(num_pas)            
-        for i in range(len(self.pb.bcs.my_constant_list)):            
-            self.pb.bcs.my_constant_list[i].constant.value = self.pb.bcs.my_constant_list[i].value_array[num_pas]
-            self.pb.bcs.my_constant_list[i].v_constant.value = self.pb.bcs.my_constant_list[i].speed_array[num_pas]
-            
-        for i in range(len(self.pb.loading.my_constant_list)):            
-            self.pb.loading.my_constant_list[i].constant.value = self.pb.loading.my_constant_list[i].value_array[num_pas]
