@@ -47,7 +47,7 @@ from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from .base_deviator import BaseDeviator
 from scipy.linalg import block_diag
 from math import cos, sin
-from numpy import array, diag, ndarray, insert, concatenate
+from numpy import array, diag, ndarray, insert, concatenate, asarray
 from numpy.linalg import inv as np_inv, norm
 from ...utils.MyExpression import interpolation_lin
 
@@ -85,11 +85,6 @@ class AnisotropicDeviator(BaseDeviator):
         # Case 3: Transversely isotropic material
         elif "ET" in self.params and "EL" in self.params and "nuT" in self.params:
             return ["ET", "EL", "nuT", "nuL", "muL"]
-        
-        # Case 4: Isotropic material
-        elif "E" in self.params and "nu" in self.params:
-            return ["E", "nu"]
-        
         # Default case
         return ["C"]
     
@@ -172,7 +167,6 @@ class AnisotropicDeviator(BaseDeviator):
             
         # Then calibrate the f_func (shear modulation functions) if shear data available
         if shear_data is not None and spherical_data is not None:
-            # gamma = shear_data.get("shear_magnitude", 0.1)
             self.f_func_coeffs = self.calibrate_fij(shear_data, spherical_data, plot, save)
         else:
             self.f_func_coeffs = None
@@ -305,7 +299,7 @@ class AnisotropicDeviator(BaseDeviator):
             (g_xx, g_yy, g_zz, poly_fit_unified) containing the fitted data and polynomial
         """
         def prefactor(J):
-            return (J -1) / (3 * J) 
+            return (J - 1) / (3 * J) 
 
         # Vérifier si le matériau est isotrope
 
@@ -324,7 +318,7 @@ class AnisotropicDeviator(BaseDeviator):
         g_list = [[1 / (pref * devM0[i]) * s for pref, s in zip(pref_list, s_data[i])]
                      for i in range(3)]
         # Extraction des composantes individuelles
-        g_xx, g_yy, g_zz = g_list[0], g_list[1], g_list[2]
+        g_xx, g_yy, g_zz = asarray(g_list[0]), asarray(g_list[1]), asarray(g_list[2])
         # Fusionner les données pour le fitting
         J_combined = concatenate([J_list, J_list, J_list])
         g_combined = concatenate([g_xx, g_yy, g_zz])

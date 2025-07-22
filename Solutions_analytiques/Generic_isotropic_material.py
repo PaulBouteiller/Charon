@@ -15,7 +15,14 @@ lmbda = E * nu / (1 - 2 * nu) / (1 + nu)
 dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
 dico_devia = {"mu" : mu}
 eos_type = "IsotropicHPP"
-devia_type = "NeoHook"
+devia_type = "IsotropicHPP"
+
+#Paramètre élasto-plastique
+sig0 = 300  # yield strength in MPa
+Et = E / 100.0  # tangent modulus
+H = E * Et / (E - Et)  # hardening modulus
+
+
 Acier = Material(rho, C, eos_type, devia_type, dico_eos, dico_devia)
 
 ###### Modèle matériau Acier ######

@@ -38,49 +38,57 @@ Auteur: bouteillerp
 Date de création: 28 Mai 2025
 """
 
-from CharonX import *
+from CharonX import  create_1D_mesh, MeshManager, SphericalUD, Solve
 import matplotlib.pyplot as plt
-from material import Re, Ri, E, nu, sig0, H, q_lim, K, G
 from deplacement_analytique import deplacement_ilyushin, deplacement_elastique
-import pandas as pd
-model = SphericalUD
-dico_eos = {"E" : E, "nu" : nu, "alpha" : 1}
-dico_devia = {"E" : E, "nu" : nu}
-Acier = Material(1, 1, "IsotropicHPP", "IsotropicHPP", dico_eos, dico_devia)
+from pandas import read_csv
+import numpy as np
+
+import sys
+sys.path.append("../../")
+from Generic_isotropic_material import Acier, E, nu, mu, kappa, sig0, Et, H
+
+###### Paramètre géométrique ######
+Re = 600
+Ri = 300.0
+
+#Paramètre élasto-plastique
+q_lim = float(2 * np.log(Re / Ri) * sig0)
+
+###### Maillage ######
 Nx=10
+mesh = create_1D_mesh(Ri, Re, Nx)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Ri, Re]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+
+
+
 p_applied = 1.1 * q_lim
 npas = 20000
 compteur = 100
-   
-class IsotropicBall(model):
-    def __init__(self, material):
-        model.__init__(self, material, analysis = "static", plastic = "HPP_Plasticity", isotherm = True)
-          
-    def define_mesh(self):
-        return create_interval(MPI.COMM_WORLD, Nx, [np.array(Ri), np.array(Re)])
-    
-    def prefix(self):
-        if __name__ == "__main__": 
-            return "Compression_spherique_1D"
-        else:
-            return "Test"
-    
-    def set_boundary(self):
-        self.mesh_manager.mark_boundary([1, 2], ["x", "x"], [Ri, Re])
-        
-    def set_loading(self):
-        self.loading.add_F(p_applied * self.load, self.u_, self.ds(1))
-        
-    def set_plastic(self):
-        self.constitutive.plastic.set_plastic(sigY = sig0, H = H, hardening = "Isotropic")
-        
-    def csv_output(self):
-        return {"U" : ["Boundary", 1]}
 
-pb = IsotropicBall(Acier)
-Solve(pb, compteur=compteur, npas=npas)
+###### Paramètre du problème ######
+dictionnaire = {"mesh_manager" : mesh_manager,
+                "loading_conditions": 
+                    [{"type": "surfacique", "component" : "F", "tag": 1, "value" : p_applied}
+                    ],
+                "analysis" : "static",
+                "isotherm" : True
+                }
+    
+pb = SphericalUD(Acier, dictionnaire)
 
-df_u = pd.read_csv("Compression_spherique_1D-results/U.csv")
+###### Paramètre de la résolution ######
+dictionnaire_solve = {
+    "Prefix" : "Dilatation_spherique_elastoplast",
+    "csv_output" : {"U" : True}
+    }
+
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
+solve_instance.solve()
+
+df_u = read_csv("Dilatation_spherique_elastoplast-results/U.csv")
 colonnes_numpy = [df_u[colonne].to_numpy() for colonne in df_u.columns]
 u_int = [colonnes_numpy[i+1][0] for i in range(len(colonnes_numpy)-1)]
 p_list = [p_applied * t for t in np.linspace(0, 1, len(u_int))]
@@ -91,9 +99,9 @@ p_int_range = np.linspace(q_lim, p_applied, 200)
 
 p_int_elastique_range = np.linspace(0, q_lim, 200)
 p_ext = 0
-lambda_val = 1 - H / (3 * G)
-w_a_elastique = deplacement_elastique(p_int_elastique_range, Ri, Re, G, K, p_ext)
-w_a = deplacement_ilyushin(p_int_range, Ri, Re, G, K, sig0, lambda_val, p_ext)
+lambda_val = 1 - H / (3 * mu)
+w_a_elastique = deplacement_elastique(p_int_elastique_range, Ri, Re, mu, kappa, p_ext)
+w_a = deplacement_ilyushin(p_int_range, Ri, Re, mu, kappa, sig0, lambda_val, p_ext)
 plt.plot(w_a_elastique, p_int_elastique_range, color="black", linewidth=2, 
          label='Elastique', linestyle='-')
 plt.plot(w_a, p_int_range, color="black", linewidth=2, 

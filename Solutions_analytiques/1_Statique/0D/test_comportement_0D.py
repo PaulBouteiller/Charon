@@ -32,9 +32,6 @@ Mat = set_material(eos_type, devia_type)
 varepsilon = -0.3
 T0 = 1e3
 
-
-
-
 mesh = create_1D_mesh(0, 1, 1)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]}
 mesh_manager = MeshManager(mesh, CartesianUD, dictionnaire_mesh)
