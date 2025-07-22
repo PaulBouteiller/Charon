@@ -19,7 +19,7 @@ Paramètres:
     - theta: Angle (en radians) par rapport à l'axe horizontal
 """
 
-from CharonX import Plane_strain, Solve
+from CharonX import Plane_strain, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -74,13 +74,13 @@ def quarter_perforated_plate(width, height, radius, h):
     return domain, _, _
 
 mesh, _, _ = quarter_perforated_plate(Largeur, Longueur, R, mesh_size)
-
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4],
+dictionnaire_mesh = {"tags": [1, 2, 3],
                      "coordinate": ["x", "y", "x"], 
                      "positions": [0, 0, Largeur]
-                     },
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2}
@@ -124,7 +124,6 @@ def utheta(a, r, nu, E, sig_infty, theta):
     u_thet = -pref * (r + a**4 / r**3 + 2 * a**2 / r * (1- 2 * nu)) * sin(2 * theta)
     return u_thet
     
-
 sol_anat = np.array([ur(R, x, nu, E, f_surf, pi/2) for x in x_result])
 plt.plot(x_result, sol_anat, linestyle = "--", color = "red")
 plt.scatter(x_result, displacement, marker = "x", color = "blue")

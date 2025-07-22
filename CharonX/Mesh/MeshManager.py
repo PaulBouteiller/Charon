@@ -72,7 +72,9 @@ class MeshManager:
         elif "facet_tag" in dictionnaire:
             self.facet_tag = dictionnaire["facet_tag"]
         else:
-            raise ValueError("At least on boundary must me marked")
+            print("Warning no boundary has been tagged inside CHARONX \
+                  Boundary conditions cannot be used")
+            self.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
         self.set_measures(self.quad)
         
     def mark_boundary(self, flag_list, coord_list, localisation_list, tol=finfo(float).eps):

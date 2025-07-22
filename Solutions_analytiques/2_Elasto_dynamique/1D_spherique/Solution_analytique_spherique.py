@@ -28,7 +28,7 @@ def sigma_ext(t, amplitude):
     """
     return amplitude if t >= 0.0 else 0.0
 
-def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points=2000):
+def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points=2000, method = "LSODA"):
     """
     Résout l'ODE pour g(xi) en coordonnées sphériques :
       (lambda + 2mu)/R_out * g'(xi) + (lambda - 2mu)/R_out^2 * g(xi) = sigma_ext(xi - R_out/cp)
@@ -75,7 +75,7 @@ def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points=2000):
     # Condition initiale : g(0) = 0 (supposons qu'avant xi=0, pas d'onde)
     y0 = [0.0]
     sol = solve_ivp(ode_g, xi_span, y0, t_eval=xi_eval, vectorized=False, 
-                method='RK45', rtol=1e-8, atol=1e-8)
+                method=method, rtol=1e-8, atol=1e-8)
     
     xi_vals = sol.t
     g_vals  = sol.y[0]

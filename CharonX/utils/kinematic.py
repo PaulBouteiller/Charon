@@ -35,8 +35,7 @@ The module enables accurate representation of large deformations, nonlinear
 strain measures, and various stress tensors for different material models.
 """
 
-from ufl import (grad, as_tensor, div, tr, Identity, dot, as_vector, det, inv,
-                 conditional, ge)
+from ufl import (grad, as_tensor, div, tr, Identity, dot, as_vector, det, inv)
 from math import sqrt
 
 class Kinematic:

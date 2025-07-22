@@ -24,16 +24,15 @@ Une assertion vérifie que l'erreur relative est inférieure à 1%.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import *
-import time
+from CharonX import CellType, create_rectangle, MeshManager, MyConstant, Plane_strain, Solve
+from mpi4py.MPI import COMM_WORLD
+import numpy as np
 import matplotlib.pyplot as plt
 import pytest
-from numpy import pi
 import sys
 sys.path.append("../")
-from Generic_isotropic_material import *
+from Generic_isotropic_material import Acier, E, nu
 
-model = Plane_strain
 ###### Paramètre géométrique ######
 Largeur = 0.5
 Longueur = 1
@@ -41,16 +40,17 @@ Longueur = 1
 ###### Chargement ######
 Umax = 0.002
 
-mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+
+dictionnaire_mesh = {"tags": [1, 2, 3],
+                     "coordinate": ["x", "y", "x"], 
+                     "positions": [0, 0, Longueur]
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4],
-                     "coordinate": ["x", "y", "x"], 
-                     "positions": [0, 0, Longueur]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},
@@ -78,9 +78,9 @@ solve_instance.solve()
 def force_elast(eps):
     return E * eps * Largeur /(1 - nu**2)
 
-solution_analytique = array([force_elast(eps) for eps in pb.eps_list])
+solution_analytique = np.array([force_elast(eps) for eps in pb.eps_list])
 eps_list_percent = [100 * eps for eps in pb.eps_list]
-numerical_results = array(pb.F_list)
+numerical_results = np.array(pb.F_list)
 # On calcule la différence entre les deux courbes
 len_vec = len(solution_analytique)
 diff_tot = solution_analytique - numerical_results

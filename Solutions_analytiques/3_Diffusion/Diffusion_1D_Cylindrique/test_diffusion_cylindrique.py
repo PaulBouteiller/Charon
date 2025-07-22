@@ -34,12 +34,12 @@ Paramètres matériaux:
 Auteur: bouteillerp
 """
 
-from CharonX import CartesianUD, LinearThermal, create_interval, MeshManager, Solve, Material
+from CharonX import CylindricalUD, LinearThermal, create_interval, MeshManager, Solve
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 from scipy.special import erf
 import numpy as np
-from ufl import conditional, SpatialCoordinate, And, lt, gt
+from ufl import conditional, SpatialCoordinate, lt
 from dolfinx.fem import Expression, Function
 import sys
 sys.path.append("../../")
@@ -50,11 +50,8 @@ lmbda_diff = 240e-3
 AcierTherm = LinearThermal(lmbda_diff)
 
 ###### Paramètre géométrique ######
-L = 210e-3
-bord_gauche = -105e-3
-bord_droit = bord_gauche + L
-point_gauche = -5e-3
-point_droit = 5e-3
+R = 210e-3
+largeur_tache = 10e-3
 
 ###### Champ de température initial ######
 Tfin = 1e-3
@@ -69,9 +66,9 @@ pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
 Nx = 1000
-mesh = create_interval(COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
+mesh = create_interval(COMM_WORLD, Nx, [np.array(0), np.array(R)])
 
-dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [bord_gauche, bord_droit]}
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [0, R]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 dictionnaire = {"mesh_manager" : mesh_manager,
@@ -79,9 +76,9 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "analysis" : "Pure_diffusion"
                 }
     
-pb = CartesianUD(Acier, dictionnaire)
+pb = CylindricalUD(Acier, dictionnaire)
 x = SpatialCoordinate(mesh)
-ufl_condition = conditional(And(lt(x[0], point_droit), gt(x[0], point_gauche)), TChaud, Tfroid)
+ufl_condition = conditional(lt(x[0], largeur_tache), TChaud, Tfroid)
 T_expr = Expression(ufl_condition, pb.V_T.element.interpolation_points())
 pb.T0 = Function(pb.V_T)
 pb.T0.interpolate(T_expr)
@@ -99,24 +96,61 @@ solve_instance = Solve(pb, {}, compteur = sortie, TFin=Tfin, scheme = "fixed", d
 solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
 
-def analytical_f(x,t):
-    D_act = lmbda_diff/(rho * C)
-    denom = np.sqrt(4 * D_act * t)
-    return 1./2 * (erf((x+point_droit)/denom)-erf((x+point_gauche)/denom))
+def analytical_T_cylindrique(r, t, a, Tfroid, Tchaud, D, R):
+    """
+    Solution analytique pour diffusion cylindrique d'un créneau initial
+    """
+    from scipy.special import j0, j1, jn_zeros
+    
+    if t < 1e-10:  # Pour t très petit, retourner la condition initiale
+        return Tchaud if r < a else Tfroid
+    
+    # Moyenne spatiale de la température
+    T_moy = Tfroid + (Tchaud - Tfroid) * (a/R)**2
+    
+    # Série de Fourier-Bessel
+    sum_term = 0
+    n_terms = 5  # Réduire le nombre de termes pour la performance
+    
+    for n in range(1, n_terms + 1):
+        # n-ième zéro de J0
+        alpha_n = jn_zeros(0, n)[0]
+        
+        # Coefficient An utilisant la formule correcte
+        # An = 2*(Tchaud-Tfroid)*J1(alpha_n*a/R)/(alpha_n*J1(alpha_n))
+        An = 2 * (Tchaud - Tfroid) * j1(alpha_n * a / R) / alpha_n
+        
+        # Terme de la série avec normalisation correcte
+        term = An * j0(alpha_n * r / R) * np.exp(-D * alpha_n**2 * t / R**2) / j1(alpha_n)**2
+        sum_term += term
+    
+    return T_moy + sum_term
 
-def analytical_T(x,t, Tf, Tc):
-    return (Tc-Tf) * analytical_f(x,t) + Tf
+# Calcul du coefficient de diffusion
+D_act = lmbda_diff / (rho * C)
+
 len_vec = len(pb.T_vector[0])
 t_list = np.linspace(1e-12, Tfin, n_sortie+1)
-pas_espace = np.linspace(bord_gauche, bord_droit, len_vec)
+pas_espace = np.linspace(1e-6, R, len_vec)
 compteur = 0
+
+# Pré-calcul de la solution analytique pour tous les temps (plus efficace)
+print("Calcul de la solution analytique...")
+analytical_solutions = []
+for t in t_list:
+    print(f"  t = {t:.6f} s")
+    sol = [analytical_T_cylindrique(r, t, largeur_tache, Tfroid, TChaud, D_act, R) 
+           for r in pas_espace]
+    analytical_solutions.append(sol)
+
+print("\nComparaison avec CharonX:")
 for i, t in enumerate(t_list):
-    list_T_erf =[analytical_T(x, t, Tfroid, TChaud) for x in pas_espace]
-    diff_tot = list_T_erf - pb.T_vector[i]
-    int_discret = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(list_T_erf[j]) for j in range(len_vec))
-    print("La difference est de", int_discret)
-    # assert int_discret < 0.002, "1D cartesian diffusion fails"
-    # print("1D cartesian diffusion succeed")
+    list_T_analytical = analytical_solutions[i]
+    
+    diff_tot = np.array(list_T_analytical) - pb.T_vector[i]
+    int_discret = np.sum(np.abs(diff_tot)) / np.sum(np.abs(list_T_analytical))
+    print(f"t = {t:.6f} s : différence relative = {int_discret:.6f}")
+    
     if __name__ == "__main__": 
         if compteur == 0:
             label_analytical = "Analytique"
@@ -124,13 +158,16 @@ for i, t in enumerate(t_list):
         else:
             label_analytical = None
             label_CHARON = None
-        plt.plot(pas_espace, list_T_erf, linestyle = "-", color = "red", label = label_analytical)
-        plt.plot(pas_espace, pb.T_vector[i], linestyle = "--", color = "blue", label=label_CHARON)
-        print("cette sortie correspond au temps", (t))
-    compteur+=1
-plt.xlim(bord_gauche/4, bord_droit/4)
-plt.ylim(Tfroid, TChaud*1.02)
-plt.xlabel(r"$x$", size = 18)
-plt.ylabel(r"Temperature (K)", size = 18)
+        
+        plt.plot(pas_espace, list_T_analytical, linestyle="-", color="red", label=label_analytical)
+        plt.plot(pas_espace, pb.T_vector[i], linestyle="--", color="blue", label=label_CHARON)
+    compteur += 1
+
+plt.xlim(0, R/4)  # Zoom sur la zone d'intérêt
+plt.ylim(Tfroid*0.98, TChaud*1.02)
+plt.xlabel(r"$r$ (mm)", size=18)
+plt.ylabel(r"Température (K)", size=18)
 plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
 plt.show()

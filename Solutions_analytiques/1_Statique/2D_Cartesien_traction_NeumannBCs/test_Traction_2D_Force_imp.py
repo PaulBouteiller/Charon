@@ -25,8 +25,8 @@ conditions aux limites de Neumann.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_rectangle, Plane_strain, CellType, Solve
-from mpi4py import MPI
+from CharonX import create_rectangle, Plane_strain, CellType, Solve, MeshManager
+from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pytest
 import numpy as np
@@ -42,13 +42,14 @@ Longueur = 1
 f_surf = 1e3
 Npas = 20
 
-mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3],
+mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+
+dictionnaire_mesh = {"tags": [1, 2, 3],
                      "coordinate": ["x", "y", "x"], 
                      "positions": [0, 0, Longueur]
-                     },
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2}

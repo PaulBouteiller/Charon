@@ -30,7 +30,7 @@ import pytest
 import sys
 from mpi4py import MPI
 
-from CharonX import create_rectangle, MyConstant, Plane_strain, Solve, CellType
+from CharonX import create_rectangle, MyConstant, Plane_strain, Solve, CellType, MeshManager
 sys.path.append("../")
 from Traction_1D_cartesien_solution_analytique import sigma_xx
 sys.path.append("../../")
@@ -44,15 +44,17 @@ Longueur = 1
 Umax = 0.002
 
 mesh = create_rectangle(MPI.COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
+
+dictionnaire_mesh = {"tags": [1, 2, 3, 4],
+                     "coordinate": ["x", "y", "x", "y"], 
+                     "positions": [0, 0, Longueur, Largeur]
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4],
-                     "coordinate": ["x", "y", "x", "y"], 
-                     "positions": [0, 0, Longueur, Largeur]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},

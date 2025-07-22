@@ -313,21 +313,12 @@ class Problem:
         self._init_mpi()
         
         # Initialize mesh and MPI configuration
-        self.mesh_manager = simulation_dic["mesh_manager"]
-        self.mesh = self.mesh_manager.mesh
-        self.quad = self.mesh_manager.quad
-        self.h = self.mesh_manager.h
-        self.dim = self.mesh_manager.dim
-        self.fdim = self.mesh_manager.fdim
-        self.dx = self.mesh_manager.dx
-        self.dx_l = self.mesh_manager.dx_l
-        self.ds = self.mesh_manager.ds
-        self.u_deg = self.mesh_manager.u_deg
+        self._transfer_data_from_mesh_manager(simulation_dic)
         if self.name in ["Axisymmetric", "CylindricalUD", "SphericalUD"]:
             self.r = SpatialCoordinate(self.mesh)[0]
         else: 
             self.r = None
-        self.facet_tag = self.mesh_manager.facet_tag
+        
         
         # Initialize kinematics and damping
         self.kinematic = Kinematic(self.name, self.r)
@@ -424,6 +415,19 @@ class Problem:
             
         self.plastic_analysis = self.plastic_model is not None
         self.damage_analysis = self.damage_model is not None
+        
+    def _transfer_data_from_mesh_manager(self, simulation_dic):
+        mesh_manager = simulation_dic["mesh_manager"]
+        self.mesh = mesh_manager.mesh
+        self.quad = mesh_manager.quad
+        self.h = mesh_manager.h
+        self.dim = mesh_manager.dim
+        self.fdim = mesh_manager.fdim
+        self.dx = mesh_manager.dx
+        self.dx_l = mesh_manager.dx_l
+        self.ds = mesh_manager.ds
+        self.u_deg = mesh_manager.u_deg
+        self.facet_tag = mesh_manager.facet_tag
     
     def _init_spaces_and_functions(self):
         """
@@ -448,7 +452,6 @@ class Problem:
         if self.multiphase_analysis:
             self.n_mat = len(self.material)
             self.multiphase = Multiphase(self.n_mat, self.quad)
-            # self.set_multiphase()
         else:
             self.n_mat = 1
             self.multiphase = None
@@ -766,16 +769,6 @@ class Problem:
             constant.set_time_dependant_array(load_steps)
         for constant in self.bcs.my_constant_list:
             constant.set_time_dependant_array(load_steps)
-        
-    def set_boundary(self):
-        """
-        Set up boundary tags.
-        
-        Creates default empty boundary tags if not overridden.
-        """
-        print("Warning no boundary has been tagged inside CHARONX \
-              Boundary conditions cannot be used")
-        self.mesh_manager.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
     
     def set_T_dependant_massic_capacity(self):
         """

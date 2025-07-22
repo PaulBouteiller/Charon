@@ -25,7 +25,7 @@ numériquement avec la solution analytique.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import Axisymmetric, Solve, create_rectangle
+from CharonX import Axisymmetric, Solve, create_rectangle, MeshManager
 from mpi4py.MPI import COMM_WORLD
 from pandas import read_csv
 import numpy as np
@@ -47,14 +47,14 @@ Pext = -10
 Pint = -5
 
 mesh = create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [20, 10])
-
-###### Paramètre du problème ######
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4],
+dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      "coordinate": ["z", "r", "r", "z"], 
                      "positions": [0, Rint, Rext, hauteur]
-                     },
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+###### Paramètre du problème ######
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : -Pint},
                      {"type": "surfacique", "component" : "Fr", "tag": 3, "value" : Pext}
@@ -99,7 +99,7 @@ diff_tot = solution_analytique - solution_numerique
 # Puis on réalise une sorte d'intégration discrète
 integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
 print("La difference est de", integrale_discrete)
-# assert integrale_discrete < 1e-3, "Cylindrical static compression fail"
+assert integrale_discrete < 1e-3, "Cylindrical static compression fail"
 if __name__ == "__main__": 
     plt.plot(r_result, solution_analytique, linestyle = "--", color = "red")
     plt.scatter(r_result, solution_numerique, marker = "x", color = "blue")

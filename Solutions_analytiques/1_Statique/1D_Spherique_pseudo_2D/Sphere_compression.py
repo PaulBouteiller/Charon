@@ -24,7 +24,8 @@ numériquement et la solution analytique pour un domaine sphérique creux.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import axi_sphere, Axisymmetric, Solve, read_csv
+from CharonX import axi_sphere, Axisymmetric, Solve, MeshManager
+from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
 import pytest
@@ -37,10 +38,10 @@ Rext = 11
 ###### Chargement ######
 Pext = 10
 mesh, _, facets = axi_sphere(Rint, Rext, 40, 10, tol_dyn = 1e-5, quad = False)
+dictionnaire_mesh = {"facet_tag": facets}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"facet_tag": facets},
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Uz", "tag": 1},
                      {"component": "Ur", "tag": 2}

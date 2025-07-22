@@ -34,8 +34,6 @@ Nx = 2
 ###### Chargement ######
 Umax=1e-3   
 mesh = create_1D_mesh(0, Longueur, Nx)
-
-
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, Longueur]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 

@@ -16,7 +16,7 @@ et à évaluer les performances de calcul pour des problèmes tridimensionnels.
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, MyConstant, create_box, Tridimensional, CellType
+from CharonX import Solve, MyConstant, create_box, Tridimensional, CellType, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import pytest
 import numpy as np
@@ -45,14 +45,11 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
 Nx = 200
 mesh = create_box(COMM_WORLD, [np.array([0,0,0]), np.array([L, b, h])],
           [Nx, Ny, Nz], cell_type = CellType.hexahedron)
+dictionnaire_mesh = {"tags": [1, 2, 3], "coordinate": ["x", "y", "z"], "positions": [0, 0, 0]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 T_unload = largeur_creneau/wave_speed
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3],
-                     "coordinate": ["x", "y", "z"], 
-                     "positions": [0, 0, 0]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Uy", "tag": 2}, {"component": "Uz", "tag": 3}],
                 "loading_conditions": 

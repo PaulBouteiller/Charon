@@ -28,7 +28,7 @@ def sigma_ext(t, amplitude):
     """
     return amplitude if t >= 0.0 else 0.0
 
-def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points):
+def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points, method = "LSODA"):
     """
     Résout l'ODE pour g(xi) en coordonnées cylindriques :
     L'équation est modifiée pour tenir compte de la géométrie cylindrique :
@@ -46,6 +46,7 @@ def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points):
     amplitude : amplitude de l'échelon de contrainte
     tmax      : temps max pour la simulation
     num_points: nombre de points pour solve_ivp
+    method : method utilise par solve_ivp (RK45, BDF, DOP853, LSODA...)
     
     Retourne:
     ---------
@@ -67,7 +68,7 @@ def solve_g(R_out, cp, lambd, mu, amplitude, tmax, num_points):
     
     y0 = [0.0]
     sol = solve_ivp(ode_g, xi_span, y0, t_eval=xi_eval, vectorized=False, 
-                    method='BDF', rtol=1e-8, atol=1e-8)
+                    method=method, rtol=1e-8, atol=1e-8)
     
     return sol.t, sol.y[0]
 

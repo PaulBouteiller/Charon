@@ -23,7 +23,7 @@ La solution analytique est implémentée dans le module Solution_analytique_sphe
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, SphericalUD, MyConstant, create_interval
+from CharonX import Solve, SphericalUD, MyConstant, create_interval, MeshManager
 from pandas import read_csv
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
@@ -53,14 +53,11 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
    
 Nx = 2000
 mesh = create_interval(COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [R_int, R_ext]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["r", "r"], 
-                     "positions": [R_int, R_ext]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
                     ],

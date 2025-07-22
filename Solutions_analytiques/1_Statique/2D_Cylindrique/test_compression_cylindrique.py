@@ -26,8 +26,8 @@ du modèle numérique.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import Axisymmetric, Solve, create_rectangle
-from mpi4py import MPI
+from CharonX import Axisymmetric, Solve, create_rectangle, MeshManager
+from mpi4py.MPI import COMM_WORLD
 import numpy as np
 from pandas import read_csv
 import pytest
@@ -48,13 +48,16 @@ Pext = -10
 Pint = -5
 
 #Ne fonctionne qu'avec des triangles voir pourquoi
-mesh = create_rectangle(MPI.COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [10, 5])
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3],
+mesh = create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [10, 5])
+
+dictionnaire_mesh = {"tags": [1, 2, 3],
                      "coordinate": ["r", "r", "z"], 
                      "positions": [Rint, Rext, 0]
-                     },
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+dictionnaire = {"mesh_manager" : mesh_manager,
+                "boundary_setup": 
+                    {},
                 "boundary_conditions": 
                     [{"component": "Uz", "tag": 3}
                     ],
@@ -98,11 +101,11 @@ diff_tot = solution_analytique - solution_numerique
 # Puis on réalise une sorte d'intégration discrète
 integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
 print("La difference est de", integrale_discrete)
-# assert integrale_discrete < 1e-3, "Cylindrical static compression fail"
+assert integrale_discrete < 1e-3, "Cylindrical static compression fail"
 if __name__ == "__main__": 
     plt.plot(r_result, solution_analytique, linestyle = "--", color = "red")
     plt.scatter(r_result, solution_numerique, marker = "x", color = "blue")
     
-    # plt.xlim(Rint, Rext)
+    plt.xlim(Rint, Rext)
     plt.xlabel(r"$r$", size = 18)
     plt.ylabel(r"Déplacement radial", size = 18)

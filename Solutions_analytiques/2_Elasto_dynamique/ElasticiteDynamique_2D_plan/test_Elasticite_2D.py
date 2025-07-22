@@ -17,7 +17,7 @@ et à évaluer les performances de calcul.
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType
+from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import pytest
 
@@ -44,14 +44,11 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
 
 Nx = 200
 mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "y"], "positions": [0, 0]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 T_unload = largeur_creneau/wave_speed
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["x", "y"], 
-                     "positions": [0, 0]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Uy", "tag": 2},
                     ],

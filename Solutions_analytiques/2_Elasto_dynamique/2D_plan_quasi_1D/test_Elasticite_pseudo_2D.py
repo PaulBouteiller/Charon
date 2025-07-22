@@ -22,7 +22,7 @@ longitudinale, permettant ainsi une comparaison avec la solution analytique 1D.
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType
+from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
@@ -57,21 +57,20 @@ pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
 mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [Nx, 1], CellType.quadrilateral)
-T_unload = largeur_creneau/wave_speed
-chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3],
+
+dictionnaire_mesh = {"tags": [1, 2, 3],
                      "coordinate": ["x", "y", "y"], 
                      "positions": [0, 0, Largeur]
-                     },
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+T_unload = largeur_creneau/wave_speed
+chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
-                    [{"component": "Uy", "tag": 2},
-                     {"component": "Uy", "tag": 3}
-                    ],
+                    [{"component": "Uy", "tag": 2}, {"component": "Uy", "tag": 3}],
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}
-                    ],
+                    [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}],
                 "isotherm" : True,
                 "damping" : {"damping" : True, 
                              "linear_coeff" : 0.1,
@@ -82,11 +81,7 @@ dictionnaire = {"mesh" : mesh,
 
 pb = Plane_strain(Acier, dictionnaire)
 
-dictionnaire_solve = {
-    "Prefix" : "Test_elasticite",
-    "csv_output" : {"Sig" : True}
-    }
-
+dictionnaire_solve = {"Prefix" : "Test_elasticite", "csv_output" : {"Sig" : True}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 

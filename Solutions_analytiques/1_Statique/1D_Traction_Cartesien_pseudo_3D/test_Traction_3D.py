@@ -22,7 +22,7 @@ aux limites 3D.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_box, MyConstant, Tridimensional, Solve
+from CharonX import create_box, MyConstant, Tridimensional, Solve, MeshManager
 from mpi4py import MPI
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,15 +41,16 @@ Umax = eps * hauteur
 mesh = create_box(MPI.COMM_WORLD, [np.array([0, 0, 0]), 
                                    np.array([Longueur, Largeur, hauteur])],
                                   [Nx, Ny, Nz])
+dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
+                     "coordinate": ["x", "x", "y", "y", "z", "z"], 
+                     "positions": [0, Longueur, 0, Largeur, 0, hauteur]
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4, 5, 6],
-                     "coordinate": ["x", "x", "y", "y", "z", "z"], 
-                     "positions": [0, Longueur, 0, Largeur, 0, hauteur]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Ux", "tag": 2},
@@ -86,7 +87,7 @@ diff_tot = solution_analytique - numerical_results
 # Puis on réalise une sorte d'intégration discrète
 integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
 print("La difference est de", integrale_discrete)
-# assert integrale_discrete < 0.01, "Static 1D traction fail"
+assert integrale_discrete < 0.001, "Static 1D traction fail"
 if __name__ == "__main__": 
     plt.scatter(eps_list_percent, pb.F_list, marker = "x", color = "blue", label="CHARON")
     plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")

@@ -16,7 +16,8 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from CharonX import Solve, CylindricalUD, MyConstant, create_1D_mesh, create_rectangle, Axisymmetric
+from CharonX import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
+                     create_rectangle, Axisymmetric, MeshManager)
 from pandas import read_csv
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
@@ -52,13 +53,11 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
 
 #%% Probleme1D
 mesh1D = create_1D_mesh(Rint, Rext, Nr)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Rint, Rext]}
+mesh_manager = MeshManager(mesh1D, dictionnaire_mesh)
+
 chargement1D = MyConstant(mesh1D, T_unload, magnitude, Type = "Creneau")
-dictionnaire1D = {"mesh" : mesh1D,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["r", "r"], 
-                     "positions": [Rint, Rext]
-                     },
+dictionnaire1D = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement1D}
                     ],
@@ -74,14 +73,16 @@ solve_instance = Solve(pb1D, dictionnaire1D_solve, compteur=sortie, TFin=Tfin, s
 solve_instance.solve()
 
 #%%Problème 2D
-mesh2D =create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [Nr, Nz])
-chargement2D = MyConstant(mesh2D, T_unload, magnitude, Type = "Creneau")
-dictionnaire2D = {"mesh" : mesh2D,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4],
+mesh2D = create_rectangle(COMM_WORLD, [(Rint, 0), (Rext, hauteur)], [Nr, Nz])
+
+dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      "coordinate": ["r", "r", "z", "z"], 
                      "positions": [Rint, Rext, 0, hauteur]
-                     },
+                     }
+mesh_manager = MeshManager(mesh2D, dictionnaire_mesh)
+
+chargement2D = MyConstant(mesh2D, T_unload, magnitude, Type = "Creneau")
+dictionnaire2D = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : chargement2D}
                     ],
@@ -112,7 +113,9 @@ resultat_1D = [df_2[colonne].to_numpy() for colonne in df_2.columns]
 ur_1D = [resultat_1D[i + 2] for i in range((len(resultat_1D)-2))]
 print("longueur cyl", len(ur_1D))
 
-
 for j in range(length):
     plt.plot(resultat_axi[0], ur_axi[j], linestyle = "--")
     plt.scatter(resultat_1D[0], ur_1D[j], marker = "x")
+    plt.xlim(Rint, Rext)
+    plt.xlabel(r"$r$", size = 18)
+    plt.ylabel(r"Déplacement radial", size = 18)

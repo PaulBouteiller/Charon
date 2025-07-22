@@ -14,7 +14,8 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from CharonX import Solve, CylindricalUD, MyConstant, create_1D_mesh, Axisymmetric, axi_sphere
+from CharonX import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
+                     Axisymmetric, axi_sphere, MeshManager)
 from pandas import read_csv
 import matplotlib.pyplot as plt
 import sys
@@ -36,19 +37,17 @@ largeur_creneau = (Rext - Rint) / 4
 magnitude = 1e3
 T_unload = Tfin/10
 
-sortie = 250
+sortie = 500
 pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
 #%% Probleme1D
-mesh1D = create_1D_mesh(Rint, Rext, 100)
+Nr = 100
+mesh1D = create_1D_mesh(Rint, Rext, Nr)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Rint, Rext]}
+mesh_manager1D = MeshManager(mesh1D, dictionnaire_mesh)
 chargement1D = MyConstant(mesh1D, T_unload, -Pext, Type = "Creneau")
-dictionnaire1D = {"mesh" : mesh1D,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["r", "r"], 
-                     "positions": [Rint, Rext]
-                     },
+dictionnaire1D = {"mesh_manager" : mesh_manager1D,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement1D}
                     ],
@@ -67,10 +66,12 @@ solve_instance.solve()
 
 #%%Problème 2D
 mesh2D, _, facets = axi_sphere(Rint, Rext, 20, 80, tol_dyn = 1e-3)
+
+dictionnaire_mesh = {"facet_tag": facets}
+mesh_manager2D = MeshManager(mesh2D, dictionnaire_mesh)
+
 chargement2D = MyConstant(mesh2D, T_unload, magnitude, Type = "Creneau")
-dictionnaire2D = {"mesh" : mesh2D,
-                "boundary_setup": 
-                    {"facet_tag": facets},
+dictionnaire2D = {"mesh_manager" : mesh_manager2D,
                 "boundary_conditions": 
                     [{"component": "Uz", "tag": 1},
                      {"component": "Ur", "tag": 2}

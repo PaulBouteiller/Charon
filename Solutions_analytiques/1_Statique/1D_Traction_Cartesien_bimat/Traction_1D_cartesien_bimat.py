@@ -24,7 +24,7 @@ et la répartition des déformations proportionnellement à l'inverse du module d'Y
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import create_1D_mesh, MyConstant, CartesianUD, Solve
+from CharonX import create_1D_mesh, MyConstant, CartesianUD, Solve, MeshManager
 from pandas import read_csv
 from ufl import conditional, SpatialCoordinate
 from dolfinx.fem import Expression
@@ -46,15 +46,12 @@ Umax=1e-2
 
 Nx = 20
 mesh = create_1D_mesh(0, Longueur, Nx)
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, Longueur]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["x", "x"], 
-                     "positions": [0, Longueur]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
                      {"component": "U", "tag": 2, "value": chargement}

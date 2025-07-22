@@ -19,7 +19,7 @@ Une assertion vérifie que l'erreur relative entre les solutions est inférieure
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_1D_mesh, SphericalUD, Solve
+from CharonX import create_1D_mesh, SphericalUD, Solve, MeshManager
 import numpy as np
 import matplotlib.pyplot as plt
 import pytest
@@ -35,12 +35,11 @@ Rext = Rint + e
 Pext = 10
 
 mesh = create_1D_mesh(Rint, Rext, Nx)
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["x", "x"], 
-                     "positions": [Rint, Rext]
-                     },
+dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [Rint, Rext]}
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+###### Paramètre du problème ######
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 2, "value" : -Pext}],
                 "analysis" : "static",
