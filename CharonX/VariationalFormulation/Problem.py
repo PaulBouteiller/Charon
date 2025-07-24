@@ -319,7 +319,6 @@ class Problem:
         else: 
             self.r = None
         
-        
         # Initialize kinematics and damping
         self.kinematic = Kinematic(self.name, self.r)
         self.damping = simulation_dic.get("damping", default_damping_parameters())
@@ -341,14 +340,6 @@ class Problem:
         
         # Initialize constitutive law
         self._init_constitutive_law()
-        
-        # Configure damage analysis if needed
-        if self.damage_analysis:
-            self.set_damage()
-        
-        # Configure plastic analysis if needed
-        if self.plastic_analysis:
-            self.set_plastic()
         
         # Initialize temperature and auxiliary fields
         self._init_temperature_and_auxiliary()
@@ -401,8 +392,8 @@ class Problem:
                         - Thermal_material: Material for thermal properties
         """
         self.analysis = dictionnaire.get("analysis", "explicit_dynamic")
-        self.damage_model = dictionnaire.get("damage", None)
-        self.plastic_model = dictionnaire.get("plastic", None)        
+        self.damage_dictionnary = dictionnaire.get("damage", {})
+        self.plasticity_dictionnary = dictionnaire.get("plasticity", {})        
         if self.analysis == "Pure_diffusion":
             self.adiabatic = False
             self.iso_T = False
@@ -413,8 +404,8 @@ class Problem:
         if not self.adiabatic:
             self.mat_th = dictionnaire.get("Thermal_material", None)
             
-        self.plastic_analysis = self.plastic_model is not None
-        self.damage_analysis = self.damage_model is not None
+        self.plastic_analysis = bool(self.plasticity_dictionnary)
+        self.damage_analysis = bool(self.damage_dictionnary)
         
     def _transfer_data_from_mesh_manager(self, simulation_dic):
         mesh_manager = simulation_dic["mesh_manager"]
@@ -490,8 +481,8 @@ class Problem:
         for the material and problem type.
         """
         self.constitutive = ConstitutiveLaw(
-            self.u, self.material, self.plastic_model,
-            self.damage_model, self.multiphase,
+            self.u, self.material, self.plasticity_dictionnary,
+            self.damage_dictionnary, self.multiphase,
             self.name, self.kinematic, self.quad,
             self.damping, self.is_hypoelastic,
             self.relative_rho_field_init_list, self.h

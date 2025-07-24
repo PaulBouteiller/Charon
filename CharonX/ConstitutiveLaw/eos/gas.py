@@ -77,7 +77,7 @@ class GPEOS(BaseEOS):
         
         # Log parameters
         print(f"Polytropic coefficient: {self.gamma}")
-        print(f"Estimated maximum temperature: {self.e_max}")
+        print(f"Estimated maximum specific internal energy: {self.e_max}")
     
     def celerity(self, rho_0):
         """Calculate estimated sound speed in gas.

@@ -71,7 +71,7 @@ class Plastic():
     plastic_model : str Type of plasticity model
     quadrature : QuadratureHandler Handler for quadrature integration
     """
-    def __init__(self, u, mu, name, kinematic, quadrature, plastic_model):
+    def __init__(self, u, mu, name, kinematic, quadrature, plasticity_dictionnary):
         """Initialize the plasticity model.
         
         Parameters
@@ -81,7 +81,7 @@ class Plastic():
         name : str Model name
         kinematic : Kinematic Kinematic handler for tensor operations
         quadrature : QuadratureHandler Handler for quadrature integration
-        plastic_model : str Type of plasticity model
+        plasticity_dictionnary : str Type of plasticity model
         """
         self.u = u
         self.V = self.u.function_space
@@ -90,10 +90,11 @@ class Plastic():
         self.mesh = self.u.function_space.mesh
         self.mesh_dim = self.mesh.topology.dim
         self.name = name
-        self.plastic_model = plastic_model
         self.quadrature = quadrature
         self.element = self._plastic_element(quadrature)
+        self.plastic_model = plasticity_dictionnary["model"]
         self._set_function(quadrature)
+        self._set_plastic(plasticity_dictionnary)
         
     def _plastic_element(self, quadrature):
         """Create appropriate element for plastic variables.
@@ -113,24 +114,13 @@ class Plastic():
         elif self.mesh_dim == 3:
             return quadrature.quad_element(["Vector", 6])
         
-    def set_plastic(self, sigY, hardening = "CinLin", **kwargs):
-        """Initialize plasticity parameters and function spaces.
-        
-        Parameters
-        ----------
-        sigY : float Yield stress
-        hardening : str, optional Type of hardening ("CinLin", "Iso"), default is "CinLin"
-        **kwargs : dict
-            Additional parameters:
-            - H (float): Hardening modulus
-            - Hardening_func (Function): Yield stress function (for J2_JAX)
-        """
-        self.hardening = hardening
-        self.sig_yield = sigY
-        if self.hardening in ["Isotropic", "Kinematic"]:
-            self.H = kwargs.get("H")
+    def _set_plastic(self, plasticity_dictionnary):
+        self.hardening = plasticity_dictionnary.get("Hardening", "Isotropic")
+        self.sig_yield = plasticity_dictionnary["sigY"]
+        if self.hardening in ["Isotropic", "LinearKinematic"]:
+            self.H = plasticity_dictionnary["Hardening_modulus"]
         if self.plastic_model == "J2_JAX":
-            self.yield_stress = kwargs.get("Hardening_func")
+            self.yield_stress = plasticity_dictionnary.get("Hardening_func")
             assert hasattr(self, "yield_stress"), "yield_stress doit être défini pour le modèle J2_JAX"
         
 class FiniteStrainPlastic(Plastic):         
@@ -421,7 +411,7 @@ class HPPPlastic(Plastic):
         s_3D : Expression 3D deviatoric stress tensor
         """
         eps = 1e-10
-        if self.hardening == "Kinematic":
+        if self.hardening == "LinearKinematic":
             self.A = self.kin.tridim_to_mandel(s_3D - self.H * self.eps_P_3D)
             norm_A = sqrt(dot(self.A, self.A)) + eps
             Delta_eps_p = ppart(1 - (2/3.)**(1./2) * self.sig_yield / norm_A) / \

@@ -123,7 +123,7 @@ class StaticJohnsonSolve(JohnsonSolve):
             def func(t, f, args):
                 p, p0, eta = args
                 F_mot = 2./3 * jnp.log(f) - (1 - f) * p / p0
-                return ppart(3 * f * p0 / (4 * eta) * F_mot)
+                return ppart(3 * f * p0 * F_mot / (4 * eta))
 
             return self.solve_diff_eq(ODETerm(func), dt, f0, (p, p0, eta))
         # Vectorisation de solve_ode pour prendre en compte plusieurs composantes
@@ -167,7 +167,7 @@ class StaticJohnsonSolve(JohnsonSolve):
         self.a_proj = form(kinematic.measure(self.f0 * self.f_, dx))
         self.b_proj = form(kinematic.measure(self.f * self.f_, dx))
 
-class JohnsonDynViscSolve(JohnsonSolve):
+class DynamicJohnsonSolve(JohnsonSolve):
     def __init__(self, Damage_object, kinematic, comm, dx, dt):
         self.dt_tilde = dt / Damage_object.tau
         print("Le pas de temps adimensionné vaut", self.dt_tilde)
@@ -206,7 +206,7 @@ class JohnsonDynViscSolve(JohnsonSolve):
 
         self.dam.d.interpolate(self.dam.d_expr)
         
-class JohnsonInerSolve(JohnsonSolve):
+class InertialJohnsonSolve(JohnsonSolve):
     def __init__(self, Damage_object, kinematic, comm, dx, dt):
         JohnsonSolve.__init__(self, Damage_object, dt)
         

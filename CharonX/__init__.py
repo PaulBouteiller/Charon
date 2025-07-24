@@ -18,8 +18,6 @@ from .VariationalFormulation.tridimensional import *
 
 from .Mesh.MeshManager import *
 
-# from pandas import read_csv
-
 from .Solve.Solve import *
 try:
     from .Solve.RestartSolve import *

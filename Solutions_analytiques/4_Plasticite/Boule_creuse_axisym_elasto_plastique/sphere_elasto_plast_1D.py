@@ -46,7 +46,7 @@ import numpy as np
 
 import sys
 sys.path.append("../../")
-from Generic_isotropic_material import Acier, E, nu, mu, kappa, sig0, Et, H
+from Generic_isotropic_material import Acier, mu, kappa, sig0, H
 
 ###### Paramètre géométrique ######
 Re = 600
@@ -62,8 +62,6 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Ri,
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 
-
-
 p_applied = 1.1 * q_lim
 npas = 20000
 compteur = 100
@@ -74,6 +72,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                     [{"type": "surfacique", "component" : "F", "tag": 1, "value" : p_applied}
                     ],
                 "analysis" : "static",
+                "plasticity" : {"model" : "HPP_Plasticity", "sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H},
                 "isotherm" : True
                 }
     
@@ -85,7 +84,7 @@ dictionnaire_solve = {
     "csv_output" : {"U" : True}
     }
 
-solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
+solve_instance = Solve(pb, dictionnaire_solve, compteur=compteur, npas=npas)
 solve_instance.solve()
 
 df_u = read_csv("Dilatation_spherique_elastoplast-results/U.csv")
@@ -94,7 +93,6 @@ u_int = [colonnes_numpy[i+1][0] for i in range(len(colonnes_numpy)-1)]
 p_list = [p_applied * t for t in np.linspace(0, 1, len(u_int))]
 plt.plot(u_int, p_list, color='r', label = "Charon")
 
-# Plage de pression interne (échelle similaire à la Figure 2: 0-800 MPa)
 p_int_range = np.linspace(q_lim, p_applied, 200)
 
 p_int_elastique_range = np.linspace(0, q_lim, 200)
@@ -106,4 +104,6 @@ plt.plot(w_a_elastique, p_int_elastique_range, color="black", linewidth=2,
          label='Elastique', linestyle='-')
 plt.plot(w_a, p_int_range, color="black", linewidth=2, 
          label='Plastique', linestyle='--')
+plt.xlim(0, 1.2 * max(u_int))
+plt.ylim(0, 1.05 * max(p_list))
 plt.legend()

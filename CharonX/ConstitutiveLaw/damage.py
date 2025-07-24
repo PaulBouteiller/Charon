@@ -98,7 +98,7 @@ class Johnson(Damage):
     d : Function Current porosity field
     g_d : Expression Degradation function (1 - d)
     """
-    def __init__(self, mesh, quadrature):
+    def __init__(self, mesh, quadrature, dictionnaire):
         """Initialize the Johnson porosity-based damage model.
         
         Parameters
@@ -115,16 +115,17 @@ class Johnson(Damage):
         self.d = Function(self.V_d, name = "Porosity")
         self.g_d = (1 - self.d)
         self.interp_points = self.V_d.element.interpolation_points()
+        self.set_damage(mesh, dictionnaire)
         
-    def _initialize_Johnson(self, mesh, **kwargs):
+    def _initialize_Johnson(self, mesh, dictionnaire):
         """Initialize the Johnson model fields.
 
         Parameters
         ----------
         mesh : Mesh Computational mesh
-        **kwargs : dict Additional parameters including optional initial porosity (f0)
+        dictionnaire : dict Additional parameters including optional initial porosity (f0)
         """
-        f0 = kwargs.get("f0", Expression(Constant(mesh, self.initial_porosity), self.interp_points))
+        f0 = dictionnaire.get("f0", Expression(Constant(mesh, self.initial_porosity), self.interp_points))
         self.inf_d.interpolate(f0)
         self.max_d.x.petsc_vec.set(1 - self.residual_stifness)
         self.d.interpolate(f0)
@@ -163,27 +164,27 @@ class StaticJohnson(Johnson):
     sigma_0 : float Yield stress parameter
     lc : float, optional Regularization length (if regularization is enabled)
     """
-    def set_damage(self, mesh, **kwargs):
+    def set_damage(self, mesh, dictionnaire):
         """Initialize the static Johnson damage model.
         
         Parameters
         ----------
         mesh : Mesh
             Computational mesh
-        **kwargs : dict
+        dictionnaire : dict
             Additional parameters:
             - regularization (bool): Whether to use regularization
             - eta (float): Viscosity parameter
             - sigma_0 (float): Yield stress parameter
             - l0 (float): Regularization length (if regularization is enabled)
         """
-        self.regularization = kwargs.get("regularization", False)
-        self.eta = kwargs["eta"]
-        self.sigma_0 = kwargs["sigma_0"]
-        self._initialize_Johnson(mesh, **kwargs)
+        self.regularization = dictionnaire.get("regularization", False)
+        self.eta = dictionnaire["eta"]
+        self.sigma_0 = dictionnaire["sigma_0"]
+        self._initialize_Johnson(mesh, dictionnaire)
         if self.regularization:
             self.V_d_regul = functionspace(mesh, ('CG', 2))
-            self.lc = kwargs["l0"]  
+            self.lc = dictionnaire["l0"]  
 
 class DynamicJohnson(Johnson):
     """Dynamic Johnson porosity-based damage model.
@@ -204,28 +205,28 @@ class DynamicJohnson(Johnson):
     dot_a_tilde : Function Rate of change of normalized pore length
     d_expr : Expression Expression relating pore length to damage
     """
-    def set_damage(self, mesh, **kwargs):
+    def set_damage(self, mesh, dictionnaire):
         """Initialize the dynamic Johnson damage model.
         
         Parameters
         ----------
         mesh : Mesh Computational mesh
-        **kwargs : dict
+        dictionnaire : dict
             Additional parameters:
             - eta (float): Viscosity parameter
             - sigma_0 (float): Yield stress parameter
             - b (float): Initial pore distance
             - material (Material): Material properties
         """
-        self.eta = kwargs["eta"]
-        self.sigma_0 = kwargs["sigma_0"]
-        self.initial_pore_distance = kwargs["b"]
+        self.eta = dictionnaire["eta"]
+        self.sigma_0 = dictionnaire["sigma_0"]
+        self.initial_pore_distance = dictionnaire["b"]
         self.tau = self.eta / self.sigma_0
-        self.v_0 = sqrt(self.sigma_0 / kwargs["material"].rho_0)
+        self.v_0 = sqrt(self.sigma_0 / dictionnaire["material"].rho_0)
         self.l_dyn = self.tau * self.v_0
         print("Le temps caractéristique visqueux vaut", self.tau)
         print("La longueur inertielle vaut", self.l_dyn)
-        self._initialize_Johnson(mesh, **kwargs)
+        self._initialize_Johnson(mesh, dictionnaire)
         self.set_dyn_johnson_function(mesh)
             
     def set_dyn_johnson_function(self, mesh):
@@ -263,7 +264,7 @@ class InertialJohnson(Johnson):
     dot_a : Function Rate of change of pore length
     d_expr : Expression Expression relating pore length to damage
     """
-    def set_damage(self, mesh, **kwargs):
+    def set_damage(self, mesh, dictionnaire):
         """
         Initialise les paramètres requis pour le modèle d'endommagement
         inséré en mot clé de damage_model.
@@ -271,12 +272,12 @@ class InertialJohnson(Johnson):
         Parameters
         ----------
         mesh : Mesh, maillage du domaine.
-        **kwargs : Paramètres nécessaire au modèle d'endommagement choisi.
+        dictionnaire : Paramètres nécessaire au modèle d'endommagement choisi.
         """
-        # self.rho_0 = kwargs["material"].rho_0
-        self.sigma_0 = kwargs["sigma_0"]
-        self.initial_pore_distance = kwargs["b"]
-        self._initialize_Johnson(mesh, **kwargs)
+        # self.rho_0 = dictionnaire["material"].rho_0
+        self.sigma_0 = dictionnaire["sigma_0"]
+        self.initial_pore_distance = dictionnaire["b"]
+        self._initialize_Johnson(mesh, dictionnaire)
         self.set_iner_johnson_function(mesh)
     
     def set_iner_johnson_function(self, mesh):
@@ -286,7 +287,7 @@ class InertialJohnson(Johnson):
         ----------
         mesh : Mesh
             Computational mesh
-        **kwargs : dict
+        dictionnaire : dict
             Additional parameters:
             - material (Material): Material properties
             - sigma_0 (float): Yield stress parameter
@@ -347,7 +348,7 @@ class PhaseField(Damage):
         self.d_ = TestFunction(self.V_d)
         self.dd = TrialFunction(self.V_d)
 
-    def set_damage(self, mesh, PF_model = "AT2", **kwargs):
+    def set_damage(self, mesh, dictionnaire, PF_model = "AT2"):
         """Initialize the phase field damage model parameters.
 
         Parameters
@@ -356,7 +357,7 @@ class PhaseField(Damage):
             Computational mesh
         PF_model : str, optional
             Phase field model type: "AT1", "AT2", or "wu", default is "AT2"
-        **kwargs : dict
+        dictionnaire : dict
             Additional parameters:
             - Gc (float): Critical energy release rate
             - l0 (float): Regularization length
@@ -364,13 +365,13 @@ class PhaseField(Damage):
             - sigma_c (float, optional): Critical stress (for Wu model)
             - wu_softening (str, optional): Softening type for Wu model
         """
-        self.Gc = kwargs["Gc"]
-        self.l0 = kwargs["l0"]
-        self.E = kwargs.get("E", None)
+        self.Gc = dictionnaire["Gc"]
+        self.l0 = dictionnaire["l0"]
+        self.E = dictionnaire.get("E", None)
         self.PF_model = PF_model
         if self.PF_model == "wu":
-            self.sigma_c = kwargs["sigma_c"]
-            self.wu_softening_type = kwargs["wu_softening"]
+            self.sigma_c = dictionnaire["sigma_c"]
+            self.wu_softening_type = dictionnaire["wu_softening"]
         self.set_dissipated_function_array_damage()
         
     def set_dissipated_function_array_damage(self):

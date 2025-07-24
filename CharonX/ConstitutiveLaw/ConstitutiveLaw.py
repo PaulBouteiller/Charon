@@ -84,7 +84,7 @@ class ConstitutiveLaw:
     relative_rho_0 : float or Function Relative initial density field
     """
     
-    def __init__(self, u, material, plastic_model, damage_model, multiphase, 
+    def __init__(self, u, material, plasticity_dictionnary, damage_dictionnary, multiphase, 
                  name, kinematic, quadrature, damping, is_hypo, relative_rho_0, h):
         """Initialize the constitutive law manager.
 
@@ -92,8 +92,6 @@ class ConstitutiveLaw:
         ----------
         u : Function Displacement field
         material : Material or list Material properties (single material or list for multiphase)
-        plastic_model : str or None Type of plasticity model ("HPP_Plasticity", "Finite_Plasticity", "J2_JAX", "JAX_Gurson", or None)
-        damage_model : str or None Type of damage model ("PhaseField", "Johnson", "Johnson_dyn", "Johnson_inertiel", or None)
         multiphase : Multiphase or None Object managing multiphase properties
         name : str Model name (e.g., "CartesianUD", "PlaneStrain")
         kinematic : Kinematic Kinematic handler for tensor operations
@@ -106,8 +104,10 @@ class ConstitutiveLaw:
         self.material = material
         self.mesh = u.function_space.mesh
         self.h = h
-        self.plastic_model = plastic_model
-        self.damage_model = damage_model
+        self.plasticity_dictionnary = plasticity_dictionnary
+        self.plastic_model = plasticity_dictionnary.get("model")
+        self.damage_dictionnary = damage_dictionnary
+        self.damage_model = damage_dictionnary.get("model")
         self.multiphase = multiphase
         self.kinematic = kinematic
         self.quadrature = quadrature
@@ -118,9 +118,27 @@ class ConstitutiveLaw:
         self.name = name
         self.relative_rho_0 = relative_rho_0
         if self.damage_model != None:
-            self.damage = self.damage_class()(self.mesh, quadrature)
-        if self.plastic_model != None:
-            self.plastic = self.plastic_class(name)(u, material.devia.mu, name, kinematic, quadrature, self.plastic_model)
+            damage_mapper = {"PhaseField" : PhaseField, 
+                              "StaticJohnson" : StaticJohnson,
+                              "DynamicJohnson" : DynamicJohnson,
+                              "InertialJohnson" : InertialJohnson
+                              }
+            damage_class = damage_mapper.get(self.damage_model)
+            if damage_class is None:
+                raise ValueError(f"Unknown damage model: {self.damage_model}") 
+            self.damage = damage_class(self.mesh, quadrature, damage_dictionnary)
+            
+            
+        if self.plasticity_dictionnary != {}:
+            plastic_mapper = {"HPP_Plasticity" : HPPPlastic, 
+                              "Finite_Plasticity" : FiniteStrainPlastic,
+                              "J2_JAX" : JAXJ2Plasticity,
+                              "JAX_Gurson" : JAXGursonPlasticity
+                              }
+            plastic_class = plastic_mapper.get(self.plastic_model)
+            if plastic_class is None:
+                raise ValueError(f"Unknown plasticity model: {self.plastic_model}") 
+            self.plastic = plastic_class(u, material.devia.mu, name, kinematic, quadrature, plasticity_dictionnary)
 
     def set_damping(self, damping):
         """Initialize artificial viscosity parameters.
@@ -250,7 +268,7 @@ class ConstitutiveLaw:
         # Return total stress
         return -(self.p + self.pseudo_p) * Identity(3) + self.s
     
-    def _calculate_stress_components(self, u, v, T, T0, J, material, relative_density=1):
+    def _calculate_stress_components(self, u, v, T, T0, J, material, relative_density = 1):
         """Calculate individual stress components for a given material.
         
         Breaks down the stress calculation into pressure, pseudo-pressure and 
@@ -306,54 +324,6 @@ class ConstitutiveLaw:
             
         return deviatoric
 
-    def plastic_class(self, name):
-        """Return the appropriate plasticity model class.
-        
-        Parameters
-        ----------
-        name : str Model name
-            
-        Returns
-        -------
-        class The plasticity model class to be instantiated
-            
-        Raises
-        ------
-        ValueError If an invalid plasticity model is specified
-        """
-        if self.plastic_model == "HPP_Plasticity":
-            return HPPPlastic
-        elif self.plastic_model == "Finite_Plasticity":
-            return FiniteStrainPlastic
-        elif self.plastic_model == "J2_JAX":
-            return JAXJ2Plasticity
-        elif self.plastic_model == "JAX_Gurson":
-            return JAXGursonPlasticity
-        else:
-            raise ValueError("This model do not exist, did you mean \
-                             HPP_Plasticity or Finite_Plasticity ?")
-    def damage_class(self):
-        """Return the appropriate damage model class.
-        
-        Returns
-        -------
-        class The damage model class to be instantiated
-            
-        Raises
-        ------
-        ValueError If an invalid damage model is specified
-        """
-        if self.damage_model == "PhaseField":
-            return PhaseField
-        elif self.damage_model == "Johnson":
-            return StaticJohnson   
-        elif self.damage_model == "Johnson_dyn":
-            return DynamicJohnson
-        elif self.damage_model == "Johnson_inertiel":
-            return InertialJohnson
-        else:
-            raise ValueError("Unknown damage model")
-         
     def set_plastic_driving(self):
         """Calculate the plastic driving force.
         
@@ -380,7 +350,7 @@ class ConstitutiveLaw:
         u : Function Displacement field
         J : Expression Jacobian of the transformation
         """
-        if self.damage_model in ["Johnson", "Johnson_dyn", "Johnson_inertiel"]:
+        if self.damage_model in ["StaticJohnson", "DynamicJohnson", "InertialJohnson"]:
             self.damage.set_p_mot(self.p)
         else:
             self.eHelm = self.Helmholtz_energy(u, J, self.material)

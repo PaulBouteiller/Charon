@@ -64,7 +64,6 @@ class PlasticSolve:
         """
         self.plastic = plastic
         self.u = u
-    
         if self.plastic.plastic_model == "J2_JAX":
             self.set_Jax()
             self.n_gauss = len(self.plastic.p.x.array)

@@ -20,7 +20,7 @@ from .displacement_solve import ExplicitDisplacementSolver
 from .energy_solve import ExplicitEnergySolver, DiffusionSolver
 from .plastic_solve import PlasticSolve
 from .multiphase_solve import MultiphaseSolver
-from .damage_solve import StaticJohnsonSolve, JohnsonDynViscSolve, JohnsonInerSolve, PhaseFieldSolve
+from .damage_solve import StaticJohnsonSolve, DynamicJohnsonSolve, InertialJohnsonSolve, PhaseFieldSolve
 from .hypoelastic_solve import HypoElasticSolve
 from .time_stepping import TimeStepping
 
@@ -183,8 +183,15 @@ class Solve:
                 self.hypo_elastic_solver = HypoElasticSolve(self.pb.material.devia, self.dt)
                 
         if self.pb.damage_analysis:
-            self.damage_solver = self.damage_solver_selector(self.pb.constitutive.damage_model)\
-                                (self.pb.constitutive.damage, self.pb.kinematic, self.pb.mesh.comm, self.pb.dx, self.dt)
+            damage_solver_mapper = {"PhaseField" : PhaseFieldSolve, 
+                                    "StaticJohnson" : StaticJohnsonSolve,
+                                    "DynamicJohnson" : DynamicJohnsonSolve,
+                                    "InertialJohnson" : InertialJohnsonSolve
+                                    }
+            damage_class = damage_solver_mapper[self.pb.constitutive.damage_model]
+            self.damage_solver = damage_class(self.pb.constitutive.damage, 
+                                              self.pb.kinematic, self.pb.mesh.comm, 
+                                              self.pb.dx, self.dt)
             
         if self.pb.plastic_analysis:
             self.plastic_solver = PlasticSolve(self.pb.constitutive.plastic, self.pb.u)
@@ -224,16 +231,6 @@ class Solve:
         self.solver.rtol = param.get("relative_tolerance")
         self.solver.convergence_criterion = param.get("convergence_criterion")
         
-    def damage_solver_selector(self, name):
-        if name == "PhaseField":
-            return PhaseFieldSolve
-        elif name =="Johnson":
-            return StaticJohnsonSolve
-        elif name == "Johnson_dyn":
-            return JohnsonDynViscSolve
-        elif name == "Johnson_inertiel":
-            return JohnsonInerSolve
-
     def set_iterative_solver_parameters(self):
         pass
             
