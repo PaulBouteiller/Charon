@@ -38,7 +38,7 @@ Auteur: bouteillerp
 Date de création: 28 Mai 2025
 """
 
-from CharonX import  create_1D_mesh, MeshManager, SphericalUD, Solve
+from Charon import  create_1D_mesh, MeshManager, SphericalUD, Solve
 import matplotlib.pyplot as plt
 from deplacement_analytique import deplacement_ilyushin, deplacement_elastique
 from pandas import read_csv
@@ -51,6 +51,16 @@ from Generic_isotropic_material import Acier, mu, kappa, sig0, H
 ###### Paramètre géométrique ######
 Re = 600
 Ri = 300.0
+
+
+plasticity_model = "J2_JAX"
+plasticity_dic = {"model" : plasticity_model}
+if plasticity_model == "HPP_Plasticity":
+    plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
+elif plasticity_model == "J2_JAX":
+    def yield_function(p):
+        return sig0
+    plasticity_dic.update({"sigY" : sig0, "Hardening" : "NonLinear", "Hardening_func" : yield_function})
 
 #Paramètre élasto-plastique
 q_lim = float(2 * np.log(Re / Ri) * sig0)
@@ -72,7 +82,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                     [{"type": "surfacique", "component" : "F", "tag": 1, "value" : p_applied}
                     ],
                 "analysis" : "static",
-                "plasticity" : {"model" : "HPP_Plasticity", "sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H},
+                "plasticity" : plasticity_dic,
                 "isotherm" : True
                 }
     

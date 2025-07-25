@@ -3,7 +3,7 @@ Created on Fri Oct 18 10:11:07 2024
 
 @author: bouteillerp
 """
-from CharonX import Material
+from Charon import Material
 ###### Modèle matériau Acier ######
 E = 210e3
 nu = 0.3

@@ -14,9 +14,9 @@ if not os.path.exists('pyproject.toml'):
         f.write('[build-system]\nrequires = ["setuptools"]\nbuild-backend = "setuptools.build_meta"')
 
 
-setup(name="CharonX",
-      description="CharonX Python module.",
-      version = '0.0.1',
+setup(name="Charon",
+      description="Charon Python module.",
+      version = '0.0.2',
       author="Bouteiller Paul",
       author_email="paul.bouteiller@cea.fr",
       packages = find_packages(),

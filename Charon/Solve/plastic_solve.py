@@ -16,21 +16,16 @@ Created on Mon Sep 26 17:58:18 2022
 
 @author: bouteillerp
 """
-from dolfinx.fem import Function
 
 from ..utils.petsc_operations import petsc_add, petsc_assign
-
-try:
-    from jaxopt import LevenbergMarquardt
-except Exception:
-    print("jaxopt has not been loaded therefore complexe return mapping cannot be used")
 
 try:
     from jax.numpy import clip, sqrt, zeros, linalg, reshape, array, concatenate
     from jax.lax import cond
     from jax import vmap, jit
+    from optimistix import LevenbergMarquardt
 except Exception:
-    print("JAX has not been loaded therefore complexe return mapping cannot be used")
+    print("optimistix or jax has not been loaded therefore complexe return mapping cannot be used")
 
 def reduced_3D_tr(x):
     return sum(x[:3])
@@ -65,11 +60,12 @@ class PlasticSolve:
         self.plastic = plastic
         self.u = u
         if self.plastic.plastic_model == "J2_JAX":
-            self.set_Jax()
+            self._set_LevenbergMarquardt_solver()
+            self.batched_constitutive_update = jit(vmap(self.constitutive_update, in_axes=(0, 0)))
             self.n_gauss = len(self.plastic.p.x.array)
             
  
-    def set_Jax(self):
+    def _set_LevenbergMarquardt_solver(self):
         self.mu = self.plastic.mu
         self.yield_stress = self.plastic.yield_stress
         self.equivalent_stress = lambda x: linalg.norm(x)
@@ -89,11 +85,8 @@ class PlasticSolve:
             r_p = self.r_p_plastic(p_old, dp, be_bar, sig_eq_trial)
             
             return concatenate([r_be, array([r_p])])
+        self.solver = LevenbergMarquardt(residual_function, atol = 1e-8)
         
-        self.solver = LevenbergMarquardt(residual_fun=residual_function, tol=1e-8, maxiter=100)
-        self.batched_constitutive_update = jit(vmap(self.constitutive_update, in_axes=(0, 0)))
-
-
 
     def r_p_plastic(self, p_old, dp, be_bar, sig_eq_trial, *args):
         s = self.mu * reduced_3D_dev(be_bar)
@@ -147,9 +140,6 @@ class PlasticSolve:
                 petsc_add(self.plastic.p.x.petsc_vec, self.plastic.Delta_p.x.petsc_vec)
             self.plastic.delta_eps_p.interpolate(self.plastic.Delta_eps_p_expression)
             petsc_add(self.plastic.eps_p.x.petsc_vec, self.plastic.delta_eps_p.x.petsc_vec)
-                
-                
-                
             
         elif self.plastic.plastic_model == "Finite_Plasticity":
             self.plastic.barI_e.interpolate(self.plastic.barI_e_expr)

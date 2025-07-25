@@ -115,13 +115,14 @@ class Plastic():
             return quadrature.quad_element(["Vector", 6])
         
     def _set_plastic(self, plasticity_dictionnary):
+        #A terme faire des fonctions indépendantes pour les modèles de plasticité
+        #car tous n'ont pas besoin des memes paramètres d'entrées.
         self.hardening = plasticity_dictionnary.get("Hardening", "Isotropic")
         self.sig_yield = plasticity_dictionnary["sigY"]
         if self.hardening in ["Isotropic", "LinearKinematic"]:
             self.H = plasticity_dictionnary["Hardening_modulus"]
-        if self.plastic_model == "J2_JAX":
-            self.yield_stress = plasticity_dictionnary.get("Hardening_func")
-            assert hasattr(self, "yield_stress"), "yield_stress doit être défini pour le modèle J2_JAX"
+        elif self.hardening in ["NonLinear"]:
+            self.yield_stress = plasticity_dictionnary["Hardening_func"]
         
 class FiniteStrainPlastic(Plastic):         
     """Finite strain plasticity model with multiplicative decomposition.
@@ -193,7 +194,8 @@ class FiniteStrainPlastic(Plastic):
         F_charge = self.mu * norme_dev_Be_trial - sqrt(2/3) * self.sig_yield 
         Delta_gamma = F_charge / (2 * mu_bar)
         if self.hardening == "Isotropic":
-            Delta_gamma *= 1 / (1 + self.H / (3 * mu_bar))
+            Delta_gamma *= 1 / (1 + self.H / (3 * mu_bar)) #Fait comme de la plasticité parfaite lorsque l'on laisse H comme cela
+            # Delta_gamma *= 1 / (1 + 1000 * self.H / (3 * mu_bar))
         eps = 1e-6
         dev_Be_expr_3D = (1 - (2 * self.barI_e * ppart(Delta_gamma)) / (norme_dev_Be_trial + eps)) * dev_Be_trial
         dev_Be_expr = self.kin.tridim_to_mandel(dev_Be_expr_3D)
