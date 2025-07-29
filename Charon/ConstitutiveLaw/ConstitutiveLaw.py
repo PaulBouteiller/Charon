@@ -53,10 +53,9 @@ Helmholtz_energy : Calculate the Helmholtz free energy
 from .eos import EOS
 from .deviator import Deviator
 from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
-# from .plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
 from .damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
 
-from ufl import dot, Identity, dev
+from ufl import dot, Identity
 from ..utils.generic_functions import npart
 
 class ConstitutiveLaw:
@@ -309,36 +308,16 @@ class ConstitutiveLaw:
         -------
         Function Deviatoric stress tensor.
         """
-        # Select appropriate deviatoric model based on material type
-        if material.dev_type == "Hypoelastic":
-            deviatoric = self.deviator.set_hypoelastic_deviator(u, v, J, material)
-        elif self.plastic_model == "Finite_Plasticity":
-            deviatoric = material.devia.mu / J**(5./3) * dev(self.plastic.Be_trial())
-        elif self.plastic_model == "J2_JAX":
-            deviatoric = material.devia.mu / J * dev(self.plastic.Be_bar_old_3D)
-        else:
-            deviatoric = self.deviator.set_elastic_dev(u, v, J, T, T0, material)
-            
-        # Apply plastic correction if needed
-        if self.plastic_model == "HPP_Plasticity":
-            deviatoric -= self.plastic.plastic_correction(material.devia.mu)
-            
-        return deviatoric
-
-    def set_plastic_driving(self):
-        """Calculate the plastic driving force.
         
-        Computes the driving force for plasticity by calling the appropriate method
-        of the plasticity object. For elastoplastic damage models, the driving force 
-        is weighted by the damage variable.
-        """
-        if self.plastic_model == "HPP_Plasticity":
-            self.plastic.plastic_driving_force(self.s)
-            if self.damage_model !=None:
-                self.plastic.A *= self.damage.g_d
-                
-        elif self.plastic_model == "Finite_Plasticity":
-            self.plastic.set_expressions()
+        # Déléguer le calcul au modèle plastique si applicable
+        if self.plastic_model:
+            return self.plastic.compute_deviatoric_stress(u, v, J, T, T0, material, self.deviator)
+        
+        # Cas purement élastique
+        if material.dev_type == "Hypoelastic":
+            return self.deviator.set_hypoelastic_deviator(u, v, J, material)
+        else:
+            return self.deviator.set_elastic_dev(u, v, J, T, T0, material)
             
     def set_damage_driving(self, u, J):
         """Initialize damage evolution.

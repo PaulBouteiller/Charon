@@ -7,7 +7,7 @@ Modèle de plasticité J2 avec JAX
 
 from .base_plastic import Plastic
 from dolfinx.fem import functionspace, Function, Expression
-from ufl import dot, det
+from ufl import dot, det, dev
 
 
 class JAXJ2Plasticity(Plastic):
@@ -35,21 +35,28 @@ class JAXJ2Plasticity(Plastic):
         ----------
         quadrature : QuadratureHandler Handler for quadrature integration
         """
-        self.V_Be = functionspace(self.mesh, element)
-        self.Be_Bar_trial_func = Function(self.V_Be)
-        self.Be_Bar_old = Function(self.V_Be)
-        len_plas = len(self.Be_Bar_old.x.array)
-        self.len_plas = len_plas
-        self.Be_Bar_old.x.array[::len_plas] = 1
-        self.Be_Bar_old.x.array[1::len_plas] = 1
-        self.Be_Bar_old.x.array[2::len_plas] = 1
-        
-        self.Be_bar_old_3D = self.kin.mandel_to_tridim(self.Be_Bar_old)
-        
-        self.u_old = Function(self.V, name = "old_displacement")
-        F_rel = self.kin.relative_gradient_3D(self.u, self.u_old)
-        
-        expr = det(F_rel)**(-2./3) * dot(dot(F_rel.T, self.Be_bar_old_3D), F_rel.T)
-        self.Be_Bar_trial = Expression(self.kin.tridim_to_mandel(expr), self.V_Be.element.interpolation_points())
+        self.V_Be_bar = functionspace(self.mesh, element)
+        self.Be_bar = Function(self.V_Be_bar)
+        self.Be_bar_3D = self.kin.mandel_to_tridim(self.Be_bar)
+        self.len_plas = len(self.Be_bar)
+        self.Be_bar.x.array[::self.len_plas] = 1
+        self.Be_bar.x.array[1::self.len_plas] = 1
+        self.Be_bar.x.array[2::self.len_plas] = 1
         self.V_p = quadrature.quadrature_space(["Scalar"])
         self.p = Function(self.V_p, name = "Cumulated_plasticity")
+        
+    def Be_bar_trial(self, u, u_old):
+        """Define the elastic left Cauchy-Green tensor predictor.
+        
+        Returns
+        -------
+        Expression Trial elastic left Cauchy-Green tensor
+        """
+        F_rel = self.kin.relative_gradient_3D(u, u_old)
+        J_rel = self.kin.reduced_det(F_rel)
+        F_rel_bar = J_rel**(-1./3) * F_rel
+        return dot(dot(F_rel_bar, self.Be_bar_3D), F_rel_bar.T)
+        
+    def compute_deviatoric_stress(self, u, v, J, T, T0, material, deviator):
+        """Finite strain: direct from Be_trial"""
+        return material.devia.mu * dev(self.Be_bar_trial(u, self.u_old))

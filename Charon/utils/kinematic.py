@@ -532,6 +532,10 @@ class Kinematic:
         inv_F_old = inv(self.F_3D(u_old))
         return dot(F_new, inv_F_old)
     
+    def reduced_det(self, tensor):
+        if self._is_1d:
+            return tensor[0, 0] * tensor[1, 1] * tensor[2, 2]
+    
     # =========================================================================
     # Strain methods
     # =========================================================================

@@ -4,6 +4,8 @@ Solver pour la plasticité J2 avec JAX
 
 @author: bouteillerp
 """
+from dolfinx.fem import Function, Expression
+from ...utils.petsc_operations import petsc_assign
 
 try:
     from jax.numpy import clip, sqrt, linalg, reshape, array, concatenate
@@ -17,7 +19,7 @@ except Exception:
 def reduced_3D_tr(x):
     return sum(x[:3])
 
-def reduced_3D_dev(x, trace = None):
+def reduced_3D_dev(x):
     tr = reduced_3D_tr(x)
     return x - 1./3 * tr * reduced_unit_array(len(x))
 
@@ -38,7 +40,7 @@ def reduced_unit_array(length):
 class JAXJ2PlasticSolver:
     """Solveur pour la plasticité J2 avec JAX et Optimistix"""
     
-    def __init__(self, plastic, u):
+    def __init__(self, problem, plastic, u):
         """
         Initialise le solveur J2 JAX
         
@@ -50,10 +52,13 @@ class JAXJ2PlasticSolver:
             Champ de déplacement
         """ 
         self.plastic = plastic
-        # self.u = u
         self._setup_solver()
         self.batched_constitutive_update = jit(vmap(self.constitutive_update, in_axes=(0, 0)))
         self.n_gauss = len(self.plastic.p.x.array)
+        self.Be_Bar_trial_func = Function(self.plastic.V_Be_bar)
+        expr = self.plastic.Be_bar_trial(u, self.plastic.u_old)
+        
+        self.Be_Bar_trial_expr = Expression(self.plastic.kin.tridim_to_mandel(expr), self.plastic.V_Be_bar.element.interpolation_points())
             
     def _setup_solver(self):
         """Configure le solveur Levenberg-Marquardt"""
@@ -79,18 +84,16 @@ class JAXJ2PlasticSolver:
         self.solver = LevenbergMarquardt(rtol=1e-8, atol=1e-8)
 
     def _r_p_plastic(self, p_old, dp, be_bar, sig_eq_trial):
-        """Résidu du critère de plasticité"""
-        s = self.mu * reduced_3D_dev(be_bar)
-        return (self.clipped_equiv_stress(s) - sqrt(2 / 3) * self.yield_stress(p_old + dp)) / self.mu
+        """Résidu du critère de plasticité, la division par self.mu permet le scaling"""
+        return self.clipped_equiv_stress(reduced_3D_dev(be_bar)) - sqrt(2 / 3) * self.yield_stress(p_old + dp) / self.mu
     
     def _r_be_plastic(self, be_bar, dp, be_bar_trial, dev_be_bar_trial):
-        """Résidu de l'équation d'évolution du tenseur élastique"""
+        """Résidu de l'équation d'évolution du tenseur élastique, on somme les residus en incluant
+        celui associé au déterminant unitaire"""
         det_be_bar = reduced_3D_det(be_bar)
-        dev_be_bar = reduced_3D_dev(be_bar)
-        s = self.mu * dev_be_bar
-            
+        dev_be_bar = reduced_3D_dev(be_bar)            
         return dev_be_bar - dev_be_bar_trial \
-                + 2 * sqrt(3 / 2) * dp * reduced_3D_tr(be_bar) / 3 * self.normal(s) \
+                + 2 * sqrt(3 / 2) * dp * reduced_3D_tr(be_bar) / 3 * self.normal(dev_be_bar) \
                 + (det_be_bar - 1) * reduced_unit_array(self.plastic.len_plas)
         
     def _compute_trial_state(self, be_bar_trial, p_old):
@@ -105,13 +108,15 @@ class JAXJ2PlasticSolver:
         """Mise à jour constitutive avec test élastique/plastique"""
         dev_be_bar_trial, s_trial, sig_eq_trial, yield_criterion = \
         self._compute_trial_state(be_bar_trial, p_old)
-        
-        return cond(
+        # Toujours retourner un tuple (be_bar, dp)
+        be_bar, dp = cond(
             yield_criterion < 0.0,
-            lambda x: x,  # Cas élastique
+            lambda x: (x, 0.0),  # Cas élastique: pas de déformation plastique
             lambda x: self._return_mapping(x, p_old, dev_be_bar_trial, sig_eq_trial),  # Cas plastique
             be_bar_trial
         )
+        
+        return be_bar, dp
         
     def _return_mapping(self, be_bar_trial, p_old, dev_be_bar_trial, sig_eq_trial):
         """Algorithme de retour sur la surface de charge"""
@@ -126,7 +131,7 @@ class JAXJ2PlasticSolver:
             x0
         )
         be_bar, dp = sol.value[:-1], sol.value[-1]
-        return be_bar
+        return be_bar, dp
 
     def solve(self):
         """
@@ -134,7 +139,9 @@ class JAXJ2PlasticSolver:
         
         Met à jour le tenseur élastique de Cauchy-Green gauche
         """
-        self.plastic.Be_Bar_trial_func.interpolate(self.plastic.Be_Bar_trial)
-        Bbar_trial = reshape(self.plastic.Be_Bar_trial_func.x.array, (self.n_gauss, self.plastic.len_plas))
-        be_bar = self.batched_constitutive_update(Bbar_trial, self.plastic.p.x.array)
-        self.plastic.Be_Bar_old.x.array[:] = be_bar.ravel()
+        # pass
+        self.Be_Bar_trial_func.interpolate(self.Be_Bar_trial_expr)
+        Bbar_trial = reshape(self.Be_Bar_trial_func.x.array, (self.n_gauss, self.plastic.len_plas))
+        be_bar, dp = self.batched_constitutive_update(Bbar_trial, self.plastic.p.x.array)
+        # self.plastic.Be_Bar_old.x.array[:] = be_bar.ravel()
+        # petsc_assign(self.plastic.u_old, self.plastic.u)

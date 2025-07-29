@@ -355,7 +355,11 @@ class Problem:
         self._init_loading(simulation_dic)
         
         # Configure variational forms
-        self._init_variational_forms()
+        print("Starting setting up variational formulation")
+        self.set_form()
+        
+        if not self.adiabatic:
+            self.flux_bilinear_form()
         
         # Configure boundary conditions
         self._init_boundary_conditions(simulation_dic)
@@ -533,25 +537,6 @@ class Problem:
                 getattr(self.loading, "add_"+ loading["component"])(value, self.u_, self.ds(tag))
             else:
                 raise ValueError("loading type must be either surfacique or volumique")
-    
-    def _init_variational_forms(self):
-        """
-        Initialize variational forms.
-        
-        Sets up the weak forms for the mechanical problem, including terms
-        for stiffness, mass, and external work.
-        """
-        print("Starting setting up variational formulation")
-        self.set_form()
-        
-        if not self.adiabatic:
-            self.flux_bilinear_form()
-
-        if self.damage_analysis:
-            self.constitutive.set_damage_driving(self.u, self.J_transfo)
-            
-        if self.plastic_analysis:
-            self.constitutive.set_plastic_driving()
     
     def _init_boundary_conditions(self, simulation_dic):
         """

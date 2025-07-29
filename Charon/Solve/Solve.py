@@ -205,7 +205,7 @@ class Solve:
                                      "Gurson_JAX": JAXGursonPlasticSolver
                                      }
             plastic_class = plastic_solver_mapper[self.pb.constitutive.plastic.plastic_model]
-            self.plastic_solver = plastic_class(self.pb.constitutive.plastic, self.pb.u)
+            self.plastic_solver = plastic_class(self.pb, self.pb.constitutive.plastic, self.pb.u)
             
         if self.pb.multiphase_analysis:
             if any(self.pb.multiphase.multiphase_evolution):

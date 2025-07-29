@@ -5,7 +5,7 @@ Classe de base pour tous les modèles de plasticité
 @author: bouteillerp
 """
 
-# from dolfinx.fem import functionspace, Function
+from dolfinx.fem import Function
 
 
 class Plastic:
@@ -40,9 +40,11 @@ class Plastic:
         """
         self.u = u
         self.V = self.u.function_space
+        self.u_old = Function(self.V, name = "old_displacement")
         self.kin = kinematic
         self.mu = mu
         self.mesh = self.u.function_space.mesh
+        self.mesh_dim =self.mesh.topology.dim
         self._set_plastic(plasticity_dictionnary)
         element = self._plastic_element(quadrature, self.mesh.topology.dim)
         self._set_function(element, quadrature)
@@ -78,3 +80,7 @@ class Plastic:
     def _set_function(self, element, quadrature):
         """To be implemented by subclasses"""
         raise NotImplementedError("Subclasses must implement _set_function")
+        
+    def compute_deviatoric_stress(self, u, v, J, T, T0, material, deviator):
+        """To be implemented by subclasses"""
+        raise NotImplementedError("Subclasses must implement compute_deviatoric_stress")
