@@ -52,7 +52,8 @@ Helmholtz_energy : Calculate the Helmholtz free energy
 """
 from .eos import EOS
 from .deviator import Deviator
-from .plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
+from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
+# from .plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
 from .damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
 
 from ufl import dot, Identity, dev
