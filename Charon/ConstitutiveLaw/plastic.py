@@ -89,12 +89,9 @@ class Plastic():
         self.mu = mu
         self.mesh = self.u.function_space.mesh
         self.mesh_dim = self.mesh.topology.dim
-        self.name = name
-        self.quadrature = quadrature
-        self.element = self._plastic_element(quadrature)
-        self.plastic_model = plasticity_dictionnary["model"]
-        self._set_function(quadrature)
         self._set_plastic(plasticity_dictionnary)
+        element = self._plastic_element(quadrature)
+        self._set_function(element, quadrature)
         
     def _plastic_element(self, quadrature):
         """Create appropriate element for plastic variables.
@@ -117,6 +114,7 @@ class Plastic():
     def _set_plastic(self, plasticity_dictionnary):
         #A terme faire des fonctions indépendantes pour les modèles de plasticité
         #car tous n'ont pas besoin des memes paramètres d'entrées.
+        self.plastic_model = plasticity_dictionnary["model"]
         self.hardening = plasticity_dictionnary.get("Hardening", "Isotropic")
         self.sig_yield = plasticity_dictionnary["sigY"]
         if self.hardening in ["Isotropic", "LinearKinematic"]:
@@ -143,14 +141,14 @@ class FiniteStrainPlastic(Plastic):
     barI_e_expr : Expression Expression for updated volumetric elastic left Cauchy-Green tensor
     dev_Be_expr : Expression Expression for updated deviatoric elastic left Cauchy-Green tensor
     """
-    def _set_function(self, quadrature):
+    def _set_function(self, element, quadrature):
         """Initialize functions for finite strain plasticity.
         
         Parameters
         ----------
         quadrature : QuadratureHandler Handler for quadrature integration
         """
-        self.V_dev_BE = functionspace(self.mesh, self.element)
+        self.V_dev_BE = functionspace(self.mesh, element)
         self.dev_Be = Function(self.V_dev_BE)
         self.dev_Be_3D  = self.kin.mandel_to_tridim(self.dev_Be)
         self.u_old = Function(self.V, name = "old_displacement")
@@ -219,20 +217,20 @@ class JAXJ2Plasticity(Plastic):
     V_p : FunctionSpace Function space for cumulated plasticity
     p : Function Cumulated plasticity
     """
-    def _set_function(self, quadrature):
+    def _set_function(self, element, quadrature):
         """Initialize functions for J2 plasticity.
         
         Parameters
         ----------
         quadrature : QuadratureHandler Handler for quadrature integration
         """
-        self.V_Be = functionspace(self.mesh, self.element)
+        self.V_Be = functionspace(self.mesh, element)
         self.Be_Bar_trial_func = Function(self.V_Be)
         self.Be_Bar_old = Function(self.V_Be)
-        self.len_plas = len(self.Be_Bar_old)
-        self.Be_Bar_old.x.array[::self.len_plas] = 1
-        self.Be_Bar_old.x.array[1::self.len_plas] = 1
-        self.Be_Bar_old.x.array[2::self.len_plas] = 1
+        len_plas = len(self.Be_Bar_old)
+        self.Be_Bar_old.x.array[::len_plas] = 1
+        self.Be_Bar_old.x.array[1::len_plas] = 1
+        self.Be_Bar_old.x.array[2::len_plas] = 1
         
         self.Be_bar_old_3D = self.kin.mandel_to_tridim(self.Be_Bar_old)
         
@@ -266,22 +264,22 @@ class JAXGursonPlasticity(Plastic):
     q1, q2, q3 : float Tvergaard parameters
     f0, fc, ff : float Initial, critical, and failure porosity
     """
-    def _set_function(self, quadrature):
+    def _set_function(self, element, quadrature):
         """Initialize functions for Gurson plasticity.
         
         Parameters
         ----------
         quadrature : QuadratureHandler Handler for quadrature integration
         """
-        self.V_Be = functionspace(self.mesh, self.element)
+        self.V_Be = functionspace(self.mesh, element)
         self.Be_Bar_trial_func = Function(self.V_Be)
         self.Be_Bar_old = Function(self.V_Be)
 
         # Initialisation de Be_Bar_old avec l'identité
-        self.len_plas = len(self.Be_Bar_old)
-        self.Be_Bar_old.x.array[::self.len_plas] = 1
-        self.Be_Bar_old.x.array[1::self.len_plas] = 1
-        self.Be_Bar_old.x.array[2::self.len_plas] = 1
+        len_plas = len(self.Be_Bar_old)
+        self.Be_Bar_old.x.array[::len_plas] = 1
+        self.Be_Bar_old.x.array[1::len_plas] = 1
+        self.Be_Bar_old.x.array[2::len_plas] = 1
         self.Be_bar_old_3D = self.kin.mandel_to_tridim(self.Be_Bar_old)
         
         # Champ de déplacement ancien
@@ -373,7 +371,7 @@ class HPPPlastic(Plastic):
     eps_P_3D : Expression 3D representation of plastic strain tensor
     delta_eps_p : Function Increment of plastic strain
     """
-    def _set_function(self, quadrature):
+    def _set_function(self, element, quadrature):
         """Initialize functions for small strain plasticity.
 
         Parameters
@@ -381,10 +379,14 @@ class HPPPlastic(Plastic):
         quadrature : QuadratureHandler
             Handler for quadrature integration
         """
-        self.Vepsp = functionspace(self.mesh, self.element)
+        self.Vepsp = functionspace(self.mesh, element)
         self.eps_p = Function(self.Vepsp, name = "Plastic_strain")
         self.eps_P_3D = self.kin.mandel_to_tridim(self.eps_p)
-        self.delta_eps_p = Function(self.Vepsp)
+        self.Delta_eps_p = Function(self.Vepsp)
+        if self.hardening == "Isotropic":
+            self.Vp = quadrature.quadrature_space(["Scalar"])
+            self.p = Function(self.Vp, name = "Cumulative_plastic_strain")
+            self.Delta_p = Function(self.Vp, name = "Plastic_strain_increment")
 
     def plastic_correction(self, mu):
         """Calculate plastic stress correction.
@@ -420,14 +422,11 @@ class HPPPlastic(Plastic):
                                 (2 * self.mu + self.H) *self.A
 
         elif self.hardening == "Isotropic":
-            Vp = self.quadrature.quadrature_space(["Scalar"])
-            self.p = Function(Vp, name = "Cumulative_plastic_strain")
-            self.Delta_p = Function(Vp, name = "Plastic_strain_increment")
             s_mandel = self.kin.tridim_to_mandel(s_3D)
             sig_VM = sqrt(3.0 / 2.0 * dot(s_mandel, s_mandel)) + eps
             f_elas = sig_VM - self.sig_yield - self.H * self.p
             Delta_p = ppart(f_elas) / (3. * self.mu + self.H)
             Delta_eps_p = 3. * Delta_p / (2. * sig_VM) * s_mandel
-            self.Delta_p_expression = Expression(Delta_p, Vp.element.interpolation_points())
+            self.Delta_p_expression = Expression(Delta_p, self.Vp.element.interpolation_points())
         self.Delta_eps_p_expression = Expression(Delta_eps_p, self.Vepsp.element.interpolation_points())
         

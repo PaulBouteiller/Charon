@@ -18,7 +18,12 @@ Created on Tue Mar  8 15:51:14 2022
 """
 from .displacement_solve import ExplicitDisplacementSolver
 from .energy_solve import ExplicitEnergySolver, DiffusionSolver
-from .plastic_solve import PlasticSolve
+# NOUVEAUX IMPORTS MODULAIRES
+from .PlasticSolve.hpp_plastic_solver import HPPPlasticSolver
+from .PlasticSolve.finite_strain_plastic_solver import FiniteStrainPlasticSolver
+from .PlasticSolve.jax_j2_plastic_solver import JAXJ2PlasticSolver
+from .PlasticSolve.jax_gurson_plastic_solver import JAXGursonPlasticSolver
+
 from .multiphase_solve import MultiphaseSolver
 from .damage_solve import StaticJohnsonSolve, DynamicJohnsonSolve, InertialJohnsonSolve, PhaseFieldSolve
 from .hypoelastic_solve import HypoElasticSolve
@@ -194,7 +199,13 @@ class Solve:
                                               self.pb.dx, self.dt)
             
         if self.pb.plastic_analysis:
-            self.plastic_solver = PlasticSolve(self.pb.constitutive.plastic, self.pb.u)
+            plastic_solver_mapper = {"HPP_Plasticity": HPPPlasticSolver,
+                                     "Finite_Plasticity": FiniteStrainPlasticSolver,
+                                     "J2_JAX": JAXJ2PlasticSolver,
+                                     "Gurson_JAX": JAXGursonPlasticSolver
+                                     }
+            plastic_class = plastic_solver_mapper[self.pb.constitutive.plastic.plastic_model]
+            self.plastic_solver = plastic_class(self.pb.constitutive.plastic, self.pb.u)
             
         if self.pb.multiphase_analysis:
             if any(self.pb.multiphase.multiphase_evolution):
