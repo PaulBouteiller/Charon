@@ -52,9 +52,9 @@ from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, S
 
 class BoundaryConditions:
     """
-    Class containing displacement boundary conditions.
+    Manager for displacement boundary conditions in mechanical problems.
     
-    This class manages Dirichlet boundary conditions for displacement,
+    This class handles Dirichlet boundary conditions for displacement,
     velocity, and acceleration fields, supporting both constant and
     time-dependent values.
     
@@ -63,19 +63,19 @@ class BoundaryConditions:
     V : dolfinx.fem.FunctionSpace
         Function space for the displacement field
     facet_tag : dolfinx.mesh.MeshTags
-        Tags identifying different regions of the boundary
-    bcs : list
-        List of Dirichlet boundary conditions
-    v_bcs : list
-        List of velocity boundary conditions
-    a_bcs : list
-        List of acceleration boundary conditions
-    bcs_axi : list
-        List of axisymmetry boundary conditions
-    bcs_axi_homog : list
-        List of homogeneous axisymmetry boundary conditions
-    my_constant_list : list
-        List of time-dependent boundary condition expressions
+        Mesh tags identifying boundary regions
+    bcs : list of dolfinx.fem.DirichletBC
+        Displacement boundary conditions
+    v_bcs : list of dolfinx.fem.DirichletBC
+        Velocity boundary conditions  
+    a_bcs : list of dolfinx.fem.DirichletBC
+        Acceleration boundary conditions
+    bcs_axi : list of dolfinx.fem.DirichletBC
+        Axisymmetry boundary conditions
+    bcs_axi_homog : list of dolfinx.fem.DirichletBC
+        Homogeneous axisymmetry boundary conditions
+    my_constant_list : list of MyExpression
+        Time-dependent boundary condition expressions
     """
     def __init__(self, V, facet_tag):
         """
@@ -115,15 +115,25 @@ class BoundaryConditions:
 
     def add_component(self, space, isub, bcs, region, value=ScalarType(0)):
         """
-        Add a Dirichlet boundary condition to the list.
+        Add a Dirichlet boundary condition to the specified list.
         
         Parameters
         ----------
-        space : dolfinx.fem.FunctionSpace Function space for the constrained field
-        isub : int or None Subspace index, or None for a scalar field
-        bcs : list List to which the boundary condition will be added
-        region : int Tag identifying the boundary region
-        value : float, Constant, or Expression, optional Value to impose, by default 0
+        space : dolfinx.fem.FunctionSpace
+            Function space for the constrained field
+        isub : int or None
+            Subspace index for vector fields, None for scalar fields
+        bcs : list
+            List to which the boundary condition will be added
+        region : int
+            Tag identifying the boundary region
+        value : float, Constant, MyConstant, optional
+            Value to impose, by default 0
+            
+        Notes
+        -----
+        For time-dependent values, use MyConstant objects which will be
+        automatically added to the time-dependent expressions list.
         """
         def bc_value(value):
             if isinstance(value, float) or isinstance(value, Constant):
@@ -186,19 +196,28 @@ class BoundaryConditions:
         self.a_bcs = []
         self.my_constant_list = []
                 
-class Loading:
+class Loading:   
     """
-    Class for managing external loads.
+    Manager for external loads in mechanical problems.
     
-    This class creates the external work form (Wext) representing the
-    work done by external forces, such as boundary tractions or body forces.
+    This class constructs the external work form (Wext) representing
+    work done by external forces, including body forces, surface tractions,
+    and pressure loads.
     
     Attributes
     ----------
-    kinematic        : Kinematic Object handling kinematics transformations
-    my_constant_list : list List of time-dependent loading expressions
-    function_list    : list  List of loading functions
-    Wext             : ufl.form.Form Form representing the external work
+    kinematic : Kinematic
+        Object handling kinematic transformations and measures
+    my_constant_list : list of MyExpression  
+        Time-dependent loading expressions
+    function_list : list
+        Additional loading functions (reserved for future use)
+    Wext : ufl.Form
+        Variational form representing external work
+    n : ufl.FacetNormal
+        Outward unit normal vector on mesh boundaries
+    u_ : ufl.TestFunction 
+    Test function for the displacement field
     """
     def __init__(self, mesh, u_, dx, kinematic):
         """
@@ -214,34 +233,45 @@ class Loading:
         self.kinematic = kinematic
         self.my_constant_list = []
         self.function_list = []
+        self.u_ = u_ 
         self.Wext = kinematic.measure(Constant(mesh, ScalarType(0)) * u_, dx)
         self.n = FacetNormal(mesh)
         
-    def add_loading(self, value, u_, dx):
+    def add_loading(self, value, dx, sub = None):
         """
-        Add external loads.
-        
-        If dx is a volume measure, this adds body forces;
-        if dx is a surface measure, this adds Neumann boundary conditions.
+        Add external loads to the variational form.
         
         Parameters
         ----------
-        value : ScalarType or Expression Value of the load
-        u_ : ufl.TestFunction Test function for the displacement field
-        dx : ufl.Measure Integration measure
+        value : ScalarType, Expression, MyConstant, or Tabulated_BCs
+            Load value or expression
+        dx : ufl.Measure
+            Integration measure (dx for body forces, ds for surface tractions)
+            
+        Notes
+        -----
+        - For volume measures (dx): adds body forces
+        - For surface measures (ds): adds Neumann boundary conditions
+        - Time-dependent loads should use MyConstant objects
         """
+        def sub_component(u_, sub):
+            if sub == None:
+                return u_
+            else:
+                return u_[sub]
+        u_component = sub_component(self.u_, sub)
         if isinstance(value, MyConstant):
             if hasattr(value, "function"):
-                self.Wext += self.kinematic.measure(inner(value.Expression.constant * value.function, u_), dx)
+                self.Wext += self.kinematic.measure(inner(value.Expression.constant * value.function, u_component), dx)
             else: 
-                self.Wext += self.kinematic.measure(inner(value.Expression.constant, u_), dx)   
+                self.Wext += self.kinematic.measure(inner(value.Expression.constant, u_component), dx)   
             self.my_constant_list.append(value.Expression)
         
         elif isinstance(value, Tabulated_BCs):
             pass
         else:
             assert(value!=0.)
-            self.Wext += self.kinematic.measure(inner(value, u_), dx)
+            self.Wext += self.kinematic.measure(inner(value, u_component), dx)
             
     def select(self, value):
         """
@@ -377,20 +407,21 @@ class Problem:
     
     def _init_analysis_type(self, dictionnaire):
         """
-        Configure the type of analysis to perform.
+        Configure the analysis type and related parameters.
         
-        Sets up flags and parameters for the specific type of analysis,
-        such as static, dynamic, with or without damage, etc.
+        Sets up flags for static/dynamic analysis, damage modeling,
+        plasticity, and thermal coupling based on the simulation dictionary.
         
         Parameters
         ----------
-        dictionnaire : dict Configuration parameters:
-                        - analysis: Type of analysis
-                        - damage: Damage model
-                        - plastic: Plasticity model
-                        - isotherm: Whether to use isothermal analysis
-                        - adiabatic: Whether to use adiabatic analysis
-                        - Thermal_material: Material for thermal properties
+        dictionnaire : dict
+            Configuration dictionary with keys:
+            - 'analysis' : str, analysis type ('static', 'explicit_dynamic', etc.)
+            - 'damage' : dict, damage model parameters
+            - 'plasticity' : dict, plasticity model parameters  
+            - 'isotherm' : bool, isothermal analysis flag
+            - 'adiabatic' : bool, adiabatic analysis flag
+            - 'Thermal_material' : ThermalMaterial, thermal properties
         """
         self.analysis = dictionnaire.get("analysis", "explicit_dynamic")
         self.damage_dictionnary = dictionnaire.get("damage", {})
@@ -434,11 +465,16 @@ class Problem:
     
     def _init_multiphase(self, dictionnaire):
         """
-        Initialize multiphase analysis if needed.
+        Initialize multiphase analysis configuration.
         
-        Sets up the multiphase object and configuration if the material
-        is defined as a list of materials.
-
+        Creates a Multiphase object if the material is defined as a list,
+        enabling simulation of materials with multiple phases.
+        
+        Parameters
+        ----------
+        dictionnaire : dict
+            Simulation configuration dictionary (currently unused but kept
+            for future multiphase-specific parameters)
         """
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
@@ -460,19 +496,23 @@ class Problem:
     
     def _determine_law_types(self):
         """
-        Determine the types of constitutive laws used.
+        Analyze material properties to determine constitutive law types.
         
-        Identifies whether the material uses tabulated EOS, hypoelastic
-        formulation, or pure hydrostatic behavior.
+        Identifies special material behaviors that require specific handling:
+        - Tabulated equations of state
+        - Hypoelastic formulations  
+        - Pure hydrostatic materials (no deviatoric stress)
+        
+        Sets the corresponding boolean flags for use throughout the solver.
         """
-        def is_in_list(material, attribut, keyword):
-            is_mult = isinstance(material, list)
-            return (is_mult and any(getattr(mat, attribut) == keyword for mat in material)) or \
-                  (not is_mult and getattr(material, attribut) == keyword)
-
-        self.is_tabulated = is_in_list(self.material, "eos_type", "Tabulated")
-        self.is_hypoelastic = is_in_list(self.material, "dev_type", "Hypoelastic")
-        self.is_pure_hydro = is_in_list(self.material, "dev_type", None)
+        def has_law_type(material, attribute, keyword):
+            """Check if material(s) have a specific law type."""
+            materials = material if isinstance(material, list) else [material]
+            return any(getattr(mat, attribute) == keyword for mat in materials)
+    
+        self.is_tabulated = has_law_type(self.material, "eos_type", "Tabulated")
+        self.is_hypoelastic = has_law_type(self.material, "dev_type", "Hypoelastic")  
+        self.is_pure_hydro = has_law_type(self.material, "dev_type", None)
     
     def _init_constitutive_law(self):
         """
@@ -485,7 +525,7 @@ class Problem:
             self.u, self.material, self.plasticity_dictionnary,
             self.damage_dictionnary, self.multiphase,
             self.name, self.kinematic, self.quad,
-            self.damping, self.is_hypoelastic,
+            self.damping,
             self.relative_rho_field_init_list, self.h
         )
     
@@ -531,12 +571,15 @@ class Problem:
             loading_type = loading["type"]
             tag = loading["tag"]
             value = loading["value"]
-            if loading_type == "surfacique" and self.analysis == "static":
-                getattr(self.loading, "add_"+ loading["component"])(value * self.load, self.u_, self.ds(tag))
-            elif loading_type == "surfacique" and self.analysis == "explicit_dynamic":
-                getattr(self.loading, "add_"+ loading["component"])(value, self.u_, self.ds(tag))
+            component = loading["component"]
+            
+            if loading_type == "surfacique":
+                load_value = value * self.load if self.analysis == "static" else value
+                getattr(self.loading, f"add_{component}")(load_value, self.ds(tag))
+            elif loading_type == "volumique":
+                getattr(self.loading, f"add_{component}")(value, self.dx)
             else:
-                raise ValueError("loading type must be either surfacique or volumique")
+                raise ValueError(f"Unknown loading type: {loading_type}") 
     
     def _init_boundary_conditions(self, simulation_dic):
         """
@@ -546,11 +589,17 @@ class Problem:
         boundary conditions for the problem.
         """
         self.bcs = self.boundary_conditions_class()(self.V, self.facet_tag, self.name)
+        
         boundary_conditions_config = simulation_dic.get("boundary_conditions", [])
         for bc_config in boundary_conditions_config:
+            component = bc_config["component"]
             tag = bc_config["tag"]
             value = bc_config.get("value", ScalarType(0))
-            getattr(self.bcs, "add_" + bc_config["component"])(region = tag, value = value)
+            
+            if hasattr(self.bcs, f"add_{component}"):
+                getattr(self.bcs, f"add_{component}")(region=tag, value=value)
+            else:
+                raise ValueError(f"Unknown boundary condition component: {component}")
         
     def set_function_space(self):
         """
@@ -625,10 +674,16 @@ class Problem:
         
     def set_auxiliary_field(self):
         """
-        Initialize auxiliary fields for the thermo-mechanical problem.
+        Initialize auxiliary fields derived from primary variables.
         
-        Creates fields derived from the primary unknowns, such as the
-        Jacobian of the transformation, density, and stress.
+        Creates derived quantities needed for post-processing and solver
+        operations, including:
+        - Jacobian of deformation
+        - Current density
+        - Stress tensor and components
+        - Velocity gradient (rate of deformation)
+        
+        Also sets up Expression and Function objects for field output.
         """
         self.J_transfo = self.kinematic.J(self.u)
         self.rho = self.rho_0_field_init / self.J_transfo
@@ -679,23 +734,28 @@ class Problem:
 
     def current_stress(self, u, v, T, T0, J):
         """
-        Define the current stress in the material.
+        Compute the current Cauchy stress tensor.
         
-        Computes the stress based on deformation and velocity, applying
-        degradation factors in case of damage.
+        Calculates stress based on the current deformation state,
+        applying damage degradation if damage analysis is enabled.
         
         Parameters
         ----------
-        u  : dolfinx.fem.Function Displacement field
-        v  : dolfinx.fem.Function Velocity field
-        T  : dolfinx.fem.Function Current temperature field
-        T0 : dolfinx.fem.Function Initial temperature field
-        J  : ufl.algebra.Product Jacobian of the transformation
+        u : dolfinx.fem.Function
+            Current displacement field
+        v : dolfinx.fem.Function  
+            Current velocity field
+        T : dolfinx.fem.Function
+            Current temperature field
+        T0 : dolfinx.fem.Function
+            Reference temperature field
+        J : ufl.Expression
+            Jacobian of the deformation gradient
             
         Returns
         -------
-        ufl.tensors.ListTensor
-            Current stress tensor
+        ufl.Expression
+            Cauchy stress tensor (form depends on problem dimension)
         """
         sigma = self.undamaged_stress(u, v, T, T0, J)
         if self.damage_analysis:

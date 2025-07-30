@@ -7,7 +7,6 @@ Classe de base pour tous les modèles de plasticité
 
 from dolfinx.fem import Function
 
-
 class Plastic:
     """Base class for all plasticity models.
 

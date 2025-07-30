@@ -108,9 +108,9 @@ class TridimensionalLoading(Loading):
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[0], dx)
+        self.add_loading(value, dx, sub = 0)
         
     def add_Fy(self, value, u_, dx):
         """
@@ -118,9 +118,9 @@ class TridimensionalLoading(Loading):
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[1], dx)
+        self.add_loading(value, dx, sub = 1)
         
     def add_Fz(self, value, u_, dx):
         """
@@ -128,9 +128,9 @@ class TridimensionalLoading(Loading):
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[2], dx)
+        self.add_loading(value, dx, sub = 2)
 
 class Tridimensional(Problem):
     """

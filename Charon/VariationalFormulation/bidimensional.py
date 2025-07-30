@@ -1,5 +1,3 @@
-
-
 # Copyright 2025 CEA
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -180,27 +178,27 @@ class PlaneStrainLoading(BidimensionalLoading):
     
     Parameters
     ----------
-    mesh, u_, dx , kinematic : see Loading parameters in Problem.py
+    mesh, dx , kinematic : see Loading parameters in Problem.py
     """
-    def add_Fx(self, value, u_, dx):
+    def add_Fx(self, value, dx):
         """
         Add an external force in the x-direction.
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[0], dx)
+        self.add_loading(value, dx, sub = 0)
 
-    def add_Fy(self, value, u_, dx):
+    def add_Fy(self, value, dx):
         """
         Add an external force in the y-direction.
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[1], dx)
+        self.add_loading(value, dx, sub = 1)
 
 class AxiLoading(BidimensionalLoading):
     """
@@ -210,7 +208,7 @@ class AxiLoading(BidimensionalLoading):
     
     Parameters
     ----------
-    mesh, u_, dx , kinematic : see Loading parameters in Problem.py
+    mesh, dx , kinematic : see Loading parameters in Problem.py
     """
     def add_Fr(self, value, u_, dx):
         """
@@ -218,9 +216,9 @@ class AxiLoading(BidimensionalLoading):
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[0], dx)
+        self.add_loading(value, dx, sub = 0)
 
     def add_Fz(self, value, u_, dx):
         """
@@ -228,9 +226,9 @@ class AxiLoading(BidimensionalLoading):
         
         Parameters
         ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
+        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_[1], dx)
+        self.add_loading(value, dx, sub = 1)
 
 class Bidimensional(Problem):
     """

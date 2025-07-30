@@ -53,7 +53,8 @@ Helmholtz_energy : Calculate the Helmholtz free energy
 from .eos import EOS
 from .deviator import Deviator
 from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
-from .damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
+from .damage.base_damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
+# from .damage import 
 
 from ufl import dot, Identity
 from ..utils.generic_functions import npart
@@ -85,7 +86,7 @@ class ConstitutiveLaw:
     """
     
     def __init__(self, u, material, plasticity_dictionnary, damage_dictionnary, multiphase, 
-                 name, kinematic, quadrature, damping, is_hypo, relative_rho_0, h):
+                 name, kinematic, quadrature, damping, relative_rho_0, h):
         """Initialize the constitutive law manager.
 
         Parameters
@@ -97,7 +98,6 @@ class ConstitutiveLaw:
         kinematic : Kinematic Kinematic handler for tensor operations
         quadrature : QuadratureHandler  Handler for quadrature integration
         damping : dict Dictionary containing artificial viscosity parameters
-        is_hypo : bool Whether to use hypoelastic formulation
         relative_rho_0 : float or Function Relative initial density field
         h : float or Function Characteristic mesh size
         """
@@ -126,7 +126,10 @@ class ConstitutiveLaw:
             damage_class = damage_mapper.get(self.damage_model)
             if damage_class is None:
                 raise ValueError(f"Unknown damage model: {self.damage_model}") 
-            self.damage = damage_class(self.mesh, quadrature, damage_dictionnary)
+            # self.damage = damage_class(self.mesh, quadrature, damage_dictionnary)
+            self.damage = damage_class(self.mesh, quadrature, damage_dictionnary, 
+                          u=u, J=self.kinematic.J(u), pressure=self.p, 
+                          material=material, kinematic=kinematic)
             
             
         if self.plasticity_dictionnary != {}:
@@ -317,49 +320,4 @@ class ConstitutiveLaw:
         if material.dev_type == "Hypoelastic":
             return self.deviator.set_hypoelastic_deviator(u, v, J, material)
         else:
-            return self.deviator.set_elastic_dev(u, v, J, T, T0, material)
-            
-    def set_damage_driving(self, u, J):
-        """Initialize damage evolution.
-        
-        Sets up the driving force for damage evolution based on 
-        the current state of the system.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-        J : Expression Jacobian of the transformation
-        """
-        if self.damage_model in ["StaticJohnson", "DynamicJohnson", "InertialJohnson"]:
-            self.damage.set_p_mot(self.p)
-        else:
-            self.eHelm = self.Helmholtz_energy(u, J, self.material)
-            self.damage.set_NL_energy(self.eHelm) 
-            
-    def Helmholtz_energy(self, u, J, mat):
-        """Return the Helmholtz free energy.
-        
-        This method delegates the calculation to the appropriate 
-        EOS and deviator models.
-        
-        Parameters
-        ----------
-        u : Function Displacement field
-        J : Expression Jacobian of the transformation
-        mat : Material Material to study
-            
-        Returns
-        -------
-        Helmholtz free energy
-        """
-        # Get volumetric energy from EOS
-        try:
-            psi_vol = mat.eos.volumetric_helmholtz_energy(u, J, self.kinematic, mat.eos_type)
-        except:
-            raise ValueError("Phase field analysis has not been implemented for this eos")
-        # Get isochoric energy from deviator
-        try:
-            psi_iso_vol = mat.devia.isochoric_helmholtz_energy(u, self.kinematic)
-        except:
-            raise ValueError("Phase field analysis has not been implemented for this deviatoric law")
-        return psi_vol + psi_iso_vol
+            return self.deviator.set_elastic_dev(u, v, J, T, T0, material)        

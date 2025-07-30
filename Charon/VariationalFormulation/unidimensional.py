@@ -111,7 +111,7 @@ class UnidimensionalLoading(Loading):
     """
         Loading.__init__(self, mesh, u_, dx, kinematic)
         
-    def add_F(self, value, u_, dx):
+    def add_F(self, value, dx):
         """
         Add an external force.
         
@@ -119,7 +119,7 @@ class UnidimensionalLoading(Loading):
         ----------
         value, u_, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, u_, dx)
+        self.add_loading(value, dx)
 
 class Unidimensional(Problem):
     """
