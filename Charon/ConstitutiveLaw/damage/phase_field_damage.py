@@ -183,7 +183,7 @@ class PhaseFieldDamage(BaseDamage):
             eHelm = self._helmholtz_energy(u, J, material, kinematic)
             self.set_NL_energy(eHelm)
             
-    def Helmholtz_energy(self, u, J, mat):
+    def _helmholtz_energy(self, u, J, mat, kinematic):
         """Return the Helmholtz free energy.
         
         This method delegates the calculation to the appropriate 

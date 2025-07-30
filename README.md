@@ -1,10 +1,10 @@
-# CharonX: A Solid Mechanics FEM Package
+# Charon: A Solid Mechanics FEM Package
 
-CharonX is a finite element solver for solid mechanics problems. Developed as an extension to DOLFINx (part of the FEniCSx ecosystem), CharonX provides capabilities for simulating complex material behaviors including elasticity, plasticity, damage, and thermal effects. The code is designed to facilitate research of new constitutive laws, with portions of the code leveraging JAX for automatic differentiation.
+Charon is a finite element solver for solid mechanics problems. Developed as an extension to DOLFINx (part of the FEniCSx ecosystem), Charon provides capabilities for simulating complex material behaviors including elasticity, plasticity, damage, and thermal effects. The code is designed to facilitate research of new constitutive laws, with portions of the code leveraging JAX for automatic differentiation.
 
 ## Physical models and numerical methods
 
-CharonX solves solid mechanics problems using the finite element method. The current version provides the following features:
+Charon solves solid mechanics problems using the finite element method. The current version provides the following features:
 
 ### Kinematics and time integration
 - Static and explicit dynamic simulations
@@ -35,14 +35,14 @@ CharonX solves solid mechanics problems using the finite element method. The cur
 
 ## Example applications
 
-CharonX is designed for simulations involving complex material behaviors such as:
+Charon is designed for simulations involving complex material behaviors such as:
 - Damage and fracture mechanics
 - Multiphase material behaviors
 - Thermomechanical coupling effects
 
 ## Installation
 
-CharonX depends on DOLFINx and other components of the FEniCSx ecosystem. See https://github.com/FEniCS/dolfinx for installation of FEniCSx. To install:
+Charon depends on DOLFINx and other components of the FEniCSx ecosystem. See https://github.com/FEniCS/dolfinx for installation of FEniCSx. To install:
 
 ```bash
 # Install optional dependencies for advanced features

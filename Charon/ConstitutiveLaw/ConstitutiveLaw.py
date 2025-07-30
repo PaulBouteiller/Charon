@@ -53,7 +53,7 @@ Helmholtz_energy : Calculate the Helmholtz free energy
 from .eos import EOS
 from .deviator import Deviator
 from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
-from .damage.base_damage import PhaseField, StaticJohnson, DynamicJohnson, InertialJohnson
+from .damage import PhaseFieldDamage, StaticJohnson, DynamicJohnson, InertialJohnson
 # from .damage import 
 
 from ufl import dot, Identity
@@ -118,7 +118,7 @@ class ConstitutiveLaw:
         self.name = name
         self.relative_rho_0 = relative_rho_0
         if self.damage_model != None:
-            damage_mapper = {"PhaseField" : PhaseField, 
+            damage_mapper = {"PhaseField" : PhaseFieldDamage, 
                               "StaticJohnson" : StaticJohnson,
                               "DynamicJohnson" : DynamicJohnson,
                               "InertialJohnson" : InertialJohnson
