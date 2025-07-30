@@ -58,15 +58,20 @@ plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
 elif plasticity_model == "J2_JAX":
+    
+    b = 10.0
+    sigu = 750.0
+    
+    import jax.numpy as jnp
     def yield_function(p):
-        return sig0 + 1e9 * p
+        return sig0 + (sigu - sig0) * (1 - jnp.exp(-b * p))
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "NonLinear", "Hardening_func" : yield_function})
 
 #Paramètre élasto-plastique
 q_lim = float(2 * np.log(Re / Ri) * sig0)
 
 ###### Maillage ######
-Nx=10
+Nx=500
 mesh = create_1D_mesh(Ri, Re, Nx)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Ri, Re]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)

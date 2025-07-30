@@ -10,8 +10,6 @@ from .base_plastic import Plastic
 from dolfinx.fem import functionspace, Function
 from ufl import dot, dev
 
-
-
 class FiniteStrainPlastic(Plastic):         
     """Finite strain plasticity model with multiplicative decomposition.
 

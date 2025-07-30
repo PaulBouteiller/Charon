@@ -101,16 +101,14 @@ class Kinematic:
         -------
         Vector 3D gradient adapted to dimension and geometry
         """
-        grad_f = self.grad_scal(f)
-        
         if self._is_1d:
-            return as_vector([grad_f, 0, 0])
+            return as_vector([f.dx(0), 0, 0])
         elif self.name == "PlaneStrain": 
-            return as_vector([grad_f[0], grad_f[1], 0])
+            return as_vector([f.dx(0), f.dx(1), 0])
         elif self.name == "Axisymmetric": 
-            return as_vector([grad_f[0], 0, grad_f[1]])
+            return as_vector([f.dx(0), 0, f.dx(1)])
         else:  # Tridimensional
-            return grad_f
+            return grad(f)
     
     def grad_reduit(self, u, sym = False):
         """

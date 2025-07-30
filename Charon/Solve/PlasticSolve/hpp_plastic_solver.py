@@ -12,7 +12,7 @@ from dolfinx.fem import Expression, Function
 
 
 class HPPPlasticSolver:
-    """Solveur pour la plasticité HPP (Hypoelastic-Plastic)"""
+    """Solveur pour la plasticité HPP"""
     
     def __init__(self, problem, plastic, u):
         """
@@ -30,8 +30,9 @@ class HPPPlasticSolver:
         self.hardening = plastic.hardening
         self.p = plastic.p
         self.kin = plastic.kin
-        self.plastic_driving_force(problem.constitutive.s)
 
+        self.is_damage = problem.constitutive.damage_model
+        self.plastic_driving_force(problem.constitutive.s)
         self.Delta_eps_p = Function(plastic.Vepsp)
         self.Delta_p = Function(plastic.Vp, name = "Plastic_strain_increment")
         
@@ -48,13 +49,15 @@ class HPPPlasticSolver:
         eps = 1e-10
         if self.hardening == "LinearKinematic":
             self.A = self.kin.tridim_to_mandel(s_3D - self.plastic.H * self.plastic.eps_P_3D)
-            if self.pb.damage_model != None:
+            if self.is_damage != None:
                 self.A *= self.pb.damage.g_d
             norm_A = sqrt(dot(self.A, self.A)) + eps
             Delta_eps_p = ppart(1 - (2/3.)**(1./2) * self.sig_yield / norm_A) / \
                                 (2 * self.mu + self.H) *self.A
 
         elif self.hardening == "Isotropic":
+            if self.is_damage != None:
+                s_3D *= self.pb.damage.g_d
             s_mandel = self.kin.tridim_to_mandel(s_3D)
             sig_VM = sqrt(3.0 / 2.0 * dot(s_mandel, s_mandel)) + eps
             f_elas = sig_VM - self.plastic.sig_yield - self.plastic.H * self.plastic.p

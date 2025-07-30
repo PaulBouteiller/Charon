@@ -1,6 +1,6 @@
 # Copyright 2025 CEA
 """
-Solver pour la plasticité J2 avec JAX
+Solver pour la plasticité J2 avec JAX - Version nettoyée et optimisée
 
 @author: bouteillerp
 """
@@ -8,140 +8,140 @@ from dolfinx.fem import Function, Expression
 from ...utils.petsc_operations import petsc_assign
 
 try:
-    from jax.numpy import clip, sqrt, linalg, reshape, array, concatenate
-    from jax.numpy import zeros as jnp_zeros
+    from jax.numpy import clip, sqrt, reshape, array, eye
     from jax.lax import cond
-    from jax import vmap, jit
-    from optimistix import LevenbergMarquardt, root_find
+    from jax import vmap, jit, jacfwd
+    import jax.numpy as jnp
 except Exception:
-    raise ImportError("JAX et Optimistix sont requis pour ce solveur")
+    raise ImportError("JAX est requis pour ce solveur")
 
-def reduced_3D_tr(x):
-    return sum(x[:3])
+from .jax_newton_solver import JAXNewton
 
-def reduced_3D_dev(x):
-    tr = reduced_3D_tr(x)
-    return x - 1./3 * tr * reduced_unit_array(len(x))
-
-def reduced_3D_det(x):
-    if len(x)==3:
-        return x[0] * x[1] * x[2]
-    elif len(x)==6:
-        return x[0]*x[1]*x[2] + x[1]*x[2]*x[3]/sqrt(2) \
-            - x[4]**2*x[2]/2 - x[5]**2*x[0]/2 - x[3]**2*x[2]/2 
-            
-def reduced_unit_array(length):
+def to_vect(tensor_3x3, length):
+    """Convertit un tenseur 3x3 en vecteur selon la longueur demandée"""
     if length == 3:
-        return array([1, 1, 1])
+        return array([tensor_3x3[0,0], tensor_3x3[1,1], tensor_3x3[2,2]])
+    elif length == 4:
+        return array([
+            tensor_3x3[0,0], tensor_3x3[1,1], tensor_3x3[2,2], tensor_3x3[0,1]
+        ])
     elif length == 6:
-        return array([1, 1, 1, 0, 0, 0])
+        return array([
+            tensor_3x3[0,0], tensor_3x3[1,1], tensor_3x3[2,2],
+            tensor_3x3[0,1], tensor_3x3[0,2], tensor_3x3[1,2]
+        ])
+    else:
+        return tensor_3x3.flatten()
 
+def to_mat(vector):
+    """Convertit un vecteur en tenseur 3x3 selon sa longueur"""
+    if len(vector) == 3:
+        return jnp.diag(vector)
+    elif len(vector) == 4:
+        return array([
+            [vector[0], vector[3], 0],
+            [vector[3], vector[1], 0],
+            [0, 0, vector[2]]
+        ])
+    elif len(vector) == 6:
+        return array([
+            [vector[0], vector[3], vector[4]],
+            [vector[3], vector[1], vector[5]],
+            [vector[4], vector[5], vector[2]]
+        ])
+    elif len(vector) == 9:
+        return vector.reshape(3, 3)
+    else:
+        raise ValueError(f"Format de vecteur non supporté: {len(vector)}")
+
+def dev(tensor):
+    """Partie déviatorique d'un tenseur 3x3"""
+    return tensor - jnp.trace(tensor) / 3.0 * eye(3)
+
+def tr(tensor):
+    """Trace d'un tenseur"""
+    return jnp.trace(tensor)
+
+def det(tensor):
+    """Déterminant d'un tenseur"""
+    return jnp.linalg.det(tensor)
 
 class JAXJ2PlasticSolver:
-    """Solveur pour la plasticité J2 avec JAX et Optimistix"""
+    """Solveur pour la plasticité J2 avec JAX - Version optimisée"""
     
     def __init__(self, problem, plastic, u):
-        """
-        Initialise le solveur J2 JAX
-        
-        Parameters
-        ----------
-        plastic : JAXJ2Plasticity
-            Instance de la classe JAXJ2Plasticity
-        u : Function
-            Champ de déplacement
-        """ 
         self.plastic = plastic
         self._setup_solver()
         self.batched_constitutive_update = jit(vmap(self.constitutive_update, in_axes=(0, 0)))
         self.n_gauss = len(self.plastic.p.x.array)
         self.Be_Bar_trial_func = Function(self.plastic.V_Be_bar)
-        expr = self.plastic.Be_bar_trial(u, self.plastic.u_old)
-        
-        self.Be_Bar_trial_expr = Expression(self.plastic.kin.tridim_to_mandel(expr), self.plastic.V_Be_bar.element.interpolation_points())
+        expr = self.plastic.kin.tridim_to_mandel(self.plastic.Be_bar_trial(u, self.plastic.u_old))
+        self.Be_Bar_trial_expr = Expression(expr, self.plastic.V_Be_bar.element.interpolation_points())
             
     def _setup_solver(self):
-        """Configure le solveur Levenberg-Marquardt"""
+        """Configure le solveur avec fonctions pré-compilées"""
         self.mu = self.plastic.mu
         self.yield_stress = self.plastic.yield_stress
-        self.equivalent_stress = lambda x: linalg.norm(x)
-        self.clipped_equiv_stress = lambda s: clip(self.equivalent_stress(s), a_min=1e-6)
-        self.normal = lambda s: s / self.clipped_equiv_stress(s)
-        
-        def residual_function(x, args):
-            be_bar_trial, p_old = args
-            be_bar, dp = x[:-1], x[-1]
-            dev_be_bar_trial = reduced_3D_dev(be_bar_trial)
-            s_trial = self.mu * dev_be_bar_trial
-            sig_eq_trial = self.clipped_equiv_stress(s_trial)
-            
-            r_be = self._r_be_plastic(be_bar, dp, be_bar_trial, dev_be_bar_trial)
-            r_p = self._r_p_plastic(p_old, dp, be_bar, sig_eq_trial)
-            
-            return concatenate([r_be, array([r_p])])
-            
-        self.residual_function = residual_function
-        self.solver = LevenbergMarquardt(rtol=1e-8, atol=1e-8)
+        self.len = self.plastic.len_plas
+        self.clipped_equiv_stress = jit(lambda s: clip(jnp.linalg.norm(s), a_min=1e-8))
+        self.normal = jit(jacfwd(self.clipped_equiv_stress))
+        self.newton_solver = JAXNewton(rtol=1e-8, atol=1e-8, niter_max=100)
 
-    def _r_p_plastic(self, p_old, dp, be_bar, sig_eq_trial):
-        """Résidu du critère de plasticité, la division par self.mu permet le scaling"""
-        return self.clipped_equiv_stress(reduced_3D_dev(be_bar)) - sqrt(2 / 3) * self.yield_stress(p_old + dp) / self.mu
-    
-    def _r_be_plastic(self, be_bar, dp, be_bar_trial, dev_be_bar_trial):
-        """Résidu de l'équation d'évolution du tenseur élastique, on somme les residus en incluant
-        celui associé au déterminant unitaire"""
-        det_be_bar = reduced_3D_det(be_bar)
-        dev_be_bar = reduced_3D_dev(be_bar)            
-        return dev_be_bar - dev_be_bar_trial \
-                + 2 * sqrt(3 / 2) * dp * reduced_3D_tr(be_bar) / 3 * self.normal(dev_be_bar) \
-                + (det_be_bar - 1) * reduced_unit_array(self.plastic.len_plas)
-        
-    def _compute_trial_state(self, be_bar_trial, p_old):
-        """Calcul de l'état d'essai"""
-        dev_be_bar_trial = reduced_3D_dev(be_bar_trial)
-        s_trial = self.mu * dev_be_bar_trial
+    def _compute_yield_criterion(self, be_bar_trial, p_old):
+        """Calcul du critère de plasticité"""
+        be_bar_trial_3x3 = to_mat(be_bar_trial)
+        s_trial = self.mu * dev(be_bar_trial_3x3)
         sig_eq_trial = self.clipped_equiv_stress(s_trial)
-        yield_criterion = sig_eq_trial - sqrt(2 / 3) * self.yield_stress(p_old)
-        return dev_be_bar_trial, s_trial, sig_eq_trial, yield_criterion
+        return sig_eq_trial - sqrt(2 / 3) * self.yield_stress(p_old)
     
     def constitutive_update(self, be_bar_trial, p_old):
-        """Mise à jour constitutive avec test élastique/plastique"""
-        dev_be_bar_trial, s_trial, sig_eq_trial, yield_criterion = \
-        self._compute_trial_state(be_bar_trial, p_old)
-        # Toujours retourner un tuple (be_bar, dp)
-        be_bar, dp = cond(
-            yield_criterion < 0.0,
-            lambda x: (x, 0.0),  # Cas élastique: pas de déformation plastique
-            lambda x: self._return_mapping(x, p_old, dev_be_bar_trial, sig_eq_trial),  # Cas plastique
-            be_bar_trial
-        )
+        """Mise à jour constitutive avec JAXNewton"""
+        yield_criterion = self._compute_yield_criterion(be_bar_trial, p_old)
         
-        return be_bar, dp
+        def r_p(dx):
+            """Résidu de la condition de plasticité"""
+            be_bar, dp = dx[:-1], dx[-1]
+            be_bar_3x3 = to_mat(be_bar)
+            s = self.mu * dev(be_bar_3x3)
+            
+            r_elastic = lambda dp: dp
+            r_plastic = lambda dp: (
+                self.clipped_equiv_stress(s) - sqrt(2 / 3) * self.yield_stress(p_old + dp)
+            ) / self.mu
+            
+            return cond(yield_criterion < 0.0, r_elastic, r_plastic, dp)
         
-    def _return_mapping(self, be_bar_trial, p_old, dev_be_bar_trial, sig_eq_trial):
-        """Algorithme de retour sur la surface de charge"""
-        x0 = jnp_zeros((self.plastic.len_plas + 1,))
-        x0 = x0.at[:-1].set(be_bar_trial)
-        y0 = jnp_zeros(self.plastic.len_plas + 1)
+        def r_be(dx):
+            """Résidu de l'évolution du tenseur élastique"""
+            be_bar, dp = dx[:-1], dx[-1]
+            be_bar_3x3 = to_mat(be_bar)
+            be_bar_trial_3x3 = to_mat(be_bar_trial)
+            s = self.mu * dev(be_bar_3x3)
+            
+            r_elastic = lambda be_bar, dp: to_vect(
+                be_bar_3x3 - be_bar_trial_3x3, self.len
+            )
+            r_plastic = lambda be_bar, dp: to_vect(
+                dev(be_bar_3x3 - be_bar_trial_3x3)
+                + 2 * sqrt(3 / 2) * dp * tr(be_bar_3x3) / 3 * self.normal(s)
+                + eye(3) * (det(be_bar_3x3) - 1),
+                self.len,
+            )
+            
+            return cond(yield_criterion < 0.0, r_elastic, r_plastic, be_bar_3x3, dp)
         
-        sol = root_find(
-            lambda x, args: self.residual_function(x, (be_bar_trial, p_old)), 
-            self.solver, 
-            y0, 
-            x0
-        )
-        be_bar, dp = sol.value[:-1], sol.value[-1]
-        return be_bar, dp
+        # Résolution
+        self.newton_solver.set_residual((r_be, r_p))
+        x0 = jnp.concatenate([be_bar_trial, jnp.array([0.0])])
+        x, data = self.newton_solver.solve(x0)
+        
+        return x[:-1], x[-1]
 
     def solve(self):
-        """
-        Résout le problème de plasticité J2 avec JAX
-        
-        Met à jour le tenseur élastique de Cauchy-Green gauche
-        """
-        # pass
+        """Résout le problème de plasticité J2"""
         self.Be_Bar_trial_func.interpolate(self.Be_Bar_trial_expr)
-        Bbar_trial = reshape(self.Be_Bar_trial_func.x.array, (self.n_gauss, self.plastic.len_plas))
+        Bbar_trial = reshape(self.Be_Bar_trial_func.x.array, (self.n_gauss, self.len))
         be_bar, dp = self.batched_constitutive_update(Bbar_trial, self.plastic.p.x.array)
-        # self.plastic.Be_Bar_old.x.array[:] = be_bar.ravel()
-        # petsc_assign(self.plastic.u_old, self.plastic.u)
+        self.plastic.Be_bar.x.array[:] = be_bar.ravel()
+        self.plastic.p.x.array[:] += dp
+        petsc_assign(self.plastic.u_old, self.plastic.u)

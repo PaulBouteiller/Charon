@@ -6,8 +6,8 @@ Modèle de plasticité J2 avec JAX
 """
 
 from .base_plastic import Plastic
-from dolfinx.fem import functionspace, Function, Expression
-from ufl import dot, det, dev
+from dolfinx.fem import functionspace, Function
+from ufl import dot, dev
 
 
 class JAXJ2Plasticity(Plastic):

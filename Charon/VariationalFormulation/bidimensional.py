@@ -324,7 +324,7 @@ class Bidimensional(Problem):
         """
         return dot(tensor1, tensor2)
     
-class Plane_strain(Bidimensional):
+class PlaneStrain(Bidimensional):
     """
     Class for plane strain mechanical problems.
     

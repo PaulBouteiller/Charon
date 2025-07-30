@@ -18,7 +18,6 @@ Created on Tue Mar  8 15:51:14 2022
 """
 from .displacement_solve import ExplicitDisplacementSolver
 from .energy_solve import ExplicitEnergySolver, DiffusionSolver
-# NOUVEAUX IMPORTS MODULAIRES
 from .PlasticSolve.hpp_plastic_solver import HPPPlasticSolver
 from .PlasticSolve.finite_strain_plastic_solver import FiniteStrainPlasticSolver
 from .PlasticSolve.jax_j2_plastic_solver import JAXJ2PlasticSolver

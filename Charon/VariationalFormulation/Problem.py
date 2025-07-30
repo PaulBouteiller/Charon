@@ -35,7 +35,6 @@ from ..ConstitutiveLaw.Thermal import Thermal
 from ..utils.kinematic import Kinematic
 from ..utils.default_parameters import default_damping_parameters
 from ..utils.MyExpression import MyConstant, Tabulated_BCs
-# from ..utils.quadrature import Quadrature
 from ..utils.interpolation import create_function_from_expression
 
 from .multiphase import Multiphase
@@ -45,11 +44,9 @@ from mpi4py import MPI
 from basix.ufl import element
 from dolfinx.fem.petsc import set_bc
 from petsc4py.PETSc import ScalarType
-from numpy import array
 
 from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc, 
                          form, assemble_scalar, Constant, Function, Expression, function)
-from dolfinx.mesh import meshtags
 
 from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, SpatialCoordinate)
 
@@ -508,6 +505,9 @@ class Problem:
         
         Sets up thermal properties and heat transfer formulation for
         non-isothermal analysis.
+            Define the volumetric power of internal forces.
+            
+            Computes the heat generation term from mechanical work.
         """
         if self.analysis != "static" and not self.iso_T:
             self.therm = Thermal(
@@ -516,7 +516,7 @@ class Problem:
             )
             self.set_T_dependant_massic_capacity()
             self.therm.set_tangent_thermal_capacity() 
-            self.set_volumic_thermal_power()
+            self.pint_vol = self.inner(self.sig, self.D)
     
     def _init_loading(self, simulation_dic):
         """
@@ -714,14 +714,7 @@ class Problem:
         self.T0.x.petsc_vec.set(T0)
         self.T.x.petsc_vec.set(T0)
                 
-    def set_volumic_thermal_power(self):
-        """
-        Define the volumetric power of internal forces.
-        
-        Computes the heat generation term from mechanical work.
-        """
-        self.pint_vol = self.inner(self.sig, self.D)
-        
+
     def flux_bilinear_form(self):
         """
         Define the bilinear form for thermal flux.
