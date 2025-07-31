@@ -23,7 +23,6 @@ The module is organized with a base abstract class and specialized implementatio
 for different material behaviors, including:
 - Isotropic elastic and hyperelastic models
 - Anisotropic elasticity
-- Fluid viscosity models
 - Hypoelastic formulations for large deformations
 
 Key features:
@@ -62,7 +61,7 @@ from .mooney_rivlin import MooneyRivlinDeviator
 from .anisotropic import AnisotropicDeviator
 #Hypoelastic deviator
 from .hypoelastic import HypoelasticDeviator
-__all__ = ['BaseDeviator', 'Deviator', 'NoneDeviator', 'NewtonianFluidDeviator',
+__all__ = ['BaseDeviator', 'Deviator', 'NoneDeviator',
            'IsotropicHPPDeviator', 'NeoHookDeviator', 'MooneyRivlinDeviator',
            'AnisotropicDeviator', 'HypoelasticDeviator']
 

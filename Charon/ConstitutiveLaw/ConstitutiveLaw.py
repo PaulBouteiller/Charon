@@ -54,7 +54,6 @@ from .eos import EOS
 from .deviator import Deviator
 from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
 from .damage import PhaseFieldDamage, StaticJohnson, DynamicJohnson, InertialJohnson
-# from .damage import 
 
 from ufl import dot, Identity
 from ..utils.generic_functions import npart
