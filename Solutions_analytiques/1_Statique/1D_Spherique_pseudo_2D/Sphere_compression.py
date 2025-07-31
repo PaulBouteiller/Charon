@@ -24,7 +24,7 @@ numériquement et la solution analytique pour un domaine sphérique creux.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import axi_sphere, Axisymmetric, Solve, MeshManager
+from Charon import axi_sphere, Axisymmetric, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt

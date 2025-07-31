@@ -1,4 +1,16 @@
 # Copyright 2025 CEA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Modèle de plasticité HPP (petites déformations)
 
@@ -12,17 +24,20 @@ from dolfinx.fem import functionspace, Function
 
 
 class HPPPlastic(Plastic):
-    """Small strain plasticity model.
+    """Small strain J2 plasticity model.
     
-    This class implements J2 plasticity with small strain assumption,
-    supporting both isotropic and kinematic hardening.
+    Implements J2 plasticity with small strain assumption,
+    supporting isotropic and kinematic hardening.
     
     Attributes
     ----------
     Vepsp : FunctionSpace Function space for plastic strain
     eps_p : Function Plastic strain tensor
     eps_P_3D : Expression 3D representation of plastic strain tensor
-    delta_eps_p : Function Increment of plastic strain
+    Vp : FunctionSpace, optional
+        Function space for cumulative plastic strain (isotropic hardening)
+    p : Function, optional
+        Cumulative plastic strain (isotropic hardening)
     """
     def _set_function(self, element, quadrature):
         """Initialize functions for small strain plasticity.

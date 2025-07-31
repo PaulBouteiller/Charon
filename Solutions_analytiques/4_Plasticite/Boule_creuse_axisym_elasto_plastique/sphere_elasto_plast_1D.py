@@ -53,7 +53,7 @@ Re = 600
 Ri = 300.0
 
 
-plasticity_model = "HPP_Plasticity"
+plasticity_model = "J2_JAX"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
@@ -78,11 +78,6 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 
 p_applied = 1.1 * q_lim
-
-
-####Debug
-# p_applied = 0.1 * q_lim
-
 
 npas = 2000
 compteur = 100

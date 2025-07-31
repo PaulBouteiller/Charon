@@ -17,7 +17,7 @@ et à évaluer les performances de calcul.
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType, MeshManager
+from Charon import Solve, MyConstant, create_rectangle, PlaneStrain, CellType, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import pytest
 
@@ -58,7 +58,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True,
                 }
 
-pb = Plane_strain(Acier, dictionnaire)
+pb = PlaneStrain(Acier, dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",

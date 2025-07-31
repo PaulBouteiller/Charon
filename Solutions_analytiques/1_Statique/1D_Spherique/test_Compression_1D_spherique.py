@@ -19,7 +19,7 @@ Une assertion vérifie que l'erreur relative entre les solutions est inférieure
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_1D_mesh, SphericalUD, Solve, MeshManager
+from Charon import create_1D_mesh, SphericalUD, Solve, MeshManager
 import numpy as np
 import matplotlib.pyplot as plt
 import pytest

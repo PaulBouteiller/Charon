@@ -37,9 +37,8 @@ from .base_damage import BaseDamage
 class PhaseFieldDamage(BaseDamage):
     """Phase field damage model for brittle fracture.
 
-    This class implements phase field approaches to brittle fracture,
-    including AT1, AT2, and Wu formulations. These models represent cracks
-    as diffuse damage bands rather than discrete discontinuities.
+    Implements phase field approaches (AT1, AT2, Wu) for brittle fracture,
+    representing cracks as diffuse damage bands.
     
     Attributes
     ----------
@@ -55,8 +54,10 @@ class PhaseFieldDamage(BaseDamage):
     E : float, optional Young's modulus (for Wu model)
     PF_model : str Phase field model type (AT1, AT2, Wu)
     g_d : Expression Degradation function
-    energy : Expression Elastic energy with damage
-    fracture_energy : Expression Energy dissipated by fracture
+    energy : Expression, optional Elastic energy with damage
+    fracture_energy : Expression, optional Energy dissipated by fracture
+    sigma_c : float, optional Critical stress (Wu model)
+    wu_softening_type : str, optional Softening type for Wu model
     """
     
     def __init__(self, mesh, quadrature, dictionnaire, u=None, J=None, pressure=None, material=None, kinematic=None):

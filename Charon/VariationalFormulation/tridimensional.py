@@ -100,9 +100,9 @@ class TridimensionalLoading(Loading):
         ----------
         mesh, u_, dx , kinematic : see Loading parameters in Problem.py
         """
-        Loading.__init__(self, mesh, u_[0], dx, kinematic)
+        Loading.__init__(self, mesh, u_, dx, kinematic, sub = 0)
 
-    def add_Fx(self, value, u_, dx):
+    def add_Fx(self, value, dx):
         """
         Add an external force in the x-direction.
         
@@ -112,7 +112,7 @@ class TridimensionalLoading(Loading):
         """
         self.add_loading(value, dx, sub = 0)
         
-    def add_Fy(self, value, u_, dx):
+    def add_Fy(self, value, dx):
         """
         Add an external force in the y-direction.
         
@@ -122,7 +122,7 @@ class TridimensionalLoading(Loading):
         """
         self.add_loading(value, dx, sub = 1)
         
-    def add_Fz(self, value, u_, dx):
+    def add_Fz(self, value, dx):
         """
         Add an external force in the z-direction.
         

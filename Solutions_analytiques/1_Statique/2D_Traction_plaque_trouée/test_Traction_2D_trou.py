@@ -19,7 +19,7 @@ Paramètres:
     - theta: Angle (en radians) par rapport à l'axe horizontal
 """
 
-from CharonX import Plane_strain, Solve, MeshManager
+from Charon import PlaneStrain, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -91,7 +91,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
                      
-pb = Plane_strain(Acier, dictionnaire)
+pb = PlaneStrain(Acier, dictionnaire)
 
 ###### Paramètre de la résolution ######
 dictionnaire_solve = {

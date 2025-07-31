@@ -219,7 +219,13 @@ class Loading:
     u_ : ufl.TestFunction 
     Test function for the displacement field
     """
-    def __init__(self, mesh, u_, dx, kinematic):
+    def sub_component(self, u_, sub):
+        if sub == None:
+            return u_
+        else:
+            return u_[sub]
+        
+    def __init__(self, mesh, u_, dx, kinematic, sub = None):
         """
         Initialize the external work form.
         
@@ -234,7 +240,7 @@ class Loading:
         self.my_constant_list = []
         self.function_list = []
         self.u_ = u_ 
-        self.Wext = kinematic.measure(Constant(mesh, ScalarType(0)) * u_, dx)
+        self.Wext = kinematic.measure(Constant(mesh, ScalarType(0)) * self.sub_component(self.u_, sub), dx)
         self.n = FacetNormal(mesh)
         
     def add_loading(self, value, dx, sub = None):
@@ -254,12 +260,7 @@ class Loading:
         - For surface measures (ds): adds Neumann boundary conditions
         - Time-dependent loads should use MyConstant objects
         """
-        def sub_component(u_, sub):
-            if sub == None:
-                return u_
-            else:
-                return u_[sub]
-        u_component = sub_component(self.u_, sub)
+        u_component = self.sub_component(self.u_, sub)
         if isinstance(value, MyConstant):
             if hasattr(value, "function"):
                 self.Wext += self.kinematic.measure(inner(value.Expression.constant * value.function, u_component), dx)
@@ -288,7 +289,7 @@ class Loading:
         if isinstance(value, function.Expression):
             return value
     
-    def add_pressure(self, p, u_, ds):
+    def add_pressure(self, p, ds):
         """
         Add pressure (normal surface force) on the exterior surface.
         
@@ -303,7 +304,7 @@ class Loading:
                 return value.Expression.constant
             else:
                 return value
-        self.Wext += self.kinematic.measure(-value(p) * dot(self.n, u_), ds)
+        self.Wext += self.kinematic.measure(-value(p) * dot(self.n, self.u_), ds)
         
 class Problem:
     """
@@ -479,7 +480,7 @@ class Problem:
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
             self.n_mat = len(self.material)
-            self.multiphase = Multiphase(self.n_mat, self.quad)
+            self.multiphase = Multiphase(self.n_mat, self.quad, dictionnaire['multiphase'])
         else:
             self.n_mat = 1
             self.multiphase = None

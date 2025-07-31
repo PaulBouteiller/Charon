@@ -17,7 +17,7 @@ Chargement:
 La solution analytique utilise les équations de Lamé pour un cylindre à paroi épaisse.
 Une assertion vérifie que l'erreur relative entre les solutions est inférieure à 0.1%.
 """
-from CharonX import CylindricalUD, Solve, create_1D_mesh, MeshManager
+from Charon import CylindricalUD, Solve, create_1D_mesh, MeshManager
 import pytest
 import sys
 sys.path.append("../../")

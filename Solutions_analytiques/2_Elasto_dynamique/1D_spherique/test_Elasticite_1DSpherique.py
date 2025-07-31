@@ -23,7 +23,7 @@ La solution analytique est implémentée dans le module Solution_analytique_sphe
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, SphericalUD, MyConstant, create_interval, MeshManager
+from Charon import Solve, SphericalUD, MyConstant, create_interval, MeshManager
 from pandas import read_csv
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt

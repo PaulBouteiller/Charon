@@ -12,7 +12,7 @@ Tests effectués:
 
 Auteur: bouteillerp
 """
-from CharonX import CartesianUD, Material, create_1D_mesh, CellType, Axisymmetric, create_rectangle, MeshManager
+from Charon import CartesianUD, Material, create_1D_mesh, CellType, Axisymmetric, create_rectangle, MeshManager
 from mpi4py import MPI
 from dolfinx.fem import Function
 import pytest

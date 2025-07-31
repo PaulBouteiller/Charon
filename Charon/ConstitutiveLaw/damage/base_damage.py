@@ -40,6 +40,8 @@ class BaseDamage(ABC):
     
     Attributes
     ----------
+    mesh : Mesh Computational mesh
+    quad : QuadratureHandler Handler for quadrature integration
     dam_parameters : dict Dictionary of default damage parameters
     residual_stiffness : float Residual stiffness factor (prevents complete loss of stiffness)
     default_damage : float Default initial damage value

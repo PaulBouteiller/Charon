@@ -38,7 +38,7 @@ from ...utils.default_parameters import default_porosity_parameters
 class JohnsonDamage(BaseDamage):
     """Base class for porosity-based Johnson damage models.
     
-    This class implements the core functionality for damage models based on
+    Implements core functionality for damage models based on
     porosity evolution, tracking void growth in ductile materials.
     
     Attributes
@@ -50,6 +50,8 @@ class JohnsonDamage(BaseDamage):
     d : Function Current porosity field
     g_d : Expression Degradation function (1 - d)
     interp_points : array Interpolation points for the function space
+    p_mot : Expression Driving force expression
+    p_func : Function Pressure function
     """
     
     def __init__(self, mesh, quadrature, dictionnaire, u=None, J=None, pressure=None, material=None, kinematic=None):

@@ -16,7 +16,7 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from CharonX import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
+from Charon import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
                      create_rectangle, Axisymmetric, MeshManager)
 from pandas import read_csv
 from mpi4py.MPI import COMM_WORLD

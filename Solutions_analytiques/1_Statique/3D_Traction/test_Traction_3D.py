@@ -24,7 +24,7 @@ relative est inférieure à 1%.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_box, MyConstant, Tridimensional, Solve, MeshManager
+from Charon import create_box, MyConstant, Tridimensional, Solve, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import numpy as np
 import matplotlib.pyplot as plt

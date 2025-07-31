@@ -14,7 +14,7 @@ from math import pi
 class JAXGursonPlasticity(Plastic):
     """Gurson-Tvergaard-Needleman model for porous plasticity.
     
-    This class implements the GTN model for porous ductile materials,
+    Implements GTN model for porous ductile materials,
     accounting for void growth, nucleation, and coalescence.
     
     Attributes
@@ -23,9 +23,8 @@ class JAXGursonPlasticity(Plastic):
     Be_Bar_trial_func : Function Trial elastic left Cauchy-Green tensor
     Be_Bar_old : Function Previous elastic left Cauchy-Green tensor
     len_plas : int Length of plastic variable array
-    Be_bar_old_3D : Expression 3D representation of previous elastic left Cauchy-Green tensor
-    u_old : Function Previous displacement field
-    Be_Bar_trial : Expression Expression for trial elastic left Cauchy-Green tensor
+    Be_bar_old_3D : Expression 3D representation of previous tensor
+    Be_Bar_trial : Expression Expression for trial tensor
     V_p : FunctionSpace Function space for cumulated plasticity
     p : Function Cumulated plasticity
     V_f : FunctionSpace Function space for porosity

@@ -1,6 +1,10 @@
 # Copyright 2025 CEA
 """
-Solver pour la plasticité HPP (petites déformations)
+Small Strain Plasticity Solver (HPP)
+====================================
+
+Implements return mapping algorithm for small strain J2 plasticity
+with isotropic and kinematic hardening options.
 
 @author: bouteillerp
 """
@@ -12,21 +16,34 @@ from dolfinx.fem import Expression, Function
 
 
 class HPPPlasticSolver:
-    """Solveur pour la plasticité HPP"""
+    """Solver for small strain J2 plasticity (HPP).
+    
+    Implements return mapping algorithm for J2 plasticity under
+    small strain assumption with different hardening models.
+    
+    Attributes
+    ----------
+    plastic : HPPPlastic Small strain plasticity model instance
+    hardening : str Type of hardening ("Isotropic", "LinearKinematic")
+    p : Function, optional Cumulative plastic strain (isotropic hardening)
+    kin : Kinematic Kinematic handler
+    is_damage : str or None Damage model type if present
+    Delta_eps_p : Function Plastic strain increment
+    Delta_p : Function, optional Cumulative plastic strain increment (isotropic hardening)
+    Delta_eps_p_expression : Expression Expression for plastic strain increment
+    Delta_p_expression : Expression, optional Expression for cumulative plastic strain increment
+    """
     
     def __init__(self, problem, plastic, u):
-        """
-        Initialise le solveur HPP
+        """Initialize the small strain plasticity solver.
         
         Parameters
         ----------
-        plastic : HPPPlastic
-            Instance de la classe HPPPlastic
-        u : Function
-            Champ de déplacement
+        problem : Problem Problem instance containing constitutive law
+        plastic : HPPPlastic Small strain plasticity model instance
+        u : Function Current displacement field (unused)
         """
         self.plastic = plastic
-        self.eps_p = plastic.eps_p
         self.hardening = plastic.hardening
         self.p = plastic.p
         self.kin = plastic.kin
@@ -37,10 +54,10 @@ class HPPPlasticSolver:
         self.Delta_p = Function(plastic.Vp, name = "Plastic_strain_increment")
         
     def plastic_driving_force(self, s_3D):
-        """Calculate plastic driving force and plastic strain increment.
+        """Calculate plastic driving force and strain increment.
         
         Implements return mapping algorithm for J2 plasticity with
-        different hardening options.
+        different hardening options and optional damage coupling.
         
         Parameters
         ----------
@@ -67,12 +84,11 @@ class HPPPlasticSolver:
         self.Delta_eps_p_expression = Expression(Delta_eps_p, self.plastic.Vepsp.element.interpolation_points())
     
     def solve(self):
-        """
-        Résout le problème de plasticité HPP
+        """Solve small strain plasticity problem.
         
-        Met à jour les variables plastiques selon le modèle HPP :
-        - Déformation plastique cumulée (si durcissement isotrope)  
-        - Incrément de déformation plastique
+        Updates plastic variables according to HPP model:
+        - Cumulative plastic strain (if isotropic hardening)
+        - Plastic strain increment
         """
         if self.hardening == "Isotropic":
             # Mise à jour de la déformation plastique cumulée
@@ -81,4 +97,4 @@ class HPPPlasticSolver:
         
         # Mise à jour de l'incrément de déformation plastique
         self.Delta_eps_p.interpolate(self.Delta_eps_p_expression)
-        petsc_add(self.eps_p.x.petsc_vec, self.Delta_eps_p.x.petsc_vec)
+        petsc_add(self.plastic.eps_p.x.petsc_vec, self.Delta_eps_p.x.petsc_vec)

@@ -14,7 +14,7 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from CharonX import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
+from Charon import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
                      Axisymmetric, axi_sphere, MeshManager)
 from pandas import read_csv
 import matplotlib.pyplot as plt

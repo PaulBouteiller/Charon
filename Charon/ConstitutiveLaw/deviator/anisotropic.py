@@ -281,23 +281,51 @@ class AnisotropicDeviator(BaseDeviator):
         self.C = R.dot(self.C.dot(R.T))
         
     def _orthotropic_unified_gij_fit(self, data, plot, save):
-        """Calibrate a unified gij function from the three components of data.
-        This approach assumes g_xx = g_yy = g_zz for simplicity.
-        
-        Parameters
-        ----------
-        data : dict
-            Dictionary containing:
-            - J: array of Jacobian values
-            - s_xx, s_yy, s_zz: arrays of deviatoric stresses
-            - degree: polynomial degree for fitting
-            - plot: whether to display plots
-            
-        Returns
-        -------
-        tuple
-            (g_xx, g_yy, g_zz, poly_fit_unified) containing the fitted data and polynomial
-        """
+        """Calibrate unified volumetric coupling functions from experimental data.
+           
+           This method fits a single polynomial function g(J) to describe the nonlinear
+           coupling between volumetric deformation and deviatoric stress in anisotropic
+           materials. The approach assumes g_xx = g_yy = g_zz for simplicity, reducing
+           the number of parameters to fit.
+           Parameters
+           ----------
+           data : dict
+               Experimental data containing:
+               - "J" : array_like
+                   Jacobian values (volumetric deformation ratio). Should span
+                   the expected deformation range in the simulation.
+               - "s_xx", "s_yy", "s_zz" : array_like
+                   Deviatoric stress components for each J value (Pa).
+                   These should be from controlled volumetric tests.
+               - "degree" : int
+                   Polynomial degree for fitting (typically 2-4).
+               - Additional plotting/saving options.
+               
+           plot : bool
+               Whether to display fitting plots for quality assessment.
+               
+           save : bool
+               Whether to save plots to files.
+               
+           Returns
+           -------
+           tuple
+               - g_data : list of arrays
+                   Original g_ij data points [g_xx, g_yy, g_zz] for validation.
+               - poly_coeffs : ndarray or None
+                   Polynomial coefficients for unified g(J) function.
+                   None if material is isotropic (|dev(M₀)| < 1).
+                   
+           Notes
+           -----
+           Algorithm:
+           1. Check if material is volumetrically isotropic by examining dev(M₀)
+           2. If isotropic, return unity functions (no coupling needed)
+           3. If anisotropic, extract g_ij from experimental data using:
+              g_ij(J) = σ_dev,ij / (prefactor * M₀_dev,ij)
+           4. Fit unified polynomial to combined g_xx, g_yy, g_zz data
+           5. Validate fit quality and return coefficients
+           """
         def prefactor(J):
             return (J - 1) / (3 * J) 
 
@@ -332,24 +360,48 @@ class AnisotropicDeviator(BaseDeviator):
         return [g_xx, g_yy, g_zz], poly_fit_unified
 
     def calibrate_fij(self, shear_data, spherical_data, plot, save):
-        """Calibrate the shear modulation functions (fij) from experimental data.
+        """Calibrate shear modulation functions from experimental shear test data.
         
-        Parameters
+        This method determines the functions f_ij(J) that modify the anisotropic
+        shear response under volumetric deformation. These functions capture the
+        coupling between shear stiffness and volume change, which is important
+        for accurate anisotropic material modeling.
         ----------
         shear_data : dict
-            Dictionary containing shear deformation data with keys:
-            - "xy", "yz", "xz": Arrays with columns [J, sigma_xy, ...]
-            Or alternatively:
-            - "sxy", "syz", "sxz": Direct shear stress arrays
-            - "Jxy", "Jyz", "Jxz": Corresponding Jacobian arrays
-        degree : int, optional Polynomial degree for fitting, by default 3
-        plot : bool, Whether to display plots
-        save : bool, Whether to save plot
+            Experimental shear test data containing:
+            - "xy", "xz", "yz" : dict
+                Data for each shear component with keys:
+                - "J" : array_like, Jacobian values during shear test
+                - "s" : array_like, Shear stress values (Pa)  
+                - "gamma" : float, Applied shear strain magnitude
+            - "degree" : int, Polynomial degree for fitting (typically 2-4)
+            
+        spherical_data : dict
+            Previously fitted spherical data containing g_ij functions.
+            Used to account for volumetric coupling when extracting f_ij.
+            
+        plot : bool
+            Whether to display fitting plots for each shear component.
+            
+        save : bool
+            Whether to save plots to files.
             
         Returns
         -------
-        dict
-            Dictionary with keys "f66", "f55", "f44" containing the fitted polynomials
+        list of list
+            6×6 matrix where f_func[i][j] contains polynomial coefficients
+            for the f_ij modulation function. Only diagonal shear terms
+            (indices 3,4,5 corresponding to yz, xz, xy) are fitted.
+            Other entries are None.
+            
+        Notes
+        -----
+        Algorithm for each shear component:
+        1. Extract experimental shear stress σ_ij and corresponding J values
+        2. Interpolate g_ij functions at experimental J points (if available)
+        3. Solve for f_ij using: f_ij = [σ_ij*J^(4/3)/γ - (J-1)/3*g*M_kl] / μ_ij
+        4. Fit polynomial to f_ij vs J data
+        5. Store coefficients in appropriate matrix location
         """
         # Dictionary to store results
         fij_dict = {}
@@ -377,18 +429,47 @@ class AnisotropicDeviator(BaseDeviator):
         return matrix_f_func
     
     def _prepare_fij_data(self, data, J_spherical, C_idx, m_idx):
-        """Prepare data for fitting a specific fij component.
+        """Extract f_ij modulation function from experimental shear data.
+        
+        This helper method processes raw experimental shear test data to extract
+        the shear modulation function f_ij(J) by accounting for volumetric coupling
+        effects and normalizing by the reference shear modulus.
         
         Parameters
         ----------
-        data : ndarray Array with columns [J, sigma_ij, ...]
-        C_idx : int Indices for rigidity tensor
-        m_idx : int Index for M0 tensor
-        gamma : float Magnitude of shear deformation
+        data : dict
+            Experimental data for one shear component:
+            - "J" : array_like, Jacobian values during test
+            - "s" : array_like, Measured shear stress values (Pa)
+            - "gamma" : float, Applied shear strain magnitude
+        J_spherical : array_like
+            J values from spherical test data (for g function interpolation).
+        C_idx : int
+            Index in stiffness matrix C corresponding to this shear component.
+        m_idx : int
+            Index in anisotropy tensor M₀ for volumetric coupling.
             
         Returns
         -------
-        tuple (J_array, fij_values) processed for fitting
+        tuple
+            - J_array : ndarray, Jacobian values from experiment
+            - fij_values : ndarray, Extracted f_ij function values
+            
+        Notes
+        -----
+        The extraction uses the relationship:
+        f_ij = [σ_ij * J^(4/3) / γ - (J-1)/3 * g * M₀_kl] / μ_ij
+        
+        Where:
+        - σ_ij: Experimental shear stress
+        - J^(4/3): Geometric correction for finite strain  
+        - γ: Applied shear strain
+        - g: Volumetric coupling function (from spherical data)
+        - M₀_kl: Anisotropy tensor component
+        - μ_ij: Reference shear modulus
+        
+        If no volumetric coupling data (g functions) is available,
+        g is assumed to be unity (no coupling).
         """
         def compute_f(sij, J, Mkl, g, mu, gamma):
             """

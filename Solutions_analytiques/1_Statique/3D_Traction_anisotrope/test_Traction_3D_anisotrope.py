@@ -36,12 +36,15 @@ la cohérence de l'équation d'état.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import Orthotropic
+from Charon import Material, create_box, MyConstant, Tridimensional, Solve, MeshManager
+from mpi4py.MPI import COMM_WORLD
 import time
 import matplotlib.pyplot as plt
 import pytest
 import csv
 import pandas as pd
+import numpy as np
+from math import exp
 
 ###### Modèle mécanique ######
 EL = 12827
@@ -55,13 +58,11 @@ muTN = 337
 nuLT = 0.466
 nuLN = 0.478
 nuTN = 0.371
-mat = Orthotropic(ET, EL, EN, nuLT, nuLN, nuTN, muLT, muLN, muTN)
-C = mat.C
-print("Matrice de rigidité", C)
-kappa_eq = 1./9 * sum(C[i, j] for i in range(3) for j in range(3))
-print("Coefficient de compressibilité équivalent", kappa_eq)
-# eos_type = "U1"
-# dico_eos = {"kappa" : kappa_eq, "alpha" : 1}
+
+rho0 = 1
+C_mass = 1
+
+kappa_eq = 300
 
 iso_T_K0 = kappa_eq
 T_dep_K0 = 0
@@ -70,26 +71,40 @@ T_dep_K1 = 0
 eos_type = "Vinet"
 dico_eos = {"iso_T_K0": iso_T_K0, "T_dep_K0" : T_dep_K0, "iso_T_K1": iso_T_K1, "T_dep_K1" : T_dep_K1}
 
-devia_type = "Anisotropic"
-dico_devia = {"C" : C}
-rho0 = 1
-Fibre = Material(rho0, 1, eos_type, devia_type, dico_eos, dico_devia)
+# Paramètres du comportement déviatorique anisotrope
+dev_type = "Anisotropic"
+deviator_params = {
+    "ET": ET, 
+    "EL": EL, 
+    "EN": EN,
+    "nuLT": nuLT, 
+    "nuLN": nuLN, 
+    "nuTN": nuTN,
+    "muLT": muLT, 
+    "muLN": muLN, 
+    "muTN": muTN
+}
+
+# Création du matériau avec la nouvelle syntaxe
+Fibre = Material(rho0, C_mass, eos_type, dev_type, dico_eos, deviator_params)
 
 Longueur, Largeur, hauteur = 1, 1, 1.
 Nx, Ny, Nz = 5, 5, 5
-mesh = create_box(MPI.COMM_WORLD, [np.array([0, 0, 0]), 
+mesh = create_box(COMM_WORLD, [np.array([0, 0, 0]), 
                                    np.array([Longueur, Largeur, hauteur])],
                                   [Nx, Ny, Nz])
-eps = 0.1
+
+
+dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
+                     "coordinate": ["x", "x", "y", "y", "z", "z"], 
+                     "positions": [0, Longueur, 0, Largeur, 0, hauteur]
+                     }
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+eps = 0.01
 Umax = eps * hauteur
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
-dictionnaire = {"mesh" : mesh,
-                "boundary_setup": 
-                    {"tags": [1, 2, 3, 4, 5, 6],
-                     "coordinate": ["x", "x", "y", "y", "z", "z"], 
-                     "positions": [0, Longueur, 0, Largeur, 0, hauteur]
-                     },
+dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 3},
@@ -98,6 +113,9 @@ dictionnaire = {"mesh" : mesh,
                 "analysis" : "static",
                 "isotherm" : True
                 }
+ 
+    
+traction = "Fibre"
     
 if traction == "Fibre":
     dictionnaire["boundary_conditions"].append({"component": "Ux", "tag": 2, "value": chargement})
@@ -115,15 +133,26 @@ elif traction == "maty":
     pb.Force = pb.set_F(4, "y")
 elif traction == "matz":
     pb.Force = pb.set_F(6, "z")
+    
+    
+
 
 for traction in ["Fibre", "maty", "matz"]:
-    pb = Tridimensional(Fibre, dictionnaire)
-    dictionnaire_solve = {}
+    pb.eps_list = []
+    pb.F_list = []
+    dictionnaire_solve = {
+        "Prefix" : "Traction_3D"+traction,
+        "csv_output" : {"Pressure" : True, "rho" : True}
+        }
+    def query_output(problem, t):
+        problem.eps_list.append(eps * t)
+        problem.F_list.append(problem.get_F(problem.Force))
+
     
     solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
     solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
     solve_instance.solve()
-    numerical_results = array(pb.F_list)
+    numerical_results = np.array(pb.F_list)
     with open("Deformation", "w", newline = '') as fichier:
         writer = csv.writer(fichier)
         writer.writerow(pb.eps_list)
@@ -179,9 +208,9 @@ def plot_result():
     colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
     rho_matz = [rho_list[0] for rho_list in colonnes_numpy[3:]]
     
-    F_fibre_analytique = array([force_elast(eps, "Fibre") for eps in Eps])
-    F_maty_analytique = array([force_elast(eps, "maty") for eps in Eps])
-    F_matz_analytique = array([force_elast(eps, "matz") for eps in Eps])
+    F_fibre_analytique = np.array([force_elast(eps, "Fibre") for eps in Eps])
+    F_maty_analytique = np.array([force_elast(eps, "maty") for eps in Eps])
+    F_matz_analytique = np.array([force_elast(eps, "matz") for eps in Eps])
     eps_list_percent = [100 * eps for eps in Eps]
 
 

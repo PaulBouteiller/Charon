@@ -22,7 +22,7 @@ longitudinale, permettant ainsi une comparaison avec la solution analytique 1D.
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, MyConstant, create_rectangle, Plane_strain, CellType, MeshManager
+from Charon import Solve, MyConstant, create_rectangle, PlaneStrain, CellType, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
@@ -79,7 +79,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                              }
                 }
 
-pb = Plane_strain(Acier, dictionnaire)
+pb = PlaneStrain(Acier, dictionnaire)
 
 dictionnaire_solve = {"Prefix" : "Test_elasticite", "csv_output" : {"Sig" : True}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)

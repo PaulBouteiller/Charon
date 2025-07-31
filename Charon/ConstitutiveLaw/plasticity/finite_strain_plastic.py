@@ -1,4 +1,16 @@
 # Copyright 2025 CEA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Modèle de plasticité en déformations finies
 
@@ -11,23 +23,19 @@ from dolfinx.fem import functionspace, Function
 from ufl import dot, dev
 
 class FiniteStrainPlastic(Plastic):         
-    """Finite strain plasticity model with multiplicative decomposition.
-
-    This class implements finite strain plasticity based on the multiplicative
-    decomposition of the deformation gradient and evolution of the elastic
-    left Cauchy-Green tensor.
+    """Finite strain plasticity with multiplicative decomposition.
+    
+    Implements finite strain plasticity based on multiplicative
+    decomposition F = Fe * Fp and evolution of elastic left
+    Cauchy-Green tensor.
     
     Attributes
     ----------
     V_dev_BE : FunctionSpace Function space for deviatoric elastic left Cauchy-Green tensor
     dev_Be : Function Deviatoric elastic left Cauchy-Green tensor
     dev_Be_3D : Expression 3D representation of deviatoric elastic left Cauchy-Green tensor
-    u_old : Function Previous displacement field
-    F_rel : Expression Relative deformation gradient
-    V_Ie : FunctionSpace Function space for volumetric elastic left Cauchy-Green tensor
+    V_Ie : FunctionSpace Function space for volumetric part
     barI_e : Function Volumetric elastic left Cauchy-Green tensor
-    barI_e_expr : Expression Expression for updated volumetric elastic left Cauchy-Green tensor
-    dev_Be_expr : Expression Expression for updated deviatoric elastic left Cauchy-Green tensor
     """
     def _set_function(self, element, quadrature):
         """Initialize functions for finite strain plasticity.
@@ -44,11 +52,17 @@ class FiniteStrainPlastic(Plastic):
         self.barI_e.x.petsc_vec.set(1.)
 
     def Be_trial(self, u, u_old):
-        """Define the elastic left Cauchy-Green tensor predictor.
+        """Compute elastic left Cauchy-Green tensor predictor.
         
+        Parameters
+        ----------
+        u : Function Current displacement field
+        u_old : Function Previous displacement field
+            
         Returns
         -------
-        Expression Trial elastic left Cauchy-Green tensor
+        Expression
+            Trial elastic left Cauchy-Green tensor
         """
         F_rel = self.kin.relative_gradient_3D(u, u_old)
         Be_trial_part_1 = self.barI_e * dot(F_rel, F_rel.T)

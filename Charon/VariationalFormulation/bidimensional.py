@@ -168,7 +168,7 @@ class BidimensionalLoading(Loading):
     mesh, u_, dx , kinematic : see Loading parameters in Problem.py
     """
     def __init__(self, mesh, u_, dx, kinematic):
-        Loading.__init__(self, mesh, u_[0], dx, kinematic)
+        Loading.__init__(self, mesh, u_, dx, kinematic, sub = 0)
 
 class PlaneStrainLoading(BidimensionalLoading):
     """
@@ -210,7 +210,7 @@ class AxiLoading(BidimensionalLoading):
     ----------
     mesh, dx , kinematic : see Loading parameters in Problem.py
     """
-    def add_Fr(self, value, u_, dx):
+    def add_Fr(self, value, dx):
         """
         Add an external force in the radial direction.
         
@@ -220,7 +220,7 @@ class AxiLoading(BidimensionalLoading):
         """
         self.add_loading(value, dx, sub = 0)
 
-    def add_Fz(self, value, u_, dx):
+    def add_Fz(self, value, dx):
         """
         Add an external force in the axial direction.
         

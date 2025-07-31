@@ -1,4 +1,16 @@
 # Copyright 2025 CEA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Classe de base pour tous les modèles de plasticité
 
@@ -16,14 +28,16 @@ class Plastic:
     Attributes
     ----------
     u : Function Displacement field
-    V : FunctionSpace Function space for displacement
+    u_old : Function Previous displacement field
     kin : Kinematic Kinematic handler for tensor operations
     mu : float Shear modulus
     mesh : Mesh Computational mesh
     mesh_dim : int Topological dimension of mesh
-    name : str Model name
     plastic_model : str Type of plasticity model
-    quadrature : QuadratureHandler Handler for quadrature integration
+    hardening : str Type of hardening ("Isotropic", "LinearKinematic", "NonLinear")
+    sig_yield : float Yield stress
+    H : float, optional Hardening modulus (for Isotropic/LinearKinematic)
+    yield_stress : callable, optional Hardening function (for NonLinear)
     """
     def __init__(self, u, mu, name, kinematic, quadrature, plasticity_dictionnary):
         """Initialize the plasticity model.
@@ -67,7 +81,12 @@ class Plastic:
             return quadrature.quad_element(["Vector", 6])
         
     def _set_plastic(self, plasticity_dictionnary):
-        """Set plastic parameters from dictionary"""
+        """Set plastic parameters from dictionary.
+        
+        Parameters
+        ----------
+        plasticity_dictionnary : dict Dictionary containing plasticity parameters
+        """
         self.plastic_model = plasticity_dictionnary["model"]
         self.hardening = plasticity_dictionnary.get("Hardening", "Isotropic")
         self.sig_yield = plasticity_dictionnary["sigY"]

@@ -16,7 +16,7 @@ Le test vérifie la cohérence entre les contraintes calculées numériquement e
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import create_1D_mesh, Solve, MyConstant, CartesianUD, MeshManager
+from Charon import create_1D_mesh, Solve, MyConstant, CartesianUD, MeshManager
 
 import pytest
 # from Analytique_EOS_deviateur import *
@@ -34,7 +34,7 @@ T0 = 1e3
 
 mesh = create_1D_mesh(0, 1, 1)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]}
-mesh_manager = MeshManager(mesh, CartesianUD, dictionnaire_mesh)
+mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 chargement = MyConstant(mesh, varepsilon, Type = "Rampe")
 dictionnaire = {"mesh_manager" : mesh_manager,
@@ -55,6 +55,10 @@ dictionnaire_solve = {
     "Prefix" : "Test_0D_" + eos_type,
     "csv_output" : {"Pressure" : True, "U" : ["Boundary", 2], "deviateur" :  True}
     }
+
+def final_output(problem):
+    comparison(Mat, varepsilon, T0)
+    return
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
-# solve_instance.final_output = comparison(Mat, varepsilon, T0)
+solve_instance.final_output = final_output
 solve_instance.solve()

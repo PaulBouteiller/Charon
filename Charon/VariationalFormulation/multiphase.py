@@ -50,7 +50,7 @@ class Multiphase:
     nb_phase : int Number of phases being modeled
     c : list of dolfinx.fem.Function Concentration fields for each phase
     """
-    def __init__(self, nb_phase, quadrature):
+    def __init__(self, nb_phase, quadrature, multiphase_dictionnaire):
         """
         Initialize a multiphase object.
         
@@ -67,6 +67,7 @@ class Multiphase:
         self.explosive = False
         self.nb_phase = nb_phase
         self.set_multiphase_function(quadrature)
+        self.set_multiphase(multiphase_dictionnaire)
         
     def set_multiphase_function(self, quadrature):
         """
@@ -86,7 +87,7 @@ class Multiphase:
         self.inf_c.x.petsc_vec.set(0.)
         self.c = [Function(self.V_c, name="Current_concentration") for i in range(self.nb_phase)]
     
-    def set_multiphase(self, expression_list):
+    def set_multiphase(self, multiphase_dictionnaire):
         """
         Define the concentrations of different components.
         
@@ -94,6 +95,9 @@ class Multiphase:
         ----------
         expression_list : list Initial concentration expressions for each phase
         """
+        ufl_conditions = multiphase_dictionnaire["conditions"]
+        interp = self.V_c.element.interpolation_points()
+        expression_list = [Expression(condition, interp) for condition in ufl_conditions]
         interpolate_multiple(self.c, expression_list)
             
     def set_two_phase_explosive(self, E_vol):

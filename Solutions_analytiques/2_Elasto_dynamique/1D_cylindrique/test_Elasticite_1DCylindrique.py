@@ -23,7 +23,7 @@ La solution analytique est implémentée dans le module Solution_analytique_cyli
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, CylindricalUD, MyConstant, create_interval, MeshManager
+from Charon import Solve, CylindricalUD, MyConstant, create_interval, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD

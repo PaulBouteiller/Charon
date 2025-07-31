@@ -16,7 +16,7 @@ Auteur: bouteillerp
 Date de création: 8 Février 2024
 """
 
-from CharonX import Material
+from Charon import Material
 from Analytique_EOS_deviateur import *
 from pandas import read_csv
 

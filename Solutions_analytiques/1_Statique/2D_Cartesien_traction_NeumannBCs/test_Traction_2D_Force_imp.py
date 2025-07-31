@@ -25,7 +25,7 @@ conditions aux limites de Neumann.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import create_rectangle, Plane_strain, CellType, Solve, MeshManager
+from Charon import create_rectangle, PlaneStrain, CellType, Solve, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pytest
@@ -61,7 +61,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "analysis" : "static"
                 }
     
-pb = Plane_strain(Acier, dictionnaire)
+pb = PlaneStrain(Acier, dictionnaire)
 pb.sig_list = []
 pb.Force = pb.set_F(1, "x")
 

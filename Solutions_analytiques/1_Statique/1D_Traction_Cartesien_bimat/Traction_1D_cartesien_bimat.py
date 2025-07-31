@@ -24,7 +24,7 @@ et la répartition des déformations proportionnellement à l'inverse du module d'Y
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import create_1D_mesh, MyConstant, CartesianUD, Solve, MeshManager
+from Charon import create_1D_mesh, MyConstant, CartesianUD, Solve, MeshManager
 from pandas import read_csv
 from ufl import conditional, SpatialCoordinate
 from dolfinx.fem import Expression
@@ -51,26 +51,26 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
+
+x = SpatialCoordinate(mesh)
+demi_long = Longueur / 2
+ufl_condition_1 = conditional(x[0]<demi_long, 1, 0)
+ufl_condition_2 = conditional(x[0]>=demi_long, 1, 0)
+
+        
+
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
                      {"component": "U", "tag": 2, "value": chargement}
                     ],
+                "multiphase" : {"conditions" : [ufl_condition_1, ufl_condition_2]},
                 "analysis" : "static",
                 "isotherm" : True
                 }
 
 pb = CartesianUD(Mat, dictionnaire)
-x = SpatialCoordinate(pb.mesh)
-mult = pb.multiphase
-interp = mult.V_c.element.interpolation_points()
-demi_long = Longueur / 2
-ufl_condition_1 = conditional(x[0]<demi_long, 1, 0)
-c1_expr = Expression(ufl_condition_1, interp)
-ufl_condition_2 = conditional(x[0]>=demi_long, 1, 0)
-c2_expr = Expression(ufl_condition_2, interp)
-mult.set_multiphase([c1_expr, c2_expr])
-        
+
 
 dictionnaire_solve = {
     "Prefix" : "Traction_1D",

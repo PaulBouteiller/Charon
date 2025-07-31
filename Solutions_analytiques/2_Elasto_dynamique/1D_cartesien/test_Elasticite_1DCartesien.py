@@ -27,7 +27,7 @@ La solution analytique pour une onde progressive est de la forme:
 où f et g représentent respectivement les ondes se propageant vers la droite et vers la gauche.
 """
 
-from CharonX import create_interval, MyConstant, CartesianUD, Solve, MeshManager
+from Charon import create_interval, MyConstant, CartesianUD, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD

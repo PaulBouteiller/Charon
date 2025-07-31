@@ -1,6 +1,9 @@
-# Copyright 2025 CEA
 """
-Solver pour la plasticité en déformations finies
+Finite Strain Plasticity Solver
+===============================
+
+Implements return mapping algorithm for finite strain J2 plasticity
+using multiplicative decomposition of the deformation gradient.
 
 @author: bouteillerp
 """
@@ -11,18 +14,27 @@ from dolfinx.fem import Expression
 from ...utils.generic_functions import ppart
 
 class FiniteStrainPlasticSolver:
-    """Solveur pour la plasticité en déformations finies"""
+    """Solver for finite strain plasticity with multiplicative decomposition.
+    
+    Implements return mapping algorithm for J2 plasticity in finite strain
+    using the multiplicative decomposition F = Fe * Fp.
+    
+    Attributes
+    ----------
+    plastic : FiniteStrainPlastic Finite strain plasticity model instance
+    u : Function Current displacement field
+    barI_e_expr : Expression Expression for volumetric part of elastic left Cauchy-Green tensor
+    dev_Be_expr : Expression Expression for deviatoric part of elastic left Cauchy-Green tensor
+    """
     
     def __init__(self, problem, plastic, u):
-        """
-        Initialise le solveur en déformations finies
+        """Initialize the finite strain plasticity solver.
         
         Parameters
         ----------
-        plastic : FiniteStrainPlastic
-            Instance de la classe FiniteStrainPlastic
-        u : Function
-            Champ de déplacement
+        problem : Problem Problem instance (unused but kept for interface consistency)
+        plastic : FiniteStrainPlastic Finite strain plasticity model instance
+        u : Function Current displacement field
         """
         self.plastic = plastic
         self.u = u
@@ -31,9 +43,10 @@ class FiniteStrainPlasticSolver:
         self.set_dev_Be_expression(dev(Be_trial))
 
     def set_dev_Be_expression(self, dev_Be_trial):
-        """Define the expression for the updated deviatoric elastic left Cauchy-Green tensor.
+        """Compute updated deviatoric elastic left Cauchy-Green tensor.
 
-        Implements the return mapping algorithm for J2 plasticity in finite strain.
+        Implements return mapping algorithm for J2 plasticity in finite strain
+        with radial return mapping on the deviatoric part.
         
         Parameters
         ----------
@@ -52,14 +65,13 @@ class FiniteStrainPlasticSolver:
         self.plastic.dev_Be.interpolate(self.dev_Be_expr)
         
     def solve(self):
-        """
-        Résout le problème de plasticité en déformations finies
+        """Solve finite strain plasticity problem.
         
-        Met à jour les variables plastiques selon le modèle multiplicatif :
-        - Partie volumétrique du tenseur élastique de Cauchy-Green gauche
-        - Partie déviatorique du tenseur élastique de Cauchy-Green gauche
-        - Champ de déplacement ancien pour le pas suivant
+        Updates plastic variables according to multiplicative model:
+        - Volumetric part of elastic left Cauchy-Green tensor
+        - Deviatoric part of elastic left Cauchy-Green tensor  
+        - Previous displacement field for next time step
         """
         self.plastic.barI_e.interpolate(self.barI_e_expr)
-        self.plastic.dev_Be.interpolate(self.dev_Be_expr)#Si l'évolution est plastique on vient actualisé dev_Be ce qui va actualisé la contrainte pour le prochaine pas
+        self.plastic.dev_Be.interpolate(self.dev_Be_expr)#Si l'évolution est plastique, on vient actualiser dev_Be ce qui va en retour mettre à jour la contrainte pour le prochain pas
         petsc_assign(self.plastic.u_old, self.u)

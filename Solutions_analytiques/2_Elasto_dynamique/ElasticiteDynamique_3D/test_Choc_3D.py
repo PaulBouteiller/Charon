@@ -16,7 +16,7 @@ et à évaluer les performances de calcul pour des problèmes tridimensionnels.
 Auteur: bouteillerp
 """
 
-from CharonX import Solve, MyConstant, create_box, Tridimensional, CellType, MeshManager
+from Charon import Solve, MyConstant, create_box, Tridimensional, CellType, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import pytest
 import numpy as np

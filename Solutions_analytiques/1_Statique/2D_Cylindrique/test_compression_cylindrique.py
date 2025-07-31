@@ -26,7 +26,7 @@ du modèle numérique.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from CharonX import Axisymmetric, Solve, create_rectangle, MeshManager
+from Charon import Axisymmetric, Solve, create_rectangle, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import numpy as np
 from pandas import read_csv

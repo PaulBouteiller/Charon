@@ -30,7 +30,7 @@ import pytest
 import sys
 from mpi4py import MPI
 
-from CharonX import create_rectangle, MyConstant, Plane_strain, Solve, CellType, MeshManager
+from Charon import create_rectangle, MyConstant, PlaneStrain, Solve, CellType, MeshManager
 sys.path.append("../")
 from Traction_1D_cartesien_solution_analytique import sigma_xx
 sys.path.append("../../")
@@ -65,7 +65,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
 
-pb = Plane_strain(Acier, dictionnaire)
+pb = PlaneStrain(Acier, dictionnaire)
 pb.eps_list = [0]
 pb.F_list = [0]
 pb.Force = pb.set_F(3, "x")

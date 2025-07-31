@@ -18,7 +18,7 @@ Une comparaison est effectuée entre la force calculée numériquement et analyt
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from CharonX import create_1D_mesh, CartesianUD, Solve, MyConstant, MeshManager
+from Charon import create_1D_mesh, CartesianUD, Solve, MyConstant, MeshManager
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest

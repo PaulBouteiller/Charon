@@ -24,8 +24,8 @@ Pour le cas axisymétrique, la masse théorique est calculée par:
 Auteur: bouteillerp
 """
 
-from CharonX import (create_1D_mesh, Material, CartesianUD, create_rectangle, MeshManager,
-                    Axisymmetric, CellType, Plane_strain, Tridimensional, create_box)
+from Charon import (create_1D_mesh, Material, CartesianUD, create_rectangle, MeshManager,
+                    Axisymmetric, CellType, PlaneStrain, Tridimensional, create_box)
 from mpi4py.MPI import COMM_WORLD
 import pytest
 from sympy import Symbol, integrate
@@ -84,7 +84,7 @@ print("La diagonale de la matrice de masse axisymétrique est", mass_array)
 mesh_manager = MeshManager(create_rectangle(COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral), {})    
 dictionnaire_2D = {"mesh_manager" : mesh_manager}
 
-pb_2D = Plane_strain(DummyMat, dictionnaire_2D)
+pb_2D = PlaneStrain(DummyMat, dictionnaire_2D)
 mass_array = assemble_diagonal_mass_matrix(pb_2D.m_form, pb_2D.u.function_space)
 print("Le nombre de coeff est", len(mass_array)//2)
 print("La masse totale en 2D plan est", sum(mass_array[2*i] for i in range(len(mass_array)//2)))

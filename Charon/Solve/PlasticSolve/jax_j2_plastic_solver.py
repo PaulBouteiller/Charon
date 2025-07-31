@@ -1,6 +1,9 @@
-# Copyright 2025 CEA
 """
-Solver pour la plasticité J2 avec JAX - Version nettoyée et optimisée
+JAX-based J2 Plasticity Solver
+==============================
+
+High-performance J2 plasticity solver using JAX for automatic differentiation
+and vectorized operations.
 
 @author: bouteillerp
 """
@@ -12,13 +15,24 @@ try:
     from jax.lax import cond
     from jax import vmap, jit, jacfwd
     import jax.numpy as jnp
+    from .jax_newton_solver import JAXNewton
 except Exception:
-    raise ImportError("JAX est requis pour ce solveur")
+    raise ImportError("JAX is required for this solver")
 
-from .jax_newton_solver import JAXNewton
+
 
 def to_vect(tensor_3x3, length):
-    """Convertit un tenseur 3x3 en vecteur selon la longueur demandée"""
+    """Convert 3x3 tensor to vector format.
+
+    Parameters
+    ----------
+    tensor_3x3 : array 3x3 tensor
+    length : int Target vector length (3, 4, 6, or 9)
+        
+    Returns
+    -------
+    array Vectorized tensor
+    """
     if length == 3:
         return array([tensor_3x3[0,0], tensor_3x3[1,1], tensor_3x3[2,2]])
     elif length == 4:
@@ -34,7 +48,16 @@ def to_vect(tensor_3x3, length):
         return tensor_3x3.flatten()
 
 def to_mat(vector):
-    """Convertit un vecteur en tenseur 3x3 selon sa longueur"""
+    """Convert vector to 3x3 tensor format.
+    
+    Parameters
+    ----------
+    vector : array Vector representation of tensor
+        
+    Returns
+    -------
+    array 3x3 tensor
+    """
     if len(vector) == 3:
         return jnp.diag(vector)
     elif len(vector) == 4:
@@ -54,22 +77,58 @@ def to_mat(vector):
     else:
         raise ValueError(f"Format de vecteur non supporté: {len(vector)}")
 
-def dev(tensor):
-    """Partie déviatorique d'un tenseur 3x3"""
-    return tensor - jnp.trace(tensor) / 3.0 * eye(3)
+# Tensor operations
+dev = jit(lambda tensor: tensor - jnp.trace(tensor) / 3.0 * eye(3))
+tr = jit(lambda tensor: jnp.trace(tensor))  
+det = jit(lambda tensor: jnp.linalg.det(tensor))
 
-def tr(tensor):
-    """Trace d'un tenseur"""
-    return jnp.trace(tensor)
+def dev_norm_3d(tensor_vec):
+    """Deviatoric norm for 3-component vector."""
+    tr_tensor = jnp.sum(tensor_vec)
+    dev_diag = tensor_vec - tr_tensor / 3.0
+    return jnp.sqrt(2/3 * jnp.sum(dev_diag**2))
 
-def det(tensor):
-    """Déterminant d'un tenseur"""
-    return jnp.linalg.det(tensor)
+def dev_norm_4d(tensor_vec):
+    """Deviatoric norm for 4-component vector."""
+    tr_tensor = jnp.sum(tensor_vec[:3])
+    dev_diag = tensor_vec[:3] - tr_tensor / 3.0
+    return jnp.sqrt(2/3 * (jnp.sum(dev_diag**2) + 2 * tensor_vec[3]**2))
+
+def dev_norm_6d(tensor_vec):
+    """Deviatoric norm for 6-component vector."""
+    tr_tensor = jnp.sum(tensor_vec[:3])
+    dev_diag = tensor_vec[:3] - tr_tensor / 3.0
+    return jnp.sqrt(2/3 * (jnp.sum(dev_diag**2) + 2 * jnp.sum(tensor_vec[3:]**2)))
 
 class JAXJ2PlasticSolver:
-    """Solveur pour la plasticité J2 avec JAX - Version optimisée"""
+    """JAX-based J2 plasticity solver with automatic differentiation.
     
+    Implements J2 plasticity using JAX for high performance and
+    automatic differentiation of the return mapping algorithm.
+    
+    Attributes
+    ----------
+    plastic : JAXJ2Plasticity J2 plasticity model instance
+    mu : float Shear modulus
+    yield_stress : callable Yield stress function
+    len : int Length of plastic variable array
+    clipped_equiv_stress : callable Clipped equivalent stress function
+    normal : callable Normal to yield surface function
+    newton_solver : JAXNewton Newton solver for return mapping
+    batched_constitutive_update : callable Vectorized constitutive update function
+    n_gauss : int Number of Gauss points
+    Be_Bar_trial_func : Function Trial elastic left Cauchy-Green tensor function
+    Be_Bar_trial_expr : Expression Expression for trial tensor
+    """
     def __init__(self, problem, plastic, u):
+        """Initialize the JAX J2 plasticity solver.
+
+        Parameters
+        ----------
+        problem : Problem Problem instance (unused but kept for interface consistency)
+        plastic : JAXJ2Plasticity J2 plasticity model instance
+        u : Function Current displacement field
+        """
         self.plastic = plastic
         self._setup_solver()
         self.batched_constitutive_update = jit(vmap(self.constitutive_update, in_axes=(0, 0)))
@@ -77,29 +136,39 @@ class JAXJ2PlasticSolver:
         self.Be_Bar_trial_func = Function(self.plastic.V_Be_bar)
         expr = self.plastic.kin.tridim_to_mandel(self.plastic.Be_bar_trial(u, self.plastic.u_old))
         self.Be_Bar_trial_expr = Expression(expr, self.plastic.V_Be_bar.element.interpolation_points())
+        dev_norm_funcs = {3: dev_norm_3d, 4: dev_norm_4d, 6: dev_norm_6d}
+        self.dev_norm = dev_norm_funcs[self.plastic.len_plas]
             
     def _setup_solver(self):
-        """Configure le solveur avec fonctions pré-compilées"""
+        """Configure solver with pre-compiled functions."""
         self.mu = self.plastic.mu
         self.yield_stress = self.plastic.yield_stress
         self.len = self.plastic.len_plas
         self.clipped_equiv_stress = jit(lambda s: clip(jnp.linalg.norm(s), a_min=1e-8))
         self.normal = jit(jacfwd(self.clipped_equiv_stress))
         self.newton_solver = JAXNewton(rtol=1e-8, atol=1e-8, niter_max=100)
-
+    
     def _compute_yield_criterion(self, be_bar_trial, p_old):
-        """Calcul du critère de plasticité"""
-        be_bar_trial_3x3 = to_mat(be_bar_trial)
-        s_trial = self.mu * dev(be_bar_trial_3x3)
-        sig_eq_trial = self.clipped_equiv_stress(s_trial)
+        """Compute yield criterion for J2 plasticity."""
+        sig_eq_trial = self.mu * self.dev_norm(be_bar_trial)
         return sig_eq_trial - sqrt(2 / 3) * self.yield_stress(p_old)
     
     def constitutive_update(self, be_bar_trial, p_old):
-        """Mise à jour constitutive avec JAXNewton"""
+        """Constitutive update with JAX Newton solver.
+        
+        Parameters
+        ----------
+        be_bar_trial : array Trial elastic left Cauchy-Green tensor
+        p_old : float Previous cumulative plastic strain
+            
+        Returns
+        -------
+        tuple (updated_be_bar, plastic_strain_increment)
+        """
         yield_criterion = self._compute_yield_criterion(be_bar_trial, p_old)
         
         def r_p(dx):
-            """Résidu de la condition de plasticité"""
+            """Residual for plasticity condition."""
             be_bar, dp = dx[:-1], dx[-1]
             be_bar_3x3 = to_mat(be_bar)
             s = self.mu * dev(be_bar_3x3)
@@ -112,7 +181,7 @@ class JAXJ2PlasticSolver:
             return cond(yield_criterion < 0.0, r_elastic, r_plastic, dp)
         
         def r_be(dx):
-            """Résidu de l'évolution du tenseur élastique"""
+            """Residual for elastic tensor evolution."""
             be_bar, dp = dx[:-1], dx[-1]
             be_bar_3x3 = to_mat(be_bar)
             be_bar_trial_3x3 = to_mat(be_bar_trial)
@@ -138,7 +207,11 @@ class JAXJ2PlasticSolver:
         return x[:-1], x[-1]
 
     def solve(self):
-        """Résout le problème de plasticité J2"""
+        """Solve J2 plasticity problem.
+        
+        Updates elastic left Cauchy-Green tensor and cumulative plastic strain
+        using vectorized JAX operations.
+        """
         self.Be_Bar_trial_func.interpolate(self.Be_Bar_trial_expr)
         Bbar_trial = reshape(self.Be_Bar_trial_func.x.array, (self.n_gauss, self.len))
         be_bar, dp = self.batched_constitutive_update(Bbar_trial, self.plastic.p.x.array)

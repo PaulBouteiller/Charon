@@ -3,7 +3,7 @@ Created on Thu Jun  6 10:00:48 2024
 
 @author: bouteillerp
 """
-from CharonX import Material
+from Charon import Material
 from ufl import exp
 try:
     from jax.numpy import array

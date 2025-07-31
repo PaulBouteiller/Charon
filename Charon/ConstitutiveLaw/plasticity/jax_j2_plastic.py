@@ -1,4 +1,16 @@
 # Copyright 2025 CEA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Modèle de plasticité J2 avec JAX
 
@@ -13,18 +25,15 @@ from ufl import dot, dev
 class JAXJ2Plasticity(Plastic):
     """J2 plasticity model with improved numerical performance.
     
-    This class implements J2 plasticity with algorithmic tangent,
-    providing improved convergence properties in nonlinear simulations.
+    Implements J2 plasticity with algorithmic tangent for
+    improved convergence in nonlinear simulations.
     
     Attributes
     ----------
-    V_Be : FunctionSpace Function space for elastic left Cauchy-Green tensor
-    Be_Bar_trial_func : Function Trial elastic left Cauchy-Green tensor
-    Be_Bar_old : Function Previous elastic left Cauchy-Green tensor
+    V_Be_bar : FunctionSpace Function space for elastic left Cauchy-Green tensor
+    Be_bar : Function Elastic left Cauchy-Green tensor
+    Be_bar_3D : Expression 3D representation of elastic left Cauchy-Green tensor
     len_plas : int Length of plastic variable array
-    Be_bar_old_3D : Expression 3D representation of previous elastic left Cauchy-Green tensor
-    u_old : Function Previous displacement field
-    Be_Bar_trial : Expression Expression for trial elastic left Cauchy-Green tensor
     V_p : FunctionSpace Function space for cumulated plasticity
     p : Function Cumulated plasticity
     """
@@ -46,11 +55,17 @@ class JAXJ2Plasticity(Plastic):
         self.p = Function(self.V_p, name = "Cumulated_plasticity")
         
     def Be_bar_trial(self, u, u_old):
-        """Define the elastic left Cauchy-Green tensor predictor.
+        """Compute elastic left Cauchy-Green tensor predictor.
         
+        Parameters
+        ----------
+        u : Function Current displacement field
+        u_old : Function Previous displacement field
+            
         Returns
         -------
-        Expression Trial elastic left Cauchy-Green tensor
+        Expression
+            Trial elastic left Cauchy-Green tensor
         """
         F_rel = self.kin.relative_gradient_3D(u, u_old)
         J_rel = self.kin.reduced_det(F_rel)
