@@ -32,12 +32,12 @@ Key components:
 
 from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
-from ..utils.kinematic import Kinematic
 from ..utils.default_parameters import default_damping_parameters
 from ..utils.MyExpression import MyConstant, Tabulated_BCs
 from ..utils.interpolation import create_function_from_expression
 
 from .multiphase import Multiphase
+from ..Kinematic import Kinematic
 
 
 from mpi4py import MPI
