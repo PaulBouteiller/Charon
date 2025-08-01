@@ -23,6 +23,8 @@ from numpy import array, kron
 from basix import make_quadrature, CellType, QuadratureType
 from dolfinx.fem import functionspace
 from basix.ufl import quadrature_element as quad_el
+import dolfinx
+import ufl
 
 class Quadrature():
     """
@@ -49,7 +51,10 @@ class Quadrature():
         u_degree : int Degree of the displacement field interpolation
         schema : str Integration scheme type ('default', 'over', or 'reduit')"""
         self.ref_el = mesh.ufl_cell().cellname()
-        self.dim = mesh.topology.dim
+        if isinstance(mesh, dolfinx.mesh.Mesh):
+            self.dim = mesh.topology.dim
+        elif isinstance(mesh, ufl.Mesh):
+            self.dim = mesh.geometric_dimension()
         self.u_deg = u_degree
         self.schema = schema
         self.lumped_metadata = self.create_lumped_metadata()
@@ -65,18 +70,14 @@ class Quadrature():
         
         Parameters
         ----------
-        ref_el : str
-            Type of element used ('quadrilateral', 'triangle', 'hexahedron', 'tetrahedron')
-        degree : int
-            Interpolation degree of the displacement field
+        ref_el : str Type of element used ('quadrilateral', 'triangle', 'hexahedron', 'tetrahedron')
+        degree : int Interpolation degree of the displacement field
             
         Returns
         -------
         tuple
-            x : numpy.ndarray
-                Coordinates of Gauss points
-            w : numpy.ndarray
-                Weights of Gauss points
+            x : numpy.ndarray Coordinates of Gauss points
+            w : numpy.ndarray Weights of Gauss points
                 
         Notes
         -----

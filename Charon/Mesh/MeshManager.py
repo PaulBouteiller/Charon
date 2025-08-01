@@ -64,7 +64,7 @@ class MeshManager:
         # Initialize quadrature
         self.quad = Quadrature(mesh, self.u_deg, self.schema)
         self.mesh = mesh
-        self.dim = mesh.topology.dim
+        self.dim = self.quad.dim
         self.fdim = self.dim - 1
         self.h = self.calculate_mesh_size()
         if "tags" in dictionnaire and "coordinate" in dictionnaire and "positions" in dictionnaire:
