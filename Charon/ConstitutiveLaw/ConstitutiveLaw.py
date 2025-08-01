@@ -124,8 +124,7 @@ class ConstitutiveLaw:
                               }
             damage_class = damage_mapper.get(self.damage_model)
             if damage_class is None:
-                raise ValueError(f"Unknown damage model: {self.damage_model}") 
-            # self.damage = damage_class(self.mesh, quadrature, damage_dictionnary)
+                raise ValueError(f"Unknown damage model: {self.damage_model}")
             self.damage = damage_class(self.mesh, quadrature, damage_dictionnary, 
                           u=u, J=self.kinematic.J(u), pressure=self.p, 
                           material=material, kinematic=kinematic)

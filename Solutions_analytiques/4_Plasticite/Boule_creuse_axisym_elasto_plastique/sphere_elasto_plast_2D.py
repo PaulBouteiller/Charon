@@ -44,7 +44,7 @@ Auteur: bouteillerp
 Date de création: 28 Mai 2025
 """
 
-from CharonX import axi_sphere, Axisymmetric, Solve, MeshManager
+from Charon import axi_sphere, Axisymmetric, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -56,6 +56,21 @@ from deplacement_analytique import deplacement_ilyushin, deplacement_elastique
 ###### Paramètre géométrique ######
 Re = 600
 Ri = 300.0
+
+###### Plasticity dictionnaire ######
+plasticity_model = "Finite_Plasticity"
+plasticity_dic = {"model" : plasticity_model}
+if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
+    plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
+elif plasticity_model == "J2_JAX":
+    
+    b = 10.0
+    sigu = 750.0
+    
+    import jax.numpy as jnp
+    def yield_function(p):
+        return sig0 + (sigu - sig0) * (1 - jnp.exp(-b * p))
+    plasticity_dic.update({"sigY" : sig0, "Hardening" : "NonLinear", "Hardening_func" : yield_function})
 
 #Paramètre élasto-plastique
 q_lim = float(2 * np.log(Re / Ri) * sig0)
@@ -75,7 +90,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "pressure", "tag": 4, "value" : p_applied}],
                 "analysis" : "static",
-                "plasticity" : {"model" : "HPP_Plasticity", "sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H},
+                "plasticity" : plasticity_dic,
                 "isotherm" : True
                 }
 

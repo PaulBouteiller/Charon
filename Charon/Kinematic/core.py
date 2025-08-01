@@ -3,7 +3,7 @@ from .conversions import Conversions
 from .deformations import Deformations
 from .contractions import Contractions
 
-from ufl import grad, as_vector, dot, inv, Identity, div
+from ufl import grad, as_vector, dot, inv, Identity
 
 class Kinematic(Gradients, Conversions, Deformations, Contractions):
     """
@@ -58,13 +58,6 @@ class Kinematic(Gradients, Conversions, Deformations, Contractions):
             return a * self.r * dx
         elif self.name == "SphericalUD":
             return a * self.r**2 * dx
-    
-    def div(self, v):
-        """Return the divergence of vector field v."""
-        if self._is_1d:
-            return v.dx(0)
-        else:
-            return div(v)
     
     def push_forward(self, tensor, displacement_field):
         """Return the push-forward of a second-order twice covariant tensor."""

@@ -52,7 +52,7 @@ from Generic_isotropic_material import Acier, mu, kappa, sig0, H
 Re = 600
 Ri = 300.0
 
-
+###### Plasticity dictionnaire ######
 plasticity_model = "Finite_Plasticity"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":

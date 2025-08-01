@@ -1,4 +1,4 @@
-from ufl import grad, as_vector, dot, inv, Identity
+from ufl import grad, as_vector, div
 
 class Gradients:
     """Gradient calculations for scalar and vector fields."""
@@ -44,3 +44,10 @@ class Gradients:
                                  grad_u[0, 1], grad_u[1, 0]])
         else:  # Tridimensional
             return grad(vector_field)
+        
+    def div(self, v):
+        """Return the divergence of vector field v."""
+        if self._is_1d:
+            return v.dx(0)
+        else:
+            return div(v)
