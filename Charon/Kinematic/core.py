@@ -34,14 +34,13 @@ class Kinematic(Gradients, Conversions, Deformations, Contractions):
     
     def grad_eulerian_compact(self, velocity_field, displacement_field):
         """Return the spatial velocity gradient in compact form."""
-        inv_F_compact = self.inv_deformation_gradient_compact(displacement_field)
+        inv_F_compact = self.inv_deformation_gradient_3D(displacement_field)
         grad_compact = self.grad_vector_compact(velocity_field)
-        
         if self._is_1d:
             if self.name == "CartesianUD":
-                return grad_compact * inv_F_compact[0]
+                return grad_compact * inv_F_compact[0, 0]
             else:  # CylindricalUD or SphericalUD
-                return as_vector([grad_compact[i] * inv_F_compact[i] for i in range(len(grad_compact))])
+                return as_vector([grad_compact[i] * inv_F_compact[i, i] for i in range(len(grad_compact))])
         elif self.name == "PlaneStrain":
             return self.tensor_2d_to_compact(dot(self.compact_to_tensor_2d(grad_compact), 
                                                inv(Identity(2) + grad(displacement_field))))

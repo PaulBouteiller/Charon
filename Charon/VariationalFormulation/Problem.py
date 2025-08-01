@@ -32,7 +32,7 @@ Key components:
 
 from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
-from ..utils.default_parameters import default_damping_parameters
+
 from ..utils.MyExpression import MyConstant, Tabulated_BCs
 from ..utils.interpolation import create_function_from_expression
 
@@ -347,9 +347,8 @@ class Problem:
         else: 
             self.r = None
         
-        # Initialize kinematics and damping
+        # Initialize kinematics
         self.kinematic = Kinematic(self.name, self.r)
-        self.damping = simulation_dic.get("damping", default_damping_parameters())
         
         # Configure function spaces and unknown functions
         self._init_spaces_and_functions()
@@ -526,7 +525,6 @@ class Problem:
             self.u, self.material, self.plasticity_dictionnary,
             self.damage_dictionnary, self.multiphase,
             self.name, self.kinematic, self.quad,
-            self.damping,
             self.relative_rho_field_init_list, self.h
         )
     

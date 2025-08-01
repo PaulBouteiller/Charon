@@ -40,41 +40,43 @@ class Deformations:
         # 3D model
         else:
             return det(Identity(3) + grad(displacement_field))
-    
-    # def inv_deformation_gradient_compact(self, displacement_field):
-    #     """Return the inverse of the deformation gradient in compact form."""
-    #     # 1D models
-    #     if self.name == "CartesianUD":
-    #         return as_vector([1 / (1 + displacement_field.dx(0)), 1, 1])
-    #     elif self.name == "CylindricalUD":
-    #         return as_vector([1 / (1 + displacement_field.dx(0)), 
-    #                           1/(1 + displacement_field / self.r), 1])
-    #     elif self.name == "SphericalUD":
-    #         return as_vector([1 / (1 + displacement_field.dx(0)), 
-    #                           1 / (1 + displacement_field / self.r), 
-    #                           1 / (1 + displacement_field / self.r)])
         
-    #     # 2D models
-    #     elif self.name == "PlaneStrain":
-    #         inv_F_2d = inv(Identity(2) + grad(displacement_field))
-    #         return as_tensor([[inv_F_2d[0, 0], inv_F_2d[0, 1], 0], 
-    #                          [inv_F_2d[1, 0], inv_F_2d[1, 1], 0], 
-    #                          [0, 0, 1]])
-    #     elif self.name == "Axisymmetric":
-    #         grad_u = grad(displacement_field)
-    #         prefactor = (1 + grad_u[0, 0]) * (1 + grad_u[1, 1]) - grad_u[0, 1] * (1 + grad_u[1, 0])
-    #         return as_tensor([[(1 + grad_u[1, 1]) / prefactor, 0, -grad_u[0, 1] / prefactor],
-    #                          [0, 1 / (1 + displacement_field[0] / self.r), 0],
-    #                          [-grad_u[1, 0] / prefactor, 0, (1 + grad_u[0, 0]) / prefactor]])
+    def inv_deformation_gradient_3D(self, displacement_field):
+        """Return the inverse of the deformation gradient in compact form."""
+        # 1D models
+        if self.name == "CartesianUD":
+            return as_tensor([[1 / (1 + displacement_field.dx(0)), 0, 0],
+                             [0, 1, 0],
+                             [0, 0, 1]])
+        elif self.name == "CylindricalUD":
+            return as_tensor([[1 / (1 + displacement_field.dx(0)), 0, 0],
+                             [0, 1/(1 + displacement_field / self.r), 0],
+                             [0, 0, 1]])
+        elif self.name == "SphericalUD":
+            return as_tensor([[1 / (1 + displacement_field.dx(0)), 0, 0],
+                             [0, 1/(1 + displacement_field / self.r), 0],
+                             [0, 0, 1/(1 + displacement_field / self.r)]])        
+        # 2D models
+        elif self.name == "PlaneStrain":
+            inv_F_2d = inv(Identity(2) + grad(displacement_field))
+            return as_tensor([[inv_F_2d[0, 0], inv_F_2d[0, 1], 0], 
+                             [inv_F_2d[1, 0], inv_F_2d[1, 1], 0], 
+                             [0, 0, 1]])
+        elif self.name == "Axisymmetric":
+            grad_u = grad(displacement_field)
+            prefactor = (1 + grad_u[0, 0]) * (1 + grad_u[1, 1]) - grad_u[0, 1] * (1 + grad_u[1, 0])
+            return as_tensor([[(1 + grad_u[1, 1]) / prefactor, 0, -grad_u[0, 1] / prefactor],
+                             [0, 1 / (1 + displacement_field[0] / self.r), 0],
+                             [-grad_u[1, 0] / prefactor, 0, (1 + grad_u[0, 0]) / prefactor]])
         
-    #     # 3D model
-    #     else:
-    #         return inv(Identity(3) + grad(displacement_field))
+        # 3D model
+        else:
+            return inv(Identity(3) + grad(displacement_field))
     
     def relative_deformation_gradient_3d(self, current_displacement, previous_displacement):
         """Return the relative deformation gradient between two configurations."""
         F_current = self.deformation_gradient_3d(current_displacement)
-        inv_F_previous = inv(self.deformation_gradient_3d(previous_displacement))
+        inv_F_previous = self.inv_deformation_gradient_3D(previous_displacement)
         return dot(F_current, inv_F_previous)
    
     def cofactor_compact(self, displacement_field):

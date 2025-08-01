@@ -56,7 +56,7 @@ from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity
 from .damage import PhaseFieldDamage, StaticJohnson, DynamicJohnson, InertialJohnson
 
 from ufl import dot, Identity
-from ..utils.generic_functions import npart
+# from ..utils.generic_functions import npart
 
 class ConstitutiveLaw:
     """Manages the constitutive relations for mechanical simulations.
@@ -85,7 +85,7 @@ class ConstitutiveLaw:
     """
     
     def __init__(self, u, material, plasticity_dictionnary, damage_dictionnary, multiphase, 
-                 name, kinematic, quadrature, damping, relative_rho_0, h):
+                 name, kinematic, quadrature, relative_rho_0, h):
         """Initialize the constitutive law manager.
 
         Parameters
@@ -110,7 +110,7 @@ class ConstitutiveLaw:
         self.multiphase = multiphase
         self.kinematic = kinematic
         self.quadrature = quadrature
-        self.set_damping(damping)
+        # self.set_damping(damping)
         self.eos = EOS()
         self.deviator = Deviator(kinematic, name, quadrature, material)
 
@@ -140,53 +140,6 @@ class ConstitutiveLaw:
             if plastic_class is None:
                 raise ValueError(f"Unknown plasticity model: {self.plastic_model}") 
             self.plastic = plastic_class(u, material.devia.mu, name, kinematic, quadrature, plasticity_dictionnary)
-
-    def set_damping(self, damping):
-        """Initialize artificial viscosity parameters.
-        
-        Sets up the parameters for the pseudo-viscosity used for 
-        numerical stabilization in shock-dominated problems.
-        
-        Parameters
-        ----------
-        damping : dict
-            Dictionary containing:
-            - "damping" (bool): Whether to enable artificial viscosity
-            - "linear_coeff" (float): Linear viscosity coefficient
-            - "quad_coeff" (float): Quadratic viscosity coefficient
-            - "correction" (bool): Whether to apply Jacobian correction
-        """
-        self.is_damping = damping["damping"]
-        self.Klin = damping["linear_coeff"]
-        self.Kquad = damping["quad_coeff"]
-        self.correction = damping["correction"]
-
-    def pseudo_pressure(self, velocity, material, jacobian, h):
-        """Calculate the pseudo-viscous pressure for stabilization.
-        
-        This pseudo-pressure term is added to improve numerical stability,
-        especially in shock-dominated problems.
-        
-        Parameters
-        ----------
-        velocity : Function Velocity field.
-        material : Material  Material properties.
-        jacobian : Function Jacobian of the transformation.
-            
-        Returns
-        -------
-        Function Pseudo-viscous pressure field.
-        """
-        div_v  = self.kinematic.div(velocity)
-        lin_Q = self.Klin * material.rho_0 * material.celerity * h * npart(div_v)
-        if self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]: 
-            quad_Q = self.Kquad * material.rho_0 * h**2 * npart(div_v) * div_v 
-        elif self.name in ["PlaneStrain", "Axisymmetric", "Tridimensional"]:
-            quad_Q = self.Kquad * material.rho_0 * h**2 * dot(npart(div_v), div_v)
-        if self.correction :
-            lin_Q *= 1/jacobian
-            quad_Q *= 1 / jacobian**2
-        return quad_Q - lin_Q
     
     def stress_3D(self, u, v, T, T0, J):
         """Calculate the complete 3D Cauchy stress tensor.
@@ -229,27 +182,21 @@ class ConstitutiveLaw:
         """
         # Initialize storage for component stresses
         self.pressure_list = []
-        self.pseudo_pressure_list = []
         self.deviatoric_list = []
         
         # Calculate stress components for each material phase
         for i, material in enumerate(self.material):
             relative_density = self.relative_rho_0[i] if isinstance(self.relative_rho_0, list) else 1
-            pressure, pseudo_pressure, deviatoric = self._calculate_stress_components(
-                u, v, T, T0, J, material, relative_density)
-            
+            pressure, deviatoric = self._calculate_stress_components(u, v, T, T0, J, material, relative_density)
             self.pressure_list.append(pressure)
-            self.pseudo_pressure_list.append(pseudo_pressure)
             self.deviatoric_list.append(deviatoric)
         
         # Calculate weighted averages using concentration fractions
         n_materials = len(self.material)
         self.p = sum(self.multiphase.c[i] * self.pressure_list[i] for i in range(n_materials))
-        self.pseudo_p = sum(self.multiphase.c[i] * self.pseudo_pressure_list[i] for i in range(n_materials))
         self.s = sum(self.multiphase.c[i] * self.deviatoric_list[i] for i in range(n_materials))
-        
         # Compute total stress
-        return -(self.p + self.pseudo_p) * Identity(3) + self.s
+        return -self.p * Identity(3) + self.s
     
     def _calculate_single_phase_stress(self, u, v, T, T0, J):
         """Calculate stress for a single phase material.
@@ -263,12 +210,9 @@ class ConstitutiveLaw:
         Function Stress tensor for the single material.
         """
         # Calculate stress components
-        self.p, self.pseudo_p, self.s = self._calculate_stress_components(
-            u, v, T, T0, J, self.material)
-        
+        self.p, self.s = self._calculate_stress_components(u, v, T, T0, J, self.material)
         # Return total stress
-        return -(self.p + self.pseudo_p) * Identity(3) + self.s
-        # return -(self.p) * Identity(3) + self.s        
+        return -self.p * Identity(3) + self.s        
     
     def _calculate_stress_components(self, u, v, T, T0, J, material, relative_density = 1):
         """Calculate individual stress components for a given material.
@@ -287,14 +231,7 @@ class ConstitutiveLaw:
         """
         pressure = self.eos.set_eos(J * relative_density, T, T0, material, self.quadrature)
         deviatoric = self._calculate_deviatoric_stress(u, v, J, T, T0, material)
-        
-        # Calculate pseudo-pressure for stabilization if enabled
-        if self.is_damping:
-            pseudo_pressure = self.pseudo_pressure(v, material, J, self.h)
-        else:
-            pseudo_pressure = 0
-            
-        return pressure, pseudo_pressure, deviatoric
+        return pressure, deviatoric
     
     def _calculate_deviatoric_stress(self, u, v, J, T, T0, material):
         """Calculate the deviatoric part of the stress tensor.

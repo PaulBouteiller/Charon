@@ -18,6 +18,7 @@ Created on Tue Mar  8 15:51:14 2022
 """
 from .displacement_solve import ExplicitDisplacementSolver
 from .energy_solve import ExplicitEnergySolver, DiffusionSolver
+from .damping import Damping
 from .PlasticSolve.hpp_plastic_solver import HPPPlasticSolver
 from .PlasticSolve.finite_strain_plastic_solver import FiniteStrainPlasticSolver
 from .PlasticSolve.jax_j2_plastic_solver import JAXJ2PlasticSolver
@@ -43,22 +44,21 @@ class Solve:
         self.set_iterative_solver_parameters()
         self.set_time_step(**kwargs)
         self.update_Pth()
+        self.update_form_with_stabilization(dictionnaire)
         #Ajout ici de la viscosité
-        # pseudo_pressure = problem.constitutive.pseudo_pressure(problem.v, problem.material, problem.J_transfo, problem.h)
-        # # from ufl import inner
-        # invFTop = problem.kinematic.invF_reduit(problem.u)
-        # problem.form -= pseudo_pressure * 1/(1+problem.u.dx(0))*problem.u_.dx(0)* problem.dx
-        
-        
-        
-        
-        
         self.set_solver()
         self.pb.set_time_dependant_BCs(self.load_steps)
         self.compteur_output = kwargs.get("compteur", 1)
         self._create_time_and_bcs_update()
         self._create_problem_solve()
         self._create_output()
+        
+    def update_form_with_stabilization(self, dictionnaire):
+        if self.pb.analysis == "explicit_dynamic":
+            self.damping = Damping(dictionnaire, self.pb.u, self.pb.u_, self.pb.v, 
+                                   self.pb.J_transfo, self.pb.material, self.pb.kinematic, 
+                                   self.pb.dx, self.pb.h, self.pb.multiphase, self.pb.form, self.pb.name)
+            self.pb.form -= self.damping.damping_form
         
     def _create_time_and_bcs_update(self):
         """Fusionne update_time et update_bcs en une seule fonction optimisée"""
