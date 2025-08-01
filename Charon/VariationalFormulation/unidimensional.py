@@ -162,62 +162,6 @@ class Unidimensional(Problem):
         class UnidimensionalLoading
         """
         return UnidimensionalLoading
-    
-    def dot_grad_scal(self, grad_scal_1, grad_scal_2):
-        """
-        Compute the dot product of two scalar gradients.
-        
-        Parameters
-        ----------
-        grad_scal_1 : ufl.tensors.ListTensor First gradient
-        grad_scal_2 : ufl.tensors.ListTensor Second gradient
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the dot product
-        """
-        return grad_scal_1 * grad_scal_2
-
-    def dot(self, reduit_1, reduit_2):
-        """
-        Compute the dot product between two reduced tensor representations.
-        
-        Parameters
-        ----------
-        reduit_1 : ufl.tensors.ListTensor
-            First reduced tensor (size 1, 2, or 3 depending on coordinate system)
-        reduit_2 : ufl.tensors.ListTensor
-            Second reduced tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product or ufl.tensors.ListTensor
-            Result of the dot product, scalar or vector depending on the problem type
-        """
-        if self.name == "CartesianUD":
-            return reduit_1 * reduit_2
-        elif self.name == "CylindricalUD":
-            return as_vector([reduit_1[i] * reduit_2[i] for i in range(2)])
-        elif self.name == "SphericalUD":
-            return as_vector([reduit_1[i] * reduit_2[i] for i in range(3)])
-        
-    def inner(self, reduit_1, reduit_2):
-        """
-        Compute the inner product (double contraction) between two reduced tensors.
-        
-        Parameters
-        ----------
-        reduit_1 : ufl.tensors.ListTensor First reduced tensor
-        reduit_2 : ufl.tensors.ListTensor Second reduced tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the inner product
-        """
-        if self.name == "CartesianUD":
-            return reduit_1 * reduit_2
-        elif self.name in ["CylindricalUD", "SphericalUD"]:
-            return dot(reduit_1, reduit_2)
         
     def extract_deviatoric(self, deviatoric):
         """
@@ -250,40 +194,21 @@ class Unidimensional(Problem):
         -------
         ufl.tensors.ListTensor Current stress in reduced form
         """
-        return self.kinematic.tridim_to_reduit(self.constitutive.stress_3D(u, v, T, T0, J))
+        return self.kinematic.tensor_3d_to_compact(self.constitutive.stress_3D(u, v, T, T0, J))
         
     def conjugate_strain(self):
-        """
-        Return the virtual strain conjugate to the Cauchy stress in reduced form.
-        
-        Returns
-        -------
-        ufl.algebra.Product or ufl.tensors.ListTensor
-            Conjugate strain in reduced form
-        """
-        return self.dot(self.kinematic.grad_reduit(self.u_), self.cofac_reduit(self.u))
-                
-    def cofac_reduit(self, u):
-        """
-        Return the cofactor of the displacement field in reduced form.
-        
-        Parameters
-        ----------
-        u : dolfinx.fem.Function Displacement field
-            
-        Returns
-        -------
-        ufl.algebra.Product or ufl.tensors.ListTensor
-            Reduced cofactor, form depends on the coordinate system
-        """
-        if self.name == "CartesianUD":
-            return 1
-        elif self.name == "CylindricalUD":               
-            return as_vector([1 + self.u / self.r, 1 + u.dx(0)])
-        elif self.name == "SphericalUD":
-            return as_vector([(1 + self.u / self.r)**2, 
-                              (1 + u.dx(0)) * (1 + self.u / self.r),
-                              (1 + u.dx(0)) * (1 + self.u / self.r)])
+       """
+       Return the virtual strain conjugate to the Cauchy stress in compact form.
+       
+       Returns
+       -------
+       ufl.algebra.Product or ufl.tensors.ListTensor
+           Conjugate strain in compact form
+       """
+       return self.kinematic.contract_simple(
+           self.kinematic.grad_vector_compact(self.u_), 
+           self.kinematic.cofactor_compact(self.u)
+       )
     
 class CartesianUD(Unidimensional):
     """

@@ -65,7 +65,7 @@ class HPPPlasticSolver:
         """
         eps = 1e-10
         if self.hardening == "LinearKinematic":
-            self.A = self.kin.tridim_to_mandel(s_3D - self.plastic.H * self.plastic.eps_P_3D)
+            self.A = self.kin.tensor_3d_to_mandel_compact(s_3D - self.plastic.H * self.plastic.eps_P_3D)
             if self.is_damage != None:
                 self.A *= self.pb.damage.g_d
             norm_A = sqrt(dot(self.A, self.A)) + eps
@@ -75,7 +75,7 @@ class HPPPlasticSolver:
         elif self.hardening == "Isotropic":
             if self.is_damage != None:
                 s_3D *= self.pb.damage.g_d
-            s_mandel = self.kin.tridim_to_mandel(s_3D)
+            s_mandel = self.kin.tensor_3d_to_mandel_compact(s_3D)
             sig_VM = sqrt(3.0 / 2.0 * dot(s_mandel, s_mandel)) + eps
             f_elas = sig_VM - self.plastic.sig_yield - self.plastic.H * self.plastic.p
             Delta_p = ppart(f_elas) / (3. * self.plastic.mu + self.plastic.H)

@@ -82,7 +82,7 @@ class MooneyRivlinDeviator(BaseDeviator):
         -------
         ufl.core.expr.Expr Deviatoric stress tensor
         """
-        B = kinematic.B_3D(u)
+        B = kinematic.left_cauchy_green_3d(u)
         term1 = self.mu / J**(5./3) * dev(B)
         term2 = self.mu_quad / J**(7./3) * dev(dot(B, B) - tr(B) * B)
         return term1 - term2

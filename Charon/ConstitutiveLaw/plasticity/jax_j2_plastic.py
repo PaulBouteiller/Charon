@@ -46,7 +46,7 @@ class JAXJ2Plasticity(Plastic):
         """
         self.V_Be_bar = functionspace(self.mesh, element)
         self.Be_bar = Function(self.V_Be_bar)
-        self.Be_bar_3D = self.kin.mandel_to_tridim(self.Be_bar)
+        self.Be_bar_3D = self.kin.mandel_compact_to_tensor_3d(self.Be_bar)
         self.len_plas = len(self.Be_bar)
         self.Be_bar.x.array[::self.len_plas] = 1
         self.Be_bar.x.array[1::self.len_plas] = 1
@@ -67,7 +67,7 @@ class JAXJ2Plasticity(Plastic):
         Expression
             Trial elastic left Cauchy-Green tensor
         """
-        F_rel = self.kin.relative_gradient_3D(u, u_old)
+        F_rel = self.kin.relative_deformation_gradient_3d(u, u_old)
         J_rel = self.kin.reduced_det(F_rel)
         F_rel_bar = J_rel**(-1./3) * F_rel
         return dot(dot(F_rel_bar, self.Be_bar_3D), F_rel_bar.T)

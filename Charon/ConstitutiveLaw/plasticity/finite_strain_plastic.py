@@ -46,7 +46,7 @@ class FiniteStrainPlastic(Plastic):
         """
         self.V_dev_BE = functionspace(self.mesh, element)
         self.dev_Be = Function(self.V_dev_BE)
-        self.dev_Be_3D = self.kin.mandel_to_tridim(self.dev_Be)
+        self.dev_Be_3D = self.kin.mandel_compact_to_tensor_3d(self.dev_Be)
         self.V_Ie = quadrature.quadrature_space(["Scalar"])
         self.barI_e = Function(self.V_Ie, name = "Bar_I_elastique")
         self.barI_e.x.petsc_vec.set(1.)
@@ -64,7 +64,7 @@ class FiniteStrainPlastic(Plastic):
         Expression
             Trial elastic left Cauchy-Green tensor
         """
-        F_rel = self.kin.relative_gradient_3D(u, u_old)
+        F_rel = self.kin.relative_deformation_gradient_3d(u, u_old)
         Be_trial_part_1 = self.barI_e * dot(F_rel, F_rel.T)
         Be_trial_part_2 = dot(dot(F_rel, self.dev_Be_3D), F_rel.T)
         return Be_trial_part_1 + Be_trial_part_2

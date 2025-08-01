@@ -30,7 +30,7 @@ Key components:
 """
 
 from .Problem import BoundaryConditions, Loading, Problem
-from ufl import cofac, inner, div, sym, grad, dot
+from ufl import grad, dot
 from petsc4py.PETSc import ScalarType
 from basix.ufl import element
 
@@ -183,65 +183,6 @@ class Tridimensional(Problem):
         """
         return TridimensionalLoading
     
-    def div(self, v):
-        """
-        Compute the divergence of a vector field.
-        
-        Parameters
-        ----------
-        v : ufl.tensors.ListTensor Vector field
-            
-        Returns
-        -------
-        ufl.algebra.Sum Divergence of the vector field
-        """
-        return div(v)
-
-    def dot(self, a, b):
-        """
-        Compute the dot product of two tensors.
-        
-        Parameters
-        ----------
-        a : ufl.tensors.ListTensor First tensor
-        b : ufl.tensors.ListTensor Second tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the dot product
-        """
-        return dot(a, b)
-    
-    def dot_grad_scal(self, tensor1, tensor2):
-        """
-        Compute the dot product of a tensor and a gradient.
-        
-        Parameters
-        ----------
-        tensor1 : ufl.tensors.ListTensor First tensor
-        tensor2 : ufl.tensors.ListTensor Second tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the dot product
-        """
-        self.dot(tensor1, tensor2)
-        
-    def inner(self, a, b):
-        """
-        Compute the inner product (double contraction) of two tensors.
-        
-        Parameters
-        ----------
-        a : ufl.tensors.ListTensor First tensor
-        b : ufl.tensors.ListTensor Second tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the inner product
-        """
-        return inner(a, b)
-    
     def undamaged_stress(self, u, v, T, T0, J):
         """
         Define the current stress in the material.
@@ -259,17 +200,17 @@ class Tridimensional(Problem):
         return self.constitutive.stress_3D(u, v, T, T0, J)
     
     def conjugate_strain(self):
-        """
-        Return the strain conjugate to the Cauchy stress.
-        
-        Computes the appropriate strain measure for 3D problems that is
-        work-conjugate to the Cauchy stress.
-        
-        Returns
-        -------
-        ufl.tensors.ListTensor Conjugate strain tensor
-        """
-        return dot(sym(grad(self.u_)), cofac(self.kinematic.F_3D(self.u)))
+       """
+       Return the strain conjugate to the Cauchy stress.
+       
+       Computes the appropriate strain measure for 3D problems that is
+       work-conjugate to the Cauchy stress.
+       
+       Returns
+       -------
+       ufl.tensors.ListTensor Conjugate strain tensor
+       """
+       return dot(grad(self.u_), self.kinematic.cofactor_compact(self.u))
     
     def extract_deviatoric(self, deviatoric):
         """

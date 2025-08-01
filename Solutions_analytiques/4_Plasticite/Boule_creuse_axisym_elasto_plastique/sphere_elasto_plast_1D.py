@@ -53,7 +53,7 @@ Re = 600
 Ri = 300.0
 
 
-plasticity_model = "J2_JAX"
+plasticity_model = "Finite_Plasticity"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
@@ -71,7 +71,7 @@ elif plasticity_model == "J2_JAX":
 q_lim = float(2 * np.log(Re / Ri) * sig0)
 
 ###### Maillage ######
-Nx=500
+Nx=50
 mesh = create_1D_mesh(Ri, Re, Nx)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Ri, Re]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
@@ -79,7 +79,7 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 p_applied = 1.1 * q_lim
 
-npas = 2000
+npas = 20000
 compteur = 100
 
 ###### Paramètre du problème ######

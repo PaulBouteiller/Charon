@@ -109,7 +109,7 @@ class IsotropicHPPDeviator(BaseDeviator):
         ufl.core.expr.Expr Deviatoric stress tensor
         """
         # Calculate strain tensor: ε = sym(∇u)
-        epsilon = sym(kinematic.grad_3D(u))
+        epsilon = sym(kinematic.grad_vector_3d(u))
         
         # Calculate deviatoric stress: s = 2μ * dev(ε)
         return 2 * self.mu * dev(epsilon)

@@ -49,7 +49,7 @@ class HPPPlastic(Plastic):
         """
         self.Vepsp = functionspace(self.mesh, element)
         self.eps_p = Function(self.Vepsp, name = "Plastic_strain")
-        self.eps_P_3D = self.kin.mandel_to_tridim(self.eps_p)
+        self.eps_P_3D = self.kin.mandel_compact_to_tensor_3d(self.eps_p)
         if self.hardening == "Isotropic":
             self.Vp = quadrature.quadrature_space(["Scalar"])
             self.p = Function(self.Vp, name = "Cumulative_plastic_strain")

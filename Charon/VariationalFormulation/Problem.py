@@ -557,7 +557,7 @@ class Problem:
             )
             self.set_T_dependant_massic_capacity()
             self.therm.set_tangent_thermal_capacity() 
-            self.pint_vol = self.inner(self.sig, self.D)
+            self.pint_vol = self.kinematic.contract_double(self.sig, self.D)
     
     def _init_loading(self, simulation_dic):
         """
@@ -656,7 +656,7 @@ class Problem:
         -------
         ufl.form.Form Stiffness form
         """
-        return self.kinematic.measure(self.inner(sigma, eps), self.dx)
+        return self.kinematic.measure(self.kinematic.contract_double(sigma, eps), self.dx)
     
     def m(self, du, u_):
         """
@@ -686,10 +686,11 @@ class Problem:
         
         Also sets up Expression and Function objects for field output.
         """
-        self.J_transfo = self.kinematic.J(self.u)
+        self.J_transfo = self.kinematic.jacobian(self.u)
         self.rho = self.rho_0_field_init / self.J_transfo
-        self.sig = self.current_stress(self.u, self.v, self.T, self.T0, self.J_transfo)        
-        self.D = self.kinematic.Eulerian_gradient(self.v, self.u)
+        self.sig = self.current_stress(self.u, self.v, self.T, self.T0, self.J_transfo)
+        # self.PK1 = self.boussinesq_stress(self.u, self.v, self.T, self.T0, self.J_transfo)
+        self.D = self.kinematic.grad_eulerian_compact(self.v, self.u)
         
         self.sig_expr = Expression(self.sig, self.V_Sig.element.interpolation_points())
         self.sig_func = Function(self.V_Sig, name="Stress")
@@ -785,7 +786,7 @@ class Problem:
         self.dT = TrialFunction(self.V_T)
         self.T_ = TestFunction(self.V_T)
         j = self.therm.thermal_constitutive_law(self.mat_th, self.kinematic.grad_scal(self.dT))
-        self.bilinear_flux_form = self.kinematic.measure(self.dot_grad_scal(j, self.kinematic.grad_scal(self.T_)), self.dx)
+        self.bilinear_flux_form = self.kinematic.measure(self.kinematic.contract_scalar_gradients(j, self.kinematic.grad_scal(self.T_)), self.dx)
         
     def set_time_dependant_BCs(self, load_steps):
         """

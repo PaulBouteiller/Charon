@@ -60,7 +60,7 @@ class FiniteStrainPlasticSolver:
             Delta_gamma *= 1 / (1 + self.plastic.H / (3 * mu_bar))
         eps = 1e-6
         dev_Be_expr_3D = (1 - (2 * self.plastic.barI_e * ppart(Delta_gamma)) / (norme_dev_Be_trial + eps)) * dev_Be_trial
-        dev_Be_expr = self.plastic.kin.tridim_to_mandel(dev_Be_expr_3D)
+        dev_Be_expr = self.plastic.kin.tensor_3d_to_mandel_compact(dev_Be_expr_3D)
         self.dev_Be_expr = Expression(dev_Be_expr, self.plastic.V_dev_BE.element.interpolation_points())
         self.plastic.dev_Be.interpolate(self.dev_Be_expr)
         

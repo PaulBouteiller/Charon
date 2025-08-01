@@ -35,7 +35,7 @@ The module enables accurate representation of large deformations, nonlinear
 strain measures, and various stress tensors for different material models.
 """
 
-from ufl import (grad, as_tensor, div, tr, Identity, dot, as_vector, det, inv)
+from ufl import (grad, as_tensor, div, Identity, dot, as_vector, det, inv, cofac, inner)
 from math import sqrt
 
 class Kinematic:
@@ -72,463 +72,467 @@ class Kinematic:
     # Gradient methods
     # =========================================================================
     
-    def grad_scal(self, f):
+    def grad_scalar_compact(self, scalar_field):
         """
         Return the appropriate representation of a scalar field gradient.
 
         Parameters
         ----------
-        f : Function Scalar field
+        scalar_field : Function Scalar field
 
         Returns
         -------
         Expression Gradient adapted to dimension and geometry
         """
         if self._is_1d:
-            return f.dx(0)
+            return scalar_field.dx(0)
         else: 
-            return grad(f)
+            return grad(scalar_field)
     
-    def v_grad3D(self, f):
-        """
-        Return the 3D gradient of a scalar field in vector form.
-
-        Parameters
-        ----------
-        f : Function Scalar field
-
-        Returns
-        -------
-        Vector 3D gradient adapted to dimension and geometry
-        """
-        if self._is_1d:
-            return as_vector([f.dx(0), 0, 0])
-        elif self.name == "PlaneStrain": 
-            return as_vector([f.dx(0), f.dx(1), 0])
-        elif self.name == "Axisymmetric": 
-            return as_vector([f.dx(0), 0, f.dx(1)])
-        else:  # Tridimensional
-            return grad(f)
+    def grad_scalar_3d(self, scalar_field):
+       """
+       Return the 3D gradient of a scalar field in vector form.
+       
+       Parameters
+       ----------
+       scalar_field : Function  Scalar field
+           
+       Returns
+       -------
+       Vector  3D gradient adapted to dimension and geometry
+       """
+       if self._is_1d:
+           return as_vector([scalar_field.dx(0), 0, 0])
+       elif self.name == "PlaneStrain": 
+           return as_vector([scalar_field.dx(0), scalar_field.dx(1), 0])
+       elif self.name == "Axisymmetric": 
+           return as_vector([scalar_field.dx(0), 0, scalar_field.dx(1)])
+       else:  # Tridimensional
+           return grad(scalar_field)
     
-    def grad_reduit(self, u, sym = False):
-        """
-        Return the reduced gradient of a vector field.
-        
-        The representation is adapted to the dimension and geometry.
-
-        Parameters
-        ----------
-        u : Function Vector field
-        sym : bool, optional If True, use a symmetric representation. Default: False
-
-        Returns
-        -------
-        Expression Reduced gradient
-        """
-        if self.name == "CartesianUD":
-            return u.dx(0)
-        elif self.name == "CylindricalUD":
-            return as_vector([u.dx(0), u / self.r])
-        elif self.name == "SphericalUD":
-            return as_vector([u.dx(0), u / self.r, u / self.r])
-        elif self.name == "PlaneStrain":
-            grad_u = grad(u)
-            return self._get_2d_reduced_grad(grad_u, sym)
-        elif self.name == "Axisymmetric":
-            grad_u = grad(u)
-            return self._get_axi_reduced_grad(grad_u, u, sym)
-        else:  # Tridimensional
-            return grad(u)
+    def grad_vector_compact(self, vector_field, symmetric=False):
+       """
+       Return the compact gradient of a vector field.
+       
+       The representation is adapted to the dimension and geometry.
+       
+       Parameters
+       ----------
+       vector_field : Function Vector field
+       symmetric : bool, optional  If True, use a symmetric representation. Default: False
+           
+       Returns
+       -------
+       Expression  Compact gradient
+       """
+       if self.name == "CartesianUD":
+           return vector_field.dx(0)
+       elif self.name == "CylindricalUD":
+           return as_vector([vector_field.dx(0), vector_field / self.r])
+       elif self.name == "SphericalUD":
+           return as_vector([vector_field.dx(0), vector_field / self.r, vector_field / self.r])
+       elif self.name == "PlaneStrain":
+           grad_u = grad(vector_field)
+           if symmetric:
+               return as_vector([grad_u[0, 0], grad_u[1, 1], grad_u[0, 1]])
+           else:
+               return as_vector([grad_u[0, 0], grad_u[1, 1], grad_u[0, 1], grad_u[1, 0]])
+       elif self.name == "Axisymmetric":
+           grad_u = grad(vector_field)
+           if symmetric:
+               return as_vector([grad_u[0, 0], vector_field[0] / self.r, grad_u[1, 1], grad_u[0, 1]])
+           else:
+               return as_vector([grad_u[0, 0], vector_field[0] / self.r, grad_u[1, 1], 
+                                 grad_u[0, 1], grad_u[1, 0]])
+       else:  # Tridimensional
+           return grad(vector_field)
     
-    def _get_2d_reduced_grad(self, grad_u, sym):
-        """
-        Private method to get the reduced 2D gradient.
-
-        Parameters
-        ----------
-        grad_u : Expression Full gradient tensor
-        sym : bool If True, use a symmetric representation
-
-        Returns
-        -------
-        Vector Reduced gradient
-        """
-        if sym:
-            return as_vector([grad_u[0, 0], grad_u[1, 1], grad_u[0, 1]])
-        else:
-            return as_vector([grad_u[0, 0], grad_u[1, 1], grad_u[0, 1], grad_u[1, 0]])
+    def grad_vector_3d(self, vector_field, symmetric=False):
+       """
+       Return the three-dimensional gradient of a vector field.
+       
+       Parameters
+       ----------
+       vector_field : Function 
+           Vector field
+       symmetric : bool, optional 
+           If True, use a symmetric representation. Default: False
+           
+       Returns
+       -------
+       Tensor 
+           3D gradient as a tensor
+       """
+       return self.compact_to_tensor_3d(self.grad_vector_compact(vector_field, symmetric=symmetric), symmetric=symmetric)
     
-    def _get_axi_reduced_grad(self, grad_u, u, sym):
-        """
-        Private method to get the reduced axisymmetric gradient.
-
-        Parameters
-        ----------
-        grad_u : Expression Full gradient tensor
-        u : Function Displacement field
-        sym : bool If True, use a symmetric representation
-
-        Returns
-        -------
-        Vector Reduced gradient
-        """
-        if sym:
-            return as_vector([grad_u[0, 0], u[0] / self.r, grad_u[1, 1], grad_u[0, 1]])
-        else:
-            return as_vector([grad_u[0, 0], u[0] / self.r, grad_u[1, 1], 
-                              grad_u[0, 1], grad_u[1, 0]])
-    
-    def grad_3D(self, u, sym=False):
-        """
-        Return the three-dimensional gradient of a vector field.
-
-        Parameters
-        ----------
-        u : Function Vector field
-        sym : bool, optional If True, use a symmetric representation. Default: False
-
-        Returns
-        -------
-        Tensor 3D gradient as a tensor
-        """
-        return self.reduit_to_3D(self.grad_reduit(u, sym=sym), sym=sym)
-    
-    def Eulerian_gradient(self, v, u):
-        """
-        Return the spatial velocity gradient, which is ∂v/∂x where ∂x denotes
-        the derivative with respect to current coordinates.
-
-        Parameters
-        ----------
-        v : Function Vector field to derive
-        u : Function Displacement field defining the transformation
-
-        Returns
-        -------
-        Expression Eulerian gradient
-        """
-        invF_reduit = self.invF_reduit(u)
-        grad_red = self.grad_reduit(v)
-        
-        if self._is_1d:
-            if self.name == "CartesianUD":
-                return grad_red * invF_reduit[0]
-            else:  # CylindricalUD or SphericalUD
-                return as_vector([grad_red[i] * invF_reduit[i] for i in range(len(grad_red))])
-        elif self.name == "PlaneStrain":
-            return self.bidim_to_reduit(dot(self.reduit_to_2D(grad_red), inv(Identity(2) + grad(u))))
-        elif self.name == "Axisymmetric":
-            return self.tridim_to_reduit(dot(self.reduit_to_3D(grad_red), invF_reduit))
-        else:  # Tridimensional
-            return dot(grad_red, invF_reduit)
-    
+    def grad_eulerian_compact(self, velocity_field, displacement_field):
+       """
+       Return the spatial velocity gradient in compact form.
+       
+       Computes ∂v/∂x where ∂x denotes the derivative with respect to current coordinates.
+       
+       Parameters
+       ----------
+       velocity_field : Function Vector field to derive
+       displacement_field : Function  Displacement field defining the transformation
+           
+       Returns
+       -------
+       Expression  Eulerian gradient in compact form
+       """
+       inv_F_compact = self.inv_deformation_gradient_compact(displacement_field)
+       grad_compact = self.grad_vector_compact(velocity_field)
+       
+       if self._is_1d:
+           if self.name == "CartesianUD":
+               return grad_compact * inv_F_compact[0]
+           else:  # CylindricalUD or SphericalUD
+               return as_vector([grad_compact[i] * inv_F_compact[i] for i in range(len(grad_compact))])
+       elif self.name == "PlaneStrain":
+           return self.tensor_2d_to_compact(dot(self.compact_to_tensor_2d(grad_compact), 
+                                               inv(Identity(2) + grad(displacement_field))))
+       elif self.name == "Axisymmetric":
+           return self.tensor_3d_to_compact(dot(self.compact_to_tensor_3d(grad_compact), inv_F_compact))
+       else:  # Tridimensional
+           return dot(grad_compact, inv_F_compact)
+       
     # =========================================================================
     # Format conversion methods
     # =========================================================================
     
-    def reduit_to_3D(self, red, sym = False):
-        """
-        Convert a tensor in reduced form to its full three-dimensional form.
-
-        Parameters
-        ----------
-        red : Expression Field in reduced form
-        sym : bool, optional If True, use a symmetric representation. Default: False
-
-        Returns
-        -------
-        Tensor Corresponding 3D tensor
-        """
-        # 1D models
-        if self.name == "CartesianUD":
-            return as_tensor([[red, 0, 0], [0, 0, 0], [0, 0, 0]])
-        elif self.name == "CylindricalUD":
-            return as_tensor([[red[0], 0, 0], [0, red[1], 0], [0, 0, 0]])
-        elif self.name == "SphericalUD":
-            return as_tensor([[red[0], 0, 0], [0, red[1], 0], [0, 0, red[1]]])
-        
-        # 2D models
-        elif self.name == "PlaneStrain":
-            if sym:
-                return as_tensor([[red[0], red[2], 0], [red[2], red[1], 0], [0, 0, 0]])
-            else:
-                return as_tensor([[red[0], red[2], 0], [red[3], red[1], 0], [0, 0, 0]])
-        elif self.name == "Axisymmetric":
-            if sym:
-                return as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[3], 0, red[2]]])
-            else:
-                return as_tensor([[red[0], 0, red[3]], [0, red[1], 0], [red[4], 0, red[2]]])
-        
-        # 3D model
-        else:
-            if sym:
-                return as_tensor([[red[0], red[3], red[4]], 
-                                  [red[3], red[1], red[5]], 
-                                  [red[4], red[5], red[2]]])
-            else:
-                return red
+    def compact_to_tensor_3d(self, compact_tensor, symmetric=False):
+       """
+       Convert a tensor in compact form to its full three-dimensional form.
+       
+       Parameters
+       ----------
+       compact_tensor : Expression 
+           Field in compact form
+       symmetric : bool, optional 
+           If True, use a symmetric representation. Default: False
+           
+       Returns
+       -------
+       Tensor 
+           Corresponding 3D tensor
+       """
+       # 1D models
+       if self.name == "CartesianUD":
+           return as_tensor([[compact_tensor, 0, 0], 
+                             [0, 0, 0], [0, 0, 0]])
+       elif self.name == "CylindricalUD":
+           return as_tensor([[compact_tensor[0], 0, 0], 
+                             [0, compact_tensor[1], 0], [0, 0, 0]])
+       elif self.name == "SphericalUD":
+           return as_tensor([[compact_tensor[0], 0, 0], 
+                             [0, compact_tensor[1], 0], 
+                             [0, 0, compact_tensor[1]]])
+       
+       # 2D models
+       elif self.name == "PlaneStrain":
+           if symmetric:
+               return as_tensor([[compact_tensor[0], compact_tensor[2], 0], 
+                                [compact_tensor[2], compact_tensor[1], 0], 
+                                [0, 0, 0]])
+           else:
+               return as_tensor([[compact_tensor[0], compact_tensor[2], 0], 
+                                [compact_tensor[3], compact_tensor[1], 0], 
+                                [0, 0, 0]])
+       elif self.name == "Axisymmetric":
+           if symmetric:
+               return as_tensor([[compact_tensor[0], 0, compact_tensor[3]], 
+                                [0, compact_tensor[1], 0], 
+                                [compact_tensor[3], 0, compact_tensor[2]]])
+           else:
+               return as_tensor([[compact_tensor[0], 0, compact_tensor[3]], 
+                                [0, compact_tensor[1], 0], 
+                                [compact_tensor[4], 0, compact_tensor[2]]])
+       
+       # 3D model
+       else:
+           if symmetric:
+               return as_tensor([[compact_tensor[0], compact_tensor[3], compact_tensor[4]], 
+                                [compact_tensor[3], compact_tensor[1], compact_tensor[5]], 
+                                [compact_tensor[4], compact_tensor[5], compact_tensor[2]]])
+           else:
+               return compact_tensor
     
-    def reduit_to_2D(self, red):
-        """
-        Convert a tensor in reduced form to its two-dimensional form.
-
-        Parameters
-        ----------
-        red : Expression Tensor in reduced form
-
-        Returns
-        -------
-        Tensor Corresponding 2D tensor
-        """
-        return as_tensor([[red[0], red[2]], [red[3], red[1]]])
+    def compact_to_tensor_2d(self, compact_tensor):
+       """
+       Convert a tensor in compact form to its two-dimensional form.
+       
+       Parameters
+       ----------
+       compact_tensor : Expression  Tensor in compact form
+           
+       Returns
+       -------
+       Tensor  Corresponding 2D tensor
+       """
+       return as_tensor([[compact_tensor[0], compact_tensor[2]], 
+                         [compact_tensor[3], compact_tensor[1]]])
     
-    def bidim_to_reduit(self, tens2D):
-        """
-        Convert a 2D tensor to its reduced form.
-
-        Parameters
-        ----------
-        tens2D : Tensor 2D tensor
-
-        Returns
-        -------
-        Vector Corresponding reduced form
-        """
-        return as_vector([tens2D[0, 0], tens2D[1, 1], tens2D[0, 1], tens2D[1, 0]])
+    def tensor_2d_to_compact(self, tensor_2d):
+       """
+       Convert a 2D tensor to its compact form.
+       
+       Parameters
+       ----------
+       tensor_2d : Tensor  2D tensor
+           
+       Returns
+       -------
+       Vector  Corresponding compact form
+       """
+       return as_vector([tensor_2d[0, 0], tensor_2d[1, 1], tensor_2d[0, 1], tensor_2d[1, 0]])
     
-    def tridim_to_reduit(self, tens3D, sym=False):
-        """
-        Convert a 3D tensor to its reduced form.
-
-        Parameters
-        ----------
-        tens3D : Tensor 3D tensor
-        sym : bool, optional If True, use a symmetric representation. Default: False
-
-        Returns
-        -------
-        Expression Corresponding reduced form
-        """
-        # 1D models
-        if self.name == "CartesianUD":
-            return tens3D[0, 0]
-        elif self.name == "CylindricalUD":
-            return as_vector([tens3D[0, 0], tens3D[1, 1]])
-        elif self.name == "SphericalUD":
-            return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2]])
-        
-        # 2D models
-        elif self.name == "PlaneStrain":
-            if sym:
-                return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[0, 1]])
-            else:
-                return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[0, 1], tens3D[1, 0]])
-        elif self.name == "Axisymmetric":
-            if sym:
-                return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], tens3D[0, 2]])
-            else:
-                return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
-                                tens3D[0, 2], tens3D[2, 0]])
-        
-        # 3D model
-        elif self.name == "Tridimensional":
-            if sym:
-                return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
-                                tens3D[0, 1], tens3D[0, 2], tens3D[1, 2]])
-            else:
-                return tens3D
+    def tensor_3d_to_compact(self, tensor_3d, symmetric=False):
+       """
+       Convert a 3D tensor to its compact form.
+       
+       Parameters
+       ----------
+       tensor_3d : Tensor  3D tensor
+       symmetric : bool, optional  If True, use a symmetric representation. Default: False
+           
+       Returns
+       -------
+       Expression  Corresponding compact form
+       """
+       # 1D models
+       if self.name == "CartesianUD":
+           return tensor_3d[0, 0]
+       elif self.name == "CylindricalUD":
+           return as_vector([tensor_3d[0, 0], tensor_3d[1, 1]])
+       elif self.name == "SphericalUD":
+           return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2]])
+       
+       # 2D models
+       elif self.name == "PlaneStrain":
+           if symmetric:
+               return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[0, 1]])
+           else:
+               return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[0, 1], tensor_3d[1, 0]])
+       elif self.name == "Axisymmetric":
+           if symmetric:
+               return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2], tensor_3d[0, 2]])
+           else:
+               return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2], 
+                               tensor_3d[0, 2], tensor_3d[2, 0]])
+       
+       # 3D model
+       elif self.name == "Tridimensional":
+           if symmetric:
+               return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2], 
+                               tensor_3d[0, 1], tensor_3d[0, 2], tensor_3d[1, 2]])
+           else:
+               return tensor_3d
     
-    def tridim_to_mandel(self, tens3D):
+    def tensor_3d_to_mandel_compact(self, tensor_3d):
         """
-        Convert a 3D tensor to its Mandel notation representation.
+        Convert a 3D tensor to its compact Mandel notation representation.
         
-        The off-diagonal terms are weighted by a factor √2.
-
+        The off-diagonal terms are weighted by a factor √2, but only the 
+        components needed for the specific geometry are kept.
         Parameters
         ----------
-        tens3D : Tensor 3D symmetric tensor
-
+        tensor_3d : Tensor  3D symmetric tensor
         Returns
         -------
-        Vector Mandel representation
+        Vector  Compact Mandel representation
         """
         sq2 = sqrt(2)
         
         # 1D models
         if self._is_1d:
-            return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2]])
+            return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2]])
         
         # 2D models
         elif self.name == "PlaneStrain":
-            return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 1]])
+            return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2], sq2 * tensor_3d[0, 1]])
         elif self.name == "Axisymmetric":
-            return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], sq2 * tens3D[0, 2]])
+            return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2], sq2 * tensor_3d[0, 2]])
         
         # 3D model
         elif self.name == "Tridimensional":
-            return as_vector([tens3D[0, 0], tens3D[1, 1], tens3D[2, 2], 
-                            sq2 * tens3D[0, 1], sq2 * tens3D[0, 2], sq2 * tens3D[1, 2]])
-    
-    def mandel_to_tridim(self, red):
-        """
-        Convert a Mandel representation to a 3D tensor.
-
-        Parameters
-        ----------
-        red : Vector Mandel representation
-
-        Returns
-        -------
-        Tensor Corresponding 3D tensor
-        """
-        sq2 = sqrt(2)
+            return as_vector([tensor_3d[0, 0], tensor_3d[1, 1], tensor_3d[2, 2], 
+                            sq2 * tensor_3d[0, 1], sq2 * tensor_3d[0, 2], sq2 * tensor_3d[1, 2]])
         
-        # 1D models
-        if self._is_1d:
-            return as_tensor([[red[0], 0, 0], [0, red[1], 0], [0, 0, red[2]]])
-        
-        # 2D models
-        elif self.name == "PlaneStrain":
-            return as_tensor([[red[0], red[3] / sq2, 0], 
-                             [red[3] / sq2, red[1], 0], 
-                             [0, 0, red[2]]])
-        elif self.name == "Axisymmetric":
-            return as_tensor([[red[0], 0, red[3] / sq2], 
-                             [0, red[1], 0], 
-                             [red[3] / sq2, 0, red[2]]])
-        
-        # 3D model
-        elif self.name == "Tridimensional":
-            return as_tensor([[red[0], red[3] / sq2, red[4] / sq2], 
-                             [red[3] / sq2, red[1], red[5] / sq2], 
-                             [red[4] / sq2, red[5] / sq2, red[2]]])
+    def mandel_compact_to_tensor_3d(self, mandel_compact):
+       """
+       Convert a compact Mandel representation to a 3D tensor.
+       
+       Parameters
+       ----------
+       mandel_compact : Vector  Compact Mandel representation
+           
+       Returns
+       -------
+       Tensor Corresponding 3D tensor
+       """
+       sq2 = sqrt(2)
+       
+       # 1D models
+       if self._is_1d:
+           return as_tensor([[mandel_compact[0], 0, 0], 
+                            [0, mandel_compact[1], 0], 
+                            [0, 0, mandel_compact[2]]])
+       
+       # 2D models
+       elif self.name == "PlaneStrain":
+           return as_tensor([[mandel_compact[0], mandel_compact[3] / sq2, 0], 
+                            [mandel_compact[3] / sq2, mandel_compact[1], 0], 
+                            [0, 0, mandel_compact[2]]])
+       elif self.name == "Axisymmetric":
+           return as_tensor([[mandel_compact[0], 0, mandel_compact[3] / sq2], 
+                            [0, mandel_compact[1], 0], 
+                            [mandel_compact[3] / sq2, 0, mandel_compact[2]]])
+       
+       # 3D model
+       elif self.name == "Tridimensional":
+           return as_tensor([[mandel_compact[0], mandel_compact[3] / sq2, mandel_compact[4] / sq2], 
+                            [mandel_compact[3] / sq2, mandel_compact[1], mandel_compact[5] / sq2], 
+                            [mandel_compact[4] / sq2, mandel_compact[5] / sq2, mandel_compact[2]]])
     
     # =========================================================================
     # Transformation methods
     # =========================================================================
-    
-    def F_reduit(self, u):
+    def deformation_gradient_compact(self, displacement_field):
         """
-        Return the deformation gradient in reduced form.
-
+        Return the deformation gradient in compact form.
+        
+        Note: This compact representation differs from standard compact notation
+        because it includes additional diagonal terms (e.g., F_zz in plane strain)
+        due to the identity tensor contribution.
+        
         Parameters
         ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Expression Reduced deformation gradient
+        displacement_field : Function  Displacement field
         """
         # 1D models
-        if self.name == "CartesianUD":
-            return as_vector([1 + u.dx(0), 1, 1])
-        elif self.name == "CylindricalUD":
-            return as_vector([1 + u.dx(0), 1 + u / self.r, 1])
-        elif self.name == "SphericalUD":
-            return as_vector([1 + u.dx(0), 1 + u / self.r, 1 + u / self.r])
-        
-        # 2D and 3D models
-        else:
-            return Identity(3) + self.grad_3D(u)
-    
-    def F_3D(self, u):
-        """
-        Return the full 3D deformation gradient.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Tensor 3D deformation gradient
-        """
-        return Identity(3) + self.grad_3D(u)
-    
-    def J(self, u):
-        """
-        Return the Jacobian of the transformation (measure of local dilatation).
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Expression Jacobian of the transformation
-        """
-        # 1D models
-        if self.name == "CartesianUD":
-            return 1 + u.dx(0)
-        elif self.name == "CylindricalUD":
-            return (1 + u.dx(0)) * (1 + u / self.r)
-        elif self.name == "SphericalUD":
-            return (1 + u.dx(0)) * (1 + u / self.r)**2
-        
-        # 2D models
+        F_3d = self.deformation_gradient_3d(displacement_field)
+        if self._is_1d:
+            return as_vector([F_3d[0, 0], F_3d[1, 1], F_3d[2, 2]])
         elif self.name == "PlaneStrain":
-            return det(Identity(2) + grad(u))
+            return as_vector([F_3d[0, 0], F_3d[1, 1], F_3d[0, 1], F_3d[1, 0], F_3d[2, 2]])
         elif self.name == "Axisymmetric":
-            F = self.F_reduit(u)
-            return F[1, 1] * (F[0, 0] * F[2, 2] - F[0, 2] * F[2, 0])
-        
-        # 3D model
+            return as_vector([F_3d[0, 0], F_3d[1, 1], F_3d[0, 2], F_3d[2, 0], F_3d[2, 2]]) 
         else:
-            return det(Identity(3) + grad(u))
+            return Identity(3) + self.grad_vector_3d(displacement_field)
     
-    def invF_reduit(self, u):
-        """
-        Return the inverse of the deformation gradient in reduced form.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Expression Inverse of the deformation gradient
-        """
-        # 1D models
-        if self.name == "CartesianUD":
-            return as_vector([1 / (1 + u.dx(0)), 1, 1])
-        elif self.name == "CylindricalUD":
-            return as_vector([1 / (1 + u.dx(0)), 1/(1 + u / self.r), 1])
-        elif self.name == "SphericalUD":
-            return as_vector([1 / (1 + u.dx(0)), 1 /(1 + u / self.r), 1 / (1 + u / self.r)])
-        
-        # 2D models
-        elif self.name == "PlaneStrain":
-            inv_F2 = inv(Identity(2) + grad(u))
-            return as_tensor([[inv_F2[0, 0], inv_F2[0, 1], 0], 
-                              [inv_F2[1, 0], inv_F2[1, 1], 0], 
-                              [0, 0, 1]])
-        elif self.name == "Axisymmetric":
-            grad_u = grad(u)
-            prefacteur = (1 + grad_u[0, 0]) * (1 + grad_u[1, 1]) - grad_u[0, 1] * (1 + grad_u[1, 0])
-            return as_tensor([[(1 + grad_u[1, 1]) / prefacteur, 0, -grad_u[0, 1] / prefacteur],
-                                [0, 1 / (1 + u[0] / self.r), 0],
-                                [-grad_u[1,0] / prefacteur, 0, (1 + grad_u[0,0]) / prefacteur]])
-        
-        # 3D model
-        else:
-            return inv(Identity(3) + grad(u))
+    def deformation_gradient_3d(self, displacement_field):
+       """
+       Return the full 3D deformation gradient.
+       
+       Parameters
+       ----------
+       displacement_field : Function  Displacement field
+       """
+       return Identity(3) + self.grad_vector_3d(displacement_field)
     
-    def relative_gradient_3D(self, u, u_old):
-        """
-        Return the relative deformation gradient between two configurations.
-
-        Parameters
-        ----------
-        u : Function Current displacement field
-        u_old : Function Previous displacement field
-
-        Returns
-        -------
-        Tensor Relative deformation gradient
-        """
-        F_new = self.F_3D(u)
-        inv_F_old = inv(self.F_3D(u_old))
-        return dot(F_new, inv_F_old)
+    def jacobian(self, displacement_field):
+       """
+       Return the Jacobian of the transformation (measure of local dilatation).
+       
+       Parameters
+       ----------
+       displacement_field : Function  Displacement field
+       """
+       # 1D models
+       if self.name == "CartesianUD":
+           return 1 + displacement_field.dx(0)
+       elif self.name == "CylindricalUD":
+           return (1 + displacement_field.dx(0)) * (1 + displacement_field / self.r)
+       elif self.name == "SphericalUD":
+           return (1 + displacement_field.dx(0)) * (1 + displacement_field / self.r)**2
+       
+       # 2D models
+       elif self.name == "PlaneStrain":
+           return det(Identity(2) + grad(displacement_field))
+       elif self.name == "Axisymmetric":
+           F_compact = self.deformation_gradient_3d(displacement_field)
+           return F_compact[1, 1] * (F_compact[0, 0] * F_compact[2, 2] - F_compact[0, 2] * F_compact[2, 0])
+       
+       # 3D model
+       else:
+           return det(Identity(3) + grad(displacement_field))
+    
+    def inv_deformation_gradient_compact(self, displacement_field):
+       """
+       Return the inverse of the deformation gradient in compact form.
+       
+       Parameters
+       ----------
+       displacement_field : Function Displacement field
+       """
+       # 1D models
+       if self.name == "CartesianUD":
+           return as_vector([1 / (1 + displacement_field.dx(0)), 1, 1])
+       elif self.name == "CylindricalUD":
+           return as_vector([1 / (1 + displacement_field.dx(0)), 1/(1 + displacement_field / self.r), 1])
+       elif self.name == "SphericalUD":
+           return as_vector([1 / (1 + displacement_field.dx(0)), 1 /(1 + displacement_field / self.r), 1 / (1 + displacement_field / self.r)])
+       
+       # 2D models
+       elif self.name == "PlaneStrain":
+           inv_F_2d = inv(Identity(2) + grad(displacement_field))
+           return as_tensor([[inv_F_2d[0, 0], inv_F_2d[0, 1], 0], 
+                             [inv_F_2d[1, 0], inv_F_2d[1, 1], 0], 
+                             [0, 0, 1]])
+       elif self.name == "Axisymmetric":
+           grad_u = grad(displacement_field)
+           prefactor = (1 + grad_u[0, 0]) * (1 + grad_u[1, 1]) - grad_u[0, 1] * (1 + grad_u[1, 0])
+           return as_tensor([[(1 + grad_u[1, 1]) / prefactor, 0, -grad_u[0, 1] / prefactor],
+                            [0, 1 / (1 + displacement_field[0] / self.r), 0],
+                            [-grad_u[1, 0] / prefactor, 0, (1 + grad_u[0, 0]) / prefactor]])
+       
+       # 3D model
+       else:
+           return inv(Identity(3) + grad(displacement_field))
+    
+    def relative_deformation_gradient_3d(self, current_displacement, previous_displacement):
+       """
+       Return the relative deformation gradient between two configurations.
+       
+       Parameters
+       ----------
+       current_displacement : Function Current displacement field
+       previous_displacement : Function Previous displacement field
+       """
+       F_current = self.deformation_gradient_3d(current_displacement)
+       inv_F_previous = inv(self.deformation_gradient_3d(previous_displacement))
+       return dot(F_current, inv_F_previous)
+   
+    def cofactor_compact(self, displacement_field):
+       """
+       Compute the cofactor in compact form adapted to geometry.
+       
+       Parameters
+       ----------
+       displacement_field : Function Displacement field
+       """
+       # 1D models
+       if self.name == "CartesianUD":
+           return 1
+       elif self.name == "CylindricalUD":               
+           return as_vector([1 + displacement_field / self.r, 1 + displacement_field.dx(0)])
+       elif self.name == "SphericalUD":
+           return as_vector([(1 + displacement_field / self.r)**2, 
+                             (1 + displacement_field.dx(0)) * (1 + displacement_field / self.r),
+                             (1 + displacement_field.dx(0)) * (1 + displacement_field / self.r)])
+       
+       # 2D models
+       elif self.name == "PlaneStrain":
+           return cofac(Identity(2) + grad(displacement_field))
+       elif self.name == "Axisymmetric":
+           F_3d = self.deformation_gradient_3d(displacement_field)
+           return as_tensor([[F_3d[2, 2] * F_3d[1, 1], 0, -F_3d[0, 2] * F_3d[1, 1]],
+                            [0, F_3d[0, 0] * F_3d[2, 2] - F_3d[0, 2] * F_3d[2, 0], 0],
+                            [-F_3d[2, 0] * F_3d[1, 1], 0, F_3d[0, 0] * F_3d[1, 1]]])
+       
+       # 3D model
+       else:  # Tridimensional
+           return cofac(self.deformation_gradient_3d(displacement_field))
     
     def reduced_det(self, tensor):
         if self._is_1d:
@@ -538,85 +542,39 @@ class Kinematic:
     # Strain methods
     # =========================================================================
     
-    def B(self, u):
+    def left_cauchy_green_compact(self, displacement_field):
         """
-        Return the left Cauchy-Green tensor.
-
+        Return the left Cauchy-Green tensor in compact form.
+        
         Parameters
         ----------
-        u : Function Displacement field
-
+        displacement_field : Function  Displacement field
+            
         Returns
         -------
         Expression Left Cauchy-Green tensor (form adapted to dimension)
         """
-        F = self.F_reduit(u)
         if self._is_1d:
-            return as_vector([F[0]**2, F[1]**2, F[2]**2])
+            F_compact = self.deformation_gradient_compact(displacement_field)
+            return as_vector([F_compact[0]**2, F_compact[1]**2, F_compact[2]**2])
         else:
-            return dot(F, F.T)
+            B_3d = self.left_cauchy_green_3d(displacement_field)
+            return self.tensor_3d_to_compact(B_3d, symmetric=True)
     
-    def B_3D(self, u):
-        """
-        Return the full 3D left Cauchy-Green tensor.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Tensor 3D left Cauchy-Green tensor
-        """
-        F = self.F_3D(u)
-        return dot(F, F.T)
-    
-    def C_3D(self, u):
-        """
-        Return the full 3D right Cauchy-Green tensor.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Tensor 3D right Cauchy-Green tensor
-        """
-        F = self.F_3D(u)
-        return dot(F.T, F)
-    
-    def BI(self, u):
-        """
-        Return the trace of the left Cauchy-Green tensor.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Expression Trace of the left Cauchy-Green tensor
-        """
-        B = self.B(u)
-        if self._is_1d:
-            return sum(B[i] for i in range(3))
-        else:
-            return tr(B)
-    
-    def BBarI(self, u):
-        """
-        Return the trace of the isovolumic left Cauchy-Green tensor.
-
-        Parameters
-        ----------
-        u : Function Displacement field
-
-        Returns
-        -------
-        Expression Trace of the isovolumic tensor
-        """
-        return self.BI(u) / self.J(u)**(2./3)
+    def left_cauchy_green_3d(self, displacement_field):
+       """
+       Return the full 3D left Cauchy-Green tensor.
+       
+       Parameters
+       ----------
+       displacement_field : Function Displacement field
+           
+       Returns
+       -------
+       Tensor  3D left Cauchy-Green tensor
+       """
+       F_3d = self.deformation_gradient_3d(displacement_field)
+       return dot(F_3d, F_3d.T)
     
     # =========================================================================
     # Integration and miscellaneous methods
@@ -655,15 +613,116 @@ class Kinematic:
         Parameters
         ----------
         v : Function Vector field
-
-        Returns
-        -------
-        Expression Divergence of the field
         """
         if self._is_1d:
             return v.dx(0)
         else:
             return div(v)
+        
+    def contract_scalar_gradients(self, grad_1, grad_2):
+       """
+       Compute the dot product between two scalar gradients.
+       
+       Parameters
+       ----------
+       grad_1 : ufl.tensors.ListTensor or scalar
+           First scalar gradient
+       grad_2 : ufl.tensors.ListTensor or scalar
+           Second scalar gradient
+           
+       Returns
+       -------
+       ufl.algebra.Product
+           Result of the dot product between gradients
+       """
+       # 1D models - gradients are scalars
+       if self._is_1d:
+           return grad_1 * grad_2
+       
+       # 2D and 3D models - use UFL dot product
+       else:  # PlaneStrain, Axisymmetric, Tridimensional
+           return dot(grad_1, grad_2)
+        
+    def contract_simple(self, compact_tensor_1, compact_tensor_2):
+       """
+       Compute the dot product between two compact tensor representations.
+       
+       Parameters
+       ----------
+       compact_tensor_1 : ufl.tensors.ListTensor
+           First compact tensor (size varies depending on coordinate system)
+       compact_tensor_2 : ufl.tensors.ListTensor
+           Second compact tensor
+           
+       Returns
+       -------
+       ufl.algebra.Product or ufl.tensors.ListTensor
+           Result of the dot product, scalar or vector depending on the problem type
+       """
+       # 1D models
+       if self.name == "CartesianUD":
+           return compact_tensor_1 * compact_tensor_2
+       elif self.name == "CylindricalUD":
+           return as_vector([compact_tensor_1[i] * compact_tensor_2[i] for i in range(2)])
+       elif self.name == "SphericalUD":
+           return as_vector([compact_tensor_1[i] * compact_tensor_2[i] for i in range(3)])
+       
+       # 2D and 3D models - use UFL dot product
+       else:  # PlaneStrain, Axisymmetric, Tridimensional
+           return dot(compact_tensor_1, compact_tensor_2)
+       
+    def contract_double(self, compact_tensor_1, compact_tensor_2):
+        """
+        Compute the double contraction between two tensors in compact form.
+        
+        Performs the operation σ:ε (stress:strain double contraction) adapted
+        to each geometry's compact representation.
+        
+        Parameters
+        ----------
+        compact_tensor_1 : ufl.tensors.ListTensor
+            First compact tensor (typically stress)
+        compact_tensor_2 : ufl.tensors.ListTensor  
+            Second compact tensor (typically strain)
+            
+        Returns
+        -------
+        ufl.algebra.Sum
+            Result of the double contraction
+        """
+        # 1D models
+        if self.name == "CartesianUD":
+            return compact_tensor_1 * compact_tensor_2
+        elif self.name in ["CylindricalUD", "SphericalUD"]:
+            return dot(compact_tensor_1, compact_tensor_2)
+        
+        # 2D models
+        elif self.name == "PlaneStrain":
+            # Handle different compact formats: [σxx, σyy, σxy] vs [εxx, εyy, εxy, εyx]
+            shape_1 = compact_tensor_1.ufl_shape[0]
+            shape_2 = compact_tensor_2.ufl_shape[0]
+            if shape_1 == 3 and shape_2 == 4:
+                return compact_tensor_1[0] * compact_tensor_2[0] + \
+                       compact_tensor_1[1] * compact_tensor_2[1] + \
+                       compact_tensor_1[2] * (compact_tensor_2[2] + compact_tensor_2[3])
+            else:
+                return dot(compact_tensor_1, compact_tensor_2)
+                
+        elif self.name == "Axisymmetric":
+            # Handle different compact formats: [σrr, σθθ, σzz, σrz] vs [εrr, εθθ, εzz, εrz, εzr]
+            shape_1 = compact_tensor_1.ufl_shape[0]
+            shape_2 = compact_tensor_2.ufl_shape[0]
+            if shape_1 == 4 and shape_2 == 5:
+                return compact_tensor_1[0] * compact_tensor_2[0] + \
+                       compact_tensor_1[1] * compact_tensor_2[1] + \
+                       compact_tensor_1[2] * compact_tensor_2[2] + \
+                       compact_tensor_1[3] * (compact_tensor_2[3] + compact_tensor_2[4])
+            else:
+                return dot(compact_tensor_1, compact_tensor_2)
+        
+        # 3D model
+        else:  # Tridimensional
+            return inner(compact_tensor_1, compact_tensor_2)
     
     def push_forward(self, tensor, u):
         """

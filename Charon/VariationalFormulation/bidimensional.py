@@ -290,37 +290,7 @@ class Bidimensional(Problem):
         ufl.tensors.ListTensor Current stress represented as a vector in reduced form
         """
         sig3D = self.constitutive.stress_3D(u, v, T, T0, J)
-        return self.kinematic.tridim_to_reduit(sig3D, sym = True)
-    
-    def dot_grad_scal(self, tensor1, tensor2):
-        """
-        Compute the dot product of a tensor and a gradient.
-        
-        Parameters
-        ----------
-        tensor1 : ufl.tensors.ListTensor First tensor
-        tensor2 : ufl.tensors.ListTensor Second tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the dot product
-        """
-        return self.dot(tensor1, tensor2)
-        
-    def dot(self, tensor1, tensor2):
-        """
-        Compute the contracted product between two tensors.
-        
-        Parameters
-        ----------
-        tensor1 : ufl.tensors.ListTensor First tensor
-        tensor2 : ufl.tensors.ListTensor Second tensor
-            
-        Returns
-        -------
-        ufl.algebra.Product Result of the dot product
-        """
-        return dot(tensor1, tensor2)
+        return self.kinematic.tensor_3d_to_compact(sig3D, symmetric=True)
     
 class PlaneStrain(Bidimensional):
     """
@@ -391,37 +361,18 @@ class PlaneStrain(Bidimensional):
         return 3
 
     def conjugate_strain(self):
-        """
-        Return the virtual strain conjugate to the Cauchy stress.
-        
-        Computes the appropriate strain measure that is work-conjugate
-        to the Cauchy stress in the plane strain formulation.
-        
-        Returns
-        -------
-        ufl.tensors.ListTensor Conjugate strain tensor in reduced form
-        """
-        conj = dot(grad(self.u_), cofac(Identity(2) + grad(self.u)))
-        return self.kinematic.bidim_to_reduit(conj)
-    
-    def inner(self, vector_1, vector_2):
-        """
-        Compute the double contraction between two tensors represented as vectors.
-        
-        Parameters
-        ----------
-        vector_1 : ufl.tensors.ListTensor First vector representing a tensor
-        vector_2 : ufl.tensors.ListTensor Second vector representing a symmetrized tensor
-            
-        Returns
-        -------
-        ufl.algebra.Sum Result of the double contraction
-        """
-        shape_1 = vector_1.ufl_shape[0]
-        shape_2 = vector_2.ufl_shape[0]
-        if shape_1 == 3 and shape_2 == 4:
-            return vector_1[0] * vector_2[0] + vector_1[1] * vector_2[1] + \
-                    + vector_1[2] * (vector_2[2] + vector_2[3]) 
+       """
+       Return the virtual strain conjugate to the Cauchy stress.
+       
+       Computes the appropriate strain measure that is work-conjugate
+       to the Cauchy stress in the plane strain formulation.
+       
+       Returns
+       -------
+       ufl.tensors.ListTensor Conjugate strain tensor in compact form
+       """
+       conj = dot(grad(self.u_), self.kinematic.cofactor_compact(self.u))
+       return self.kinematic.tensor_2d_to_compact(conj)
 
 class Axisymmetric(Bidimensional):
     """
@@ -488,43 +439,7 @@ class Axisymmetric(Bidimensional):
         -------
         ufl.tensors.ListTensor Reduced form of the deviatoric stress
         """
-        return self.kinematic.tridim_to_reduit(deviatoric, sym = True)
-    
-    def inner(self, vector_1, vector_2):
-        """
-        Compute the double contraction between two tensors represented as vectors.
-        
-        Parameters
-        ----------
-        vector_1 : ufl.tensors.ListTensor First vector representing a tensor
-        vector_2 : ufl.tensors.ListTensor Second vector representing a symmetrized tensor
-            
-        Returns
-        -------
-        ufl.algebra.Sum Result of the double contraction
-        """
-        shape_1 = vector_1.ufl_shape[0]
-        shape_2 = vector_2.ufl_shape[0]
-        if shape_1 == 4 and shape_2 == 5:
-            return vector_1[0] * vector_2[0] + vector_1[1] * vector_2[1] + \
-                    vector_1[2] * vector_2[2] + vector_1[3] * (vector_2[3] + vector_2[4]) 
-
-    def cofac3D(self, x_tens):
-        """
-        Compute the cofactor transpose (COM A^T = det(A)A^-1) of a tensor.
-        
-        Parameters
-        ----------
-        x_tens : ufl.tensors.ListTensor 3x3 tensor with an "X" structure
-            
-        Returns
-        -------
-        ufl.tensors.ListTensor Cofactor transpose of the input tensor
-        """
-        TComA = as_tensor([[x_tens[2, 2] * x_tens[1, 1], 0, -x_tens[0, 2] * x_tens[1, 1]],
-                           [0, x_tens[0, 0] * x_tens[2, 2] - x_tens[0, 2] * x_tens[2, 0], 0],
-                           [-x_tens[2, 0] * x_tens[1, 1], 0, x_tens[0, 0] * x_tens[1, 1]]])
-        return TComA
+        return self.kinematic.tensor_3d_to_compact(deviatoric, symmetric=True)
 
     def conjugate_strain(self):
         """
@@ -537,5 +452,5 @@ class Axisymmetric(Bidimensional):
         -------
         ufl.tensors.ListTensor Conjugate strain tensor in reduced form
         """
-        cofF = self.cofac3D(self.kinematic.F_3D((self.u)))
-        return self.kinematic.tridim_to_reduit(dot(self.kinematic.grad_3D(self.u_), cofF))
+        cofF = self.kinematic.cofactor_compact(self.u)
+        return self.kinematic.tensor_3d_to_compact(dot(self.kinematic.grad_vector_3d(self.u_), cofF))

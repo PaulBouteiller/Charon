@@ -162,7 +162,7 @@ class ConstitutiveLaw:
         self.Kquad = damping["quad_coeff"]
         self.correction = damping["correction"]
 
-    def pseudo_pressure(self, velocity, material, jacobian):
+    def pseudo_pressure(self, velocity, material, jacobian, h):
         """Calculate the pseudo-viscous pressure for stabilization.
         
         This pseudo-pressure term is added to improve numerical stability,
@@ -179,11 +179,11 @@ class ConstitutiveLaw:
         Function Pseudo-viscous pressure field.
         """
         div_v  = self.kinematic.div(velocity)
-        lin_Q = self.Klin * material.rho_0 * material.celerity * self.h * npart(div_v)
+        lin_Q = self.Klin * material.rho_0 * material.celerity * h * npart(div_v)
         if self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]: 
-            quad_Q = self.Kquad * material.rho_0 * self.h**2 * npart(div_v) * div_v 
+            quad_Q = self.Kquad * material.rho_0 * h**2 * npart(div_v) * div_v 
         elif self.name in ["PlaneStrain", "Axisymmetric", "Tridimensional"]:
-            quad_Q = self.Kquad * material.rho_0 * self.h**2 * dot(npart(div_v), div_v)
+            quad_Q = self.Kquad * material.rho_0 * h**2 * dot(npart(div_v), div_v)
         if self.correction :
             lin_Q *= 1/jacobian
             quad_Q *= 1 / jacobian**2
@@ -269,6 +269,7 @@ class ConstitutiveLaw:
         
         # Return total stress
         return -(self.p + self.pseudo_p) * Identity(3) + self.s
+        # return -(self.p) * Identity(3) + self.s        
     
     def _calculate_stress_components(self, u, v, T, T0, J, material, relative_density = 1):
         """Calculate individual stress components for a given material.
@@ -290,7 +291,7 @@ class ConstitutiveLaw:
         
         # Calculate pseudo-pressure for stabilization if enabled
         if self.is_damping:
-            pseudo_pressure = self.pseudo_pressure(v, material, J)
+            pseudo_pressure = self.pseudo_pressure(v, material, J, self.h)
         else:
             pseudo_pressure = 0
             

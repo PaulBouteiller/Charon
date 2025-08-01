@@ -43,6 +43,16 @@ class Solve:
         self.set_iterative_solver_parameters()
         self.set_time_step(**kwargs)
         self.update_Pth()
+        #Ajout ici de la viscosité
+        # pseudo_pressure = problem.constitutive.pseudo_pressure(problem.v, problem.material, problem.J_transfo, problem.h)
+        # # from ufl import inner
+        # invFTop = problem.kinematic.invF_reduit(problem.u)
+        # problem.form -= pseudo_pressure * 1/(1+problem.u.dx(0))*problem.u_.dx(0)* problem.dx
+        
+        
+        
+        
+        
         self.set_solver()
         self.pb.set_time_dependant_BCs(self.load_steps)
         self.compteur_output = kwargs.get("compteur", 1)

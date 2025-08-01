@@ -134,7 +134,7 @@ class JAXJ2PlasticSolver:
         self.batched_constitutive_update = jit(vmap(self.constitutive_update, in_axes=(0, 0)))
         self.n_gauss = len(self.plastic.p.x.array)
         self.Be_Bar_trial_func = Function(self.plastic.V_Be_bar)
-        expr = self.plastic.kin.tridim_to_mandel(self.plastic.Be_bar_trial(u, self.plastic.u_old))
+        expr = self.plastic.kin.tensor_3d_to_mandel_compact(self.plastic.Be_bar_trial(u, self.plastic.u_old))
         self.Be_Bar_trial_expr = Expression(expr, self.plastic.V_Be_bar.element.interpolation_points())
         dev_norm_funcs = {3: dev_norm_3d, 4: dev_norm_4d, 6: dev_norm_6d}
         self.dev_norm = dev_norm_funcs[self.plastic.len_plas]
