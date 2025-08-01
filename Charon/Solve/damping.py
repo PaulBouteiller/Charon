@@ -1,85 +1,171 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug  1 15:12:33 2025
+Artificial viscosity module for numerical stabilization in dynamic simulations.
 
+Created on Fri Aug  1 15:12:33 2025
 @author: bouteillerp
 """
 from ..utils.generic_functions import npart
 from ..utils.default_parameters import default_damping_parameters
 from ufl import dot
-class Damping():
+
+
+class Damping:
+    """
+    Artificial viscosity implementation for numerical stabilization.
+    
+    This class provides pseudo-viscosity stabilization techniques commonly used
+    in shock-dominated problems and explicit dynamics simulations. The artificial
+    viscosity helps control numerical oscillations and improve stability.
+    
+    Parameters
+    ----------
+    dictionnaire : dict
+        Configuration dictionary containing damping parameters
+    u : Function
+        Current displacement field
+    u_ : Function
+        Previous displacement field (test function)
+    v : Function
+        Velocity field
+    J : Function or Expression
+        Jacobian of the transformation
+    material : Material or list of Material
+        Material properties (single material or list for multiphase)
+    kinematic : Kinematic
+        Kinematic utilities object
+    dx : Measure
+        Integration measure
+    h : Function or Expression
+        Characteristic element size
+    multiphase : Multiphase or None
+        Multiphase object for multi-material problems
+    form : Form
+        Weak form to which damping will be added
+    name : str
+        Problem geometry name (affects damping computation)
+        
+    Attributes
+    ----------
+    Klin : float
+        Linear viscosity coefficient
+    Kquad : float
+        Quadratic viscosity coefficient
+    correction : bool
+        Whether to apply Jacobian correction
+    damping_form : Form
+        Damping contribution to the weak form
+    """
+    
     def __init__(self, dictionnaire, u, u_, v, J, material, kinematic, dx, h, multiphase, form, name):
         self.name = name
-        self.kin = kinematic
-        self.mat = material
-        self.u = u
-        self.v = v 
+        self.kinematic = kinematic
+        self.material = material
         self.J = J
-        self.set_damping(dictionnaire)
-        self.update_form_with_stabilization(u, u_, v, J, material, kinematic, h, dx, multiphase, form)
+        self.h = h
+        self.multiphase = multiphase
+        self.dx = dx
+        
+        self._setup_damping_parameters(dictionnaire)
+        self._compute_damping_form(u, u_, v)
     
-    def set_damping(self, dictionnaire):
-        """Initialize artificial viscosity parameters.
-        
-        Sets up the parameters for the pseudo-viscosity used for 
-        numerical stabilization in shock-dominated problems.
-        
-        Parameters
-        ----------
-        damping : dict
-            Dictionary containing:
-            - "damping" (bool): Whether to enable artificial viscosity
-            - "linear_coeff" (float): Linear viscosity coefficient
-            - "quad_coeff" (float): Quadratic viscosity coefficient
-            - "correction" (bool): Whether to apply Jacobian correction
+    def _setup_damping_parameters(self, dictionnaire):
         """
-        damping = dictionnaire.get("damping", default_damping_parameters())
-        self.Klin = damping["linear_coeff"]
-        self.Kquad = damping["quad_coeff"]
-        self.correction = damping["correction"]
-        
-    def pseudo_pressure(self, velocity, material, jacobian, h, kinematic):
-        """Calculate the pseudo-viscous pressure for stabilization.
-        
-        This pseudo-pressure term is added to improve numerical stability,
-        especially in shock-dominated problems.
+        Initialize artificial viscosity parameters from configuration.
         
         Parameters
         ----------
-        velocity : Function Velocity field.
-        material : Material  Material properties.
-        jacobian : Function Jacobian of the transformation.
+        dictionnaire : dict
+            Configuration dictionary potentially containing 'damping' key
+        """
+        damping_config = dictionnaire.get("damping", default_damping_parameters())
+        self.Klin = damping_config["linear_coeff"]
+        self.Kquad = damping_config["quad_coeff"]
+        self.correction = damping_config["correction"]
+    
+    def _pseudo_pressure_single_material(self, velocity, material, jacobian):
+        """
+        Calculate pseudo-viscous pressure for a single material.
+        
+        The pseudo-pressure combines linear and quadratic viscosity terms:
+        - Linear term: proportional to velocity divergence
+        - Quadratic term: proportional to square of velocity divergence
+        
+        Parameters
+        ----------
+        velocity : Function Velocity field
+        material : Material Material properties containing density and sound speed
+        jacobian : Function Jacobian of the transformation
             
         Returns
         -------
-        Function Pseudo-viscous pressure field.
+        Expression Pseudo-viscous pressure field
         """
-        div_v  = kinematic.div(velocity)
-        lin_Q = self.Klin * material.rho_0 * material.celerity * h * npart(div_v)
-        if self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]: 
-            quad_Q = self.Kquad * material.rho_0 * h**2 * npart(div_v) * div_v 
+        div_v = self.kinematic.div(velocity)
+        
+        # Linear viscosity term
+        lin_Q = self.Klin * material.rho_0 * material.celerity * self.h * npart(div_v)
+        
+        # Quadratic viscosity term (geometry-dependent)
+        if self.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]:
+            quad_Q = self.Kquad * material.rho_0 * self.h**2 * npart(div_v) * div_v
         elif self.name in ["PlaneStrain", "Axisymmetric", "Tridimensional"]:
-            quad_Q = self.Kquad * material.rho_0 * h**2 * dot(npart(div_v), div_v)
-        if self.correction :
-            lin_Q *= 1/jacobian
-            quad_Q *= 1 / jacobian**2
+            quad_Q = self.Kquad * material.rho_0 * self.h**2 * dot(npart(div_v), div_v)
+        else:
+            # Default to dot product formulation
+            quad_Q = self.Kquad * material.rho_0 * self.h**2 * dot(npart(div_v), div_v)
+        
+        # Apply Jacobian correction if enabled
+        if self.correction:
+            lin_Q /= jacobian
+            quad_Q /= jacobian**2
+            
         return quad_Q - lin_Q
     
-    def compute_pseudo_pressure(self, v, material, J, h, multiphase, kinematic):
-        if isinstance(material, list):
-            n_materials = len(material)
-            pseudo_pressure_list = []
-            for i, material in enumerate(material):
-                pseudo_pressure_list.append(self.pseudo_pressure(v, material, J, h, kinematic))
-            return sum(multiphase.c[i] * pseudo_pressure_list[i] for i in range(n_materials))
-        # Single material case
-        return self.pseudo_pressure(v, material, J, h, kinematic)
+    def _compute_pseudo_pressure(self, velocity):
+        """
+        Compute pseudo-pressure for single or multi-material case.
+        
+        Parameters
+        ----------
+        velocity : Function Velocity field
+            
+        Returns
+        -------
+        Expression Total pseudo-pressure field
+        """
+        if isinstance(self.material, list):
+            # Multi-material case
+            pseudo_pressures = [self._pseudo_pressure_single_material(velocity, mat, self.J)
+                                for mat in self.material]
+            return sum(self.multiphase.c[i] * pseudo_pressures[i]
+                       for i in range(len(self.material)))
+        else:
+            # Single material case
+            return self._pseudo_pressure_single_material(velocity, self.material, self.J)
     
-    def update_form_with_stabilization(self, u, u_, v, J, material, kinematic, h, dx, multiphase, form):
-        pseudo_pressure = self.compute_pseudo_pressure(v, material, J, h, multiphase, kinematic)
-        invFTop = kinematic.inv_deformation_gradient_3D(u).T
-        invFTop_compact = kinematic.tensor_3d_to_compact(invFTop)
-        grad_u_ = kinematic.grad_vector_compact(u_)
-        inner_prod = kinematic.contract_double(invFTop_compact, grad_u_)
-        self.damping_form = pseudo_pressure * inner_prod * dx
+    def _compute_damping_form(self, u, u_, v):
+        """
+        Compute the damping contribution to the weak form.
+        
+        The damping form is integrated over the domain and contributes to
+        the overall system of equations for stabilization purposes.
+        
+        Parameters
+        ----------
+        u : Function Current displacement field
+        u_ : Function Test function for displacement
+        v : Function Velocity field
+        """
+        # Compute pseudo-pressure
+        pseudo_pressure = self._compute_pseudo_pressure(v)
+        
+        # Compute kinematic quantities
+        invFTop = self.kinematic.inv_deformation_gradient_3D(u).T
+        invFTop_compact = self.kinematic.tensor_3d_to_compact(invFTop)
+        grad_u_ = self.kinematic.grad_vector_compact(u_)
+        
+        # Contract tensors and integrate
+        inner_prod = self.kinematic.contract_double(invFTop_compact, grad_u_)
+        self.damping_form = pseudo_pressure * inner_prod * self.dx
