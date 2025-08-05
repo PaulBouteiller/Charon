@@ -52,8 +52,6 @@ from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc,
 from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, 
                  SpatialCoordinate, FunctionSpace, Coefficient)
 
-from mpi4py.MPI import COMM_WORLD
-
 class BoundaryConditions:
     """
     Manager for displacement boundary conditions in mechanical problems.
@@ -472,7 +470,6 @@ class Problem:
         Sets up the finite element spaces for displacement, stress, etc.,
         and creates the corresponding function objects.
         """
-        self.set_finite_element()
         self.set_function_space()
         self.set_functions()
     
@@ -605,15 +602,17 @@ class Problem:
         Creates the appropriate function spaces for temperature, displacement,
         and other fields based on the problem configuration.
         """
+        if self.dim == 1:
+            U_e = self.set_finite_element()
+        else:
+            U_e = element("Lagrange", self.mesh_manager.cell_type, degree=self.u_deg, shape=(self.dim,))  
         if self.adiabatic:
             self.V_T = self.quad.quadrature_space(["Scalar"])
         else:
-            FE_T_elem = element("Lagrange", self.mesh_manager.cell_type, degree=self.u_deg)
+            FE_T_elem = element("Lagrange", self.mesh_manager.cell_type, degree = self.u_deg)
             self.V_T = functionspace(self.mesh, FE_T_elem)
-        self.V = self.create_function_space(self.mesh_manager, self.U_e)
+        self.V = self.create_function_space(self.mesh_manager, U_e)
         self.V_quad_UD = self.quad.quadrature_space(["Scalar"])
-        self.V_Sig = self.create_function_space(self.mesh_manager, self.Sig_e)
-        self.V_devia = self.create_function_space(self.mesh_manager, self.devia_e)
         
     def set_functions(self):
         """

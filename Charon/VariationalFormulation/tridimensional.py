@@ -32,7 +32,6 @@ Key components:
 from .Problem import BoundaryConditions, Loading, Problem
 from ufl import grad, dot
 from petsc4py.PETSc import ScalarType
-from basix.ufl import element
 
 class TridimensionalBoundaryConditions(BoundaryConditions):
     """
@@ -151,18 +150,6 @@ class Tridimensional(Problem):
         """
         return "Tridimensional"
 
-    def set_finite_element(self):
-        """
-        Define finite elements for displacement and stress fields.
-        
-        Sets up vector-valued Lagrange elements for displacement and
-        tensor-valued quadrature elements for stress.
-        """
-        cell = self.mesh.basix_cell()
-        self.U_e = element("Lagrange", self.mesh_manager.cell_type, degree=self.u_deg, shape=(3,))  
-        self.Sig_e = self.quad.quad_element(["Tensor", 3, 3])
-        self.devia_e = self.Sig_e
-        
     def boundary_conditions_class(self):
         """
         Return the boundary conditions class for 3D problems.
@@ -211,19 +198,3 @@ class Tridimensional(Problem):
        ufl.tensors.ListTensor Conjugate strain tensor
        """
        return dot(grad(self.u_), self.kinematic.cofactor_compact(self.u))
-    
-    def extract_deviatoric(self, deviatoric):
-        """
-        Extract the deviatoric part of a stress tensor.
-        
-        For 3D problems, the deviatoric tensor is returned as is.
-        
-        Parameters
-        ----------
-        deviatoric : ufl.tensors.ListTensor Deviatoric stress tensor
-            
-        Returns
-        -------
-        ufl.tensors.ListTensor Deviatoric stress tensor (unchanged for 3D)
-        """
-        return deviatoric

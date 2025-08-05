@@ -18,10 +18,7 @@ Modèle de plasticité HPP (petites déformations)
 """
 
 from .base_plastic import Plastic
-
 from dolfinx.fem import functionspace, Function
-
-
 
 class HPPPlastic(Plastic):
     """Small strain J2 plasticity model.
@@ -34,10 +31,8 @@ class HPPPlastic(Plastic):
     Vepsp : FunctionSpace Function space for plastic strain
     eps_p : Function Plastic strain tensor
     eps_P_3D : Expression 3D representation of plastic strain tensor
-    Vp : FunctionSpace, optional
-        Function space for cumulative plastic strain (isotropic hardening)
-    p : Function, optional
-        Cumulative plastic strain (isotropic hardening)
+    Vp : FunctionSpace, optional Function space for cumulative plastic strain (isotropic hardening)
+    p : Function, optional Cumulative plastic strain (isotropic hardening)
     """
     def _set_function(self, element, quadrature):
         """Initialize functions for small strain plasticity.

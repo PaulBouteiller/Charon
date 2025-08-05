@@ -55,8 +55,7 @@ from .deviator import Deviator
 from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
 from .damage import PhaseFieldDamage, StaticJohnson, DynamicJohnson, InertialJohnson
 
-from ufl import dot, Identity
-# from ..utils.generic_functions import npart
+from ufl import Identity
 
 class ConstitutiveLaw:
     """Manages the constitutive relations for mechanical simulations.
@@ -108,7 +107,6 @@ class ConstitutiveLaw:
         self.multiphase = multiphase
         self.kinematic = kinematic
         self.quadrature = quadrature
-        # self.set_damping(damping)
         self.eos = EOS()
         self.deviator = Deviator(kinematic, name, quadrature, material)
 

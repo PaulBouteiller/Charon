@@ -34,7 +34,7 @@ Key components:
 """
 
 from .Problem import BoundaryConditions, Loading, Problem
-from ufl import as_vector, dot
+from ufl import as_vector
 from petsc4py.PETSc import ScalarType
 from basix.ufl import element
 
@@ -133,14 +133,7 @@ class Unidimensional(Problem):
         """
         Initialize the finite element types for the displacement and stress fields.
         """
-        self.U_e = element("Lagrange", self.mesh_manager.cell_type, degree = self.u_deg)   
-        if self.name == "CartesianUD" :
-            self.Sig_e = self.quad.quad_element(["Scalar"])
-        elif self.name == "CylindricalUD":
-            self.Sig_e = self.quad.quad_element(["Vector", 2])
-        elif self.name == "SphericalUD":
-            self.Sig_e = self.quad.quad_element(["Vector", 3])
-        self.devia_e = self.quad.quad_element(["Vector", 3])
+        return element("Lagrange", self.mesh_manager.cell_type, degree = self.u_deg) 
         
     def boundary_conditions_class(self):
         """
@@ -174,7 +167,7 @@ class Unidimensional(Problem):
         -------
         ufl.tensors.ListTensor Vector representation of the deviatoric stress
         """
-        return as_vector([deviatoric[0, 0], deviatoric[1, 1], deviatoric[2, 2]])
+        return 
     
     def undamaged_stress(self, u, v, T, T0, J):
         """

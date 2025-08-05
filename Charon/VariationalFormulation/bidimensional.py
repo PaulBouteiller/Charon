@@ -38,9 +38,8 @@ Key components:
 """
 
 from .Problem import BoundaryConditions, Loading, Problem
-from ufl import cofac, as_vector, dot, grad, as_tensor, Identity
+from ufl import as_vector, dot, grad
 from petsc4py.PETSc import ScalarType
-from basix.ufl import element
 
 class BidimensionalBoundaryConditions(BoundaryConditions):
     """
@@ -241,18 +240,6 @@ class Bidimensional(Problem):
     The class handles the setup of finite element spaces, strain-stress
     relationships, and variational forms specific to 2D problems.
     """
-    def set_finite_element(self):
-        """
-        Define finite elements for displacement and stress fields.
-        
-        Sets up the appropriate finite elements for the displacement field
-        (vector-valued Lagrange elements) and for the stress field
-        (quadrature elements).
-        """
-        self.U_e = element("Lagrange", self.mesh_manager.cell_type, degree = self.u_deg, shape=(2,))  
-        self.Sig_e = self.quad.quad_element(["Vector", self.sig_dim_quadrature()])
-        self.devia_e = self.quad.quad_element(["Vector", 4])
-
     def boundary_conditions_class(self):
         """
         Return the appropriate boundary conditions class for 2D problems.
@@ -332,33 +319,6 @@ class PlaneStrain(Bidimensional):
         """
         return PlaneStrainLoading
     
-    def extract_deviatoric(self, s):
-        """
-        Extract the deviatoric part of a stress tensor.
-        
-        Converts a 2D stress tensor to a 4-component vector representation
-        of its deviatoric part.
-        
-        Parameters
-        ----------
-        s : ufl.tensors.ListTensor Stress tensor
-            
-        Returns
-        -------
-        ufl.tensors.ListTensor Vector representation of the deviatoric stress
-        """
-        return as_vector([s[0, 0], s[1, 1], s[2, 2], s[0, 1]])
-    
-    def sig_dim_quadrature(self):
-        """
-        Return the dimension of the stress vector in quadrature space.
-        
-        Returns
-        -------
-        int 3 for plane strain (σxx, σyy, σxy)
-        """
-        return 3
-
     def conjugate_strain(self):
        """
        Return the virtual strain conjugate to the Cauchy stress.
@@ -413,32 +373,6 @@ class Axisymmetric(Bidimensional):
         class AxiLoading
         """
         return AxiLoading
-    
-    def sig_dim_quadrature(self):
-        """
-        Return the dimension of the stress vector in quadrature space.
-        
-        Returns
-        -------
-        int 4 for axisymmetric (σrr, σzz, σθθ, σrz)
-        """
-        return 4
-    
-    def extract_deviatoric(self, deviatoric):
-        """
-        Extract the deviatoric part of a stress tensor.
-        
-        Converts a stress tensor to its deviatoric part in reduced form.
-        
-        Parameters
-        ----------
-        deviatoric : ufl.tensors.ListTensor Stress tensor
-            
-        Returns
-        -------
-        ufl.tensors.ListTensor Reduced form of the deviatoric stress
-        """
-        return self.kinematic.tensor_3d_to_compact(deviatoric, symmetric=True)
 
     def conjugate_strain(self):
         """

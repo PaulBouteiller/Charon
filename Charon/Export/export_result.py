@@ -22,6 +22,8 @@ from dolfinx.io import XDMFFile, VTKFile
 from os import remove, path
 from dolfinx.fem import Function, Expression
 from mpi4py.MPI import COMM_WORLD
+from dolfinx.fem import functionspace
+from ufl import as_vector
 
 from .csv_export import OptimizedCSVExport
 
@@ -75,6 +77,38 @@ class ExportResults:
         savedir = name + "-" + "results" + "/"
         return savedir
     
+    def set_sig_element(self):
+        if self.name == "CartesianUD" :
+            return self.quad.quad_element(["Scalar"])
+        elif self.name == "CylindricalUD":
+            return self.quad.quad_element(["Vector", 2])
+        elif self.name == "SphericalUD":
+            return self.quad.quad_element(["Vector", 3])
+        elif self.name == "PlaneStrain":
+            return self.quad.quad_element(["Vector", 3])
+        elif self.name == "Axisymmetric":
+            return self.quad.quad_element(["Vector", 4])
+        else:
+            return self.quad.quad_element(["Tensor", 3, 3])
+        
+    def set_devia_element(self):
+        if self.name in["CartesianUD", "CylindricalUD", "SphericalUD"]:
+            return self.quad.quad_element(["Vector", 3])
+        elif self.name in ["PlaneStrain", "Axisymmetric"]:
+            return self.quad.quad_element(["Vector", 4])
+        else:
+            return self.quad.quad_element(["Tensor", 3, 3])
+        
+    def extract_deviatoric(self, deviatoric):
+        if self.name in["CartesianUD", "CylindricalUD", "SphericalUD"]:
+            return as_vector([deviatoric[0, 0], deviatoric[1, 1], deviatoric[2, 2]])
+        elif self.name == "PlaneStrain":
+            return as_vector([deviatoric[0, 0], deviatoric[1, 1], deviatoric[2, 2], deviatoric[0, 1]])
+        elif self.name == "Axisymmetric":
+            return self.pb.kinematic.tensor_3d_to_compact(deviatoric, symmetric = True)
+        else:
+            return deviatoric
+    
     def set_expression(self):
         
         def get_index(key, length):
@@ -82,17 +116,21 @@ class ExportResults:
                 return [i for i in range(length)]
             elif isinstance(key, list):
                 return key
-        if self.dico.get("Sig"):            
-            self.sig_expr = Expression(self.pb.sig, self.pb.V_Sig.element.interpolation_points())
-            self.sig_func = Function(self.pb.V_Sig, name="Stress")
+        if self.dico.get("Sig"):
+            Sig_e = self.set_sig_element()
+            V_Sig = functionspace(self.pb.mesh, Sig_e)
+            self.sig_expr = Expression(self.pb.sig, V_Sig.element.interpolation_points())
+            self.sig_func = Function(V_Sig, name="Stress")
 
         if self.dico.get("deviateur"):  
+            devia_e = self.set_devia_element()
+            V_devia = functionspace(self.pb.mesh, devia_e)
             # s_expr = self.kinematic.tensor_3d_to_compact(self.constitutive.s)
-            s_expr = self.extract_deviatoric(self.constitutive.s)
+            s_expr = self.extract_deviatoric(self.pb.constitutive.s)
             # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
             # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
-            self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
-            self.s_func = Function(self.V_devia, name = "Deviateur")
+            self.s_expr = Expression(s_expr, V_devia.element.interpolation_points())
+            self.s_func = Function(V_devia, name = "Deviateur")
             
         if self.dico.get("Pressure"):  
             self.p_expr = Expression(self.pb.constitutive.p, self.pb.V_quad_UD.element.interpolation_points())
