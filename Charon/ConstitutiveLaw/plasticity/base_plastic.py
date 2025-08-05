@@ -57,7 +57,7 @@ class Plastic:
         self.kin = kinematic
         self.mu = mu
         self.mesh = self.u.function_space.mesh
-        self.mesh_dim =self.mesh.topology.dim
+        self.mesh_dim = self.mesh.topology.dim
         self._set_plastic(plasticity_dictionnary)
         element = self._plastic_element(quadrature, self.mesh.topology.dim)
         self._set_function(element, quadrature)

@@ -249,8 +249,7 @@ class Bidimensional(Problem):
         (vector-valued Lagrange elements) and for the stress field
         (quadrature elements).
         """
-        cell = self.mesh.basix_cell()
-        self.U_e = element("Lagrange", cell, degree=self.u_deg, shape=(2,))  
+        self.U_e = element("Lagrange", self.mesh_manager.cell_type, degree = self.u_deg, shape=(2,))  
         self.Sig_e = self.quad.quad_element(["Vector", self.sig_dim_quadrature()])
         self.devia_e = self.quad.quad_element(["Vector", 4])
 

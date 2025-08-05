@@ -101,7 +101,6 @@ class ConstitutiveLaw:
         h : float or Function Characteristic mesh size
         """
         self.material = material
-        self.mesh = u.function_space.mesh
         self.plasticity_dictionnary = plasticity_dictionnary
         self.plastic_model = plasticity_dictionnary.get("model")
         self.damage_dictionnary = damage_dictionnary

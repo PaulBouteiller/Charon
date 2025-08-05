@@ -23,8 +23,7 @@ from numpy import array, kron
 from basix import make_quadrature, CellType, QuadratureType
 from dolfinx.fem import functionspace
 from basix.ufl import quadrature_element as quad_el
-import dolfinx
-import ufl
+from ufl import FunctionSpace
 
 class Quadrature():
     """
@@ -213,7 +212,7 @@ class Quadrature():
         elif shape[0] == "Vector":
             Qe = quad_el(self.ref_el, degree = quad_deg, value_shape=(shape[1],))
         elif shape[0] == "Tensor":
-            Qe = quad_el(self.ref_el,  degree = quad_deg, value_shape=(shape[1], shape[2]))
+            Qe = quad_el(self.ref_el, degree = quad_deg, value_shape=(shape[1], shape[2]))
         return Qe  
     
     def quadrature_space(self, shape):
@@ -232,4 +231,4 @@ class Quadrature():
         if self.mesh_type == "dolfinx_mesh":
             return functionspace(self.mesh, quad_element)
         elif self.mesh_type == "ufl_mesh":
-            return ufl.FunctionSpace(self.mesh, quad_element)
+            return FunctionSpace(self.mesh, quad_element)

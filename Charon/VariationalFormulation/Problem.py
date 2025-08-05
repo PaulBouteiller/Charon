@@ -50,7 +50,9 @@ from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc,
 
 
 from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, 
-                 SpatialCoordinate, FunctionSpace)
+                 SpatialCoordinate, FunctionSpace, Coefficient)
+
+from mpi4py.MPI import COMM_WORLD
 
 class BoundaryConditions:
     """
@@ -361,9 +363,6 @@ class Problem:
         # Initialize density fields
         self.rho_0_field_init, self.relative_rho_field_init_list = self.rho_0_field()
         
-        # Configure polycrystal if needed
-        self._init_polycristal()
-        
         # Determine law types
         self._determine_law_types()
         
@@ -446,7 +445,6 @@ class Problem:
         self.mesh_manager = mesh_manager
         self.mesh = mesh_manager.mesh
         self.quad = mesh_manager.quad
-        # self.h = mesh_manager.h
         self.dim = mesh_manager.dim
         self.fdim = mesh_manager.fdim
         self.dx = mesh_manager.dx
@@ -457,13 +455,15 @@ class Problem:
         
     def create_function_space(self, mesh_manager, element):
         if mesh_manager.mesh_type == "dolfinx_mesh":
-            # Pour un maillage DOLFINx, utiliser dolfinx.fem.functionspace
             return functionspace(mesh_manager.mesh, element)
         elif mesh_manager.mesh_type == "ufl_mesh":
-            # Pour un maillage UFL, utiliser ufl.FunctionSpace
             return FunctionSpace(mesh_manager.mesh, element)
-        else:
-            raise ValueError(f"Type de maillage non reconnu: {mesh_manager.mesh_type}")
+        
+    def create_function(self, mesh_manager):
+        if mesh_manager.mesh_type == "dolfinx_mesh":
+            return Function
+        elif mesh_manager.mesh_type == "ufl_mesh":
+            return Coefficient
             
     def _init_spaces_and_functions(self):
         """
@@ -496,16 +496,6 @@ class Problem:
         else:
             self.n_mat = 1
             self.multiphase = None
-    
-    def _init_polycristal(self):
-        """
-        Initialize polycrystal configuration if needed.
-        
-        Sets up polycrystal-specific properties for anisotropic materials.
-        """
-        if (self.multiphase_analysis and any(mat.dev_type == "Anisotropic" for mat in self.material)) or \
-           (not self.multiphase_analysis and self.material.dev_type == "Anisotropic"):
-            self.set_polycristal()
     
     def _determine_law_types(self):
         """
@@ -555,16 +545,12 @@ class Problem:
         Initialize thermal analysis if needed.
         
         Sets up thermal properties and heat transfer formulation for
-        non-isothermal analysis.
-            Define the volumetric power of internal forces.
+        non-isothermal analysis. Define the volumetric power of internal forces.
             
             Computes the heat generation term from mechanical work.
         """
         if self.analysis != "static" and not self.iso_T:
-            self.therm = Thermal(
-                self.material, self.multiphase, self.kinematic, 
-                self.T, self.T0, self.constitutive.p
-            )
+            self.therm = Thermal(self.material, self.multiphase, self.T, self.T0)
             self.set_T_dependant_massic_capacity()
             self.therm.set_tangent_thermal_capacity() 
             self.pint_vol = self.kinematic.contract_double(self.sig, self.D)
@@ -622,14 +608,11 @@ class Problem:
         if self.adiabatic:
             self.V_T = self.quad.quadrature_space(["Scalar"])
         else:
-            FE_T_elem = element("Lagrange", self.mesh.basix_cell(), degree=self.u_deg)
+            FE_T_elem = element("Lagrange", self.mesh_manager.cell_type, degree=self.u_deg)
             self.V_T = functionspace(self.mesh, FE_T_elem)
         self.V = self.create_function_space(self.mesh_manager, self.U_e)
-        # self.V = functionspace(self.mesh, self.U_e)
         self.V_quad_UD = self.quad.quadrature_space(["Scalar"])
-        # self.V_Sig = functionspace(self.mesh, self.Sig_e)
         self.V_Sig = self.create_function_space(self.mesh_manager, self.Sig_e)
-        # self.V_devia = functionspace(self.mesh, self.devia_e)
         self.V_devia = self.create_function_space(self.mesh_manager, self.devia_e)
         
     def set_functions(self):
@@ -640,9 +623,9 @@ class Problem:
         """
         self.u_ = TestFunction(self.V)
         self.du = TrialFunction(self.V)
-        self.u = Function(self.V, name="Displacement")
-        self.v = Function(self.V, name="Velocities")
-        self.T = Function(self.V_T, name="Temperature")
+        self.u = self.create_function(self.mesh_manager)(self.V)
+        self.v = self.create_function(self.mesh_manager)(self.V)
+        self.T = self.create_function(self.mesh_manager)(self.V_T)
         
     def set_form(self):
         """
@@ -704,19 +687,7 @@ class Problem:
         self.sig = self.current_stress(self.u, self.v, self.T, self.T0, self.J_transfo)
         # self.PK1 = self.boussinesq_stress(self.u, self.v, self.T, self.T0, self.J_transfo)
         self.D = self.kinematic.grad_eulerian_compact(self.v, self.u)
-        
-        self.sig_expr = Expression(self.sig, self.V_Sig.element.interpolation_points())
-        self.sig_func = Function(self.V_Sig, name="Stress")
-        if not self.is_pure_hydro:
-            # s_expr = self.kinematic.tensor_3d_to_compact(self.constitutive.s)
-            s_expr = self.extract_deviatoric(self.constitutive.s)
-            # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
-            # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
-            self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
-            self.s_func = Function(self.V_devia, name = "Deviateur")  
-        self.p_expr = Expression(self.constitutive.p, self.V_quad_UD.element.interpolation_points())
-        self.p_func = Function(self.V_quad_UD, name="Pression")
-        
+
     def rho_0_field(self):
         """
         Define the initial density field.
@@ -757,21 +728,15 @@ class Problem:
         
         Parameters
         ----------
-        u : dolfinx.fem.Function
-            Current displacement field
-        v : dolfinx.fem.Function  
-            Current velocity field
-        T : dolfinx.fem.Function
-            Current temperature field
-        T0 : dolfinx.fem.Function
-            Reference temperature field
-        J : ufl.Expression
-            Jacobian of the deformation gradient
+        u : dolfinx.fem.Function  Current displacement field
+        v : dolfinx.fem.Function  Current velocity field
+        T : dolfinx.fem.Function  Current temperature field
+        T0 : dolfinx.fem.Function Reference temperature field
+        J : ufl.Expression        Jacobian of the deformation gradient
             
         Returns
         -------
-        ufl.Expression
-            Cauchy stress tensor (form depends on problem dimension)
+        ufl.Expression Cauchy stress tensor (form depends on problem dimension)
         """
         sigma = self.undamaged_stress(u, v, T, T0, J)
         if self.damage_analysis:
@@ -786,10 +751,9 @@ class Problem:
         represent internal energy rather than temperature.
         """
         T0 = 293.15
-        self.T0 = Function(self.V_T)
-        self.T0.x.petsc_vec.set(T0)
-        self.T.x.petsc_vec.set(T0)
-                
+        self.T0 = self.create_function(self.mesh_manager)(self.V_T)
+        # self.T0.x.petsc_vec.set(T0)
+        # self.T.x.petsc_vec.set(T0)
 
     def flux_bilinear_form(self):
         """
@@ -799,7 +763,7 @@ class Problem:
         """
         self.dT = TrialFunction(self.V_T)
         self.T_ = TestFunction(self.V_T)
-        j = self.therm.thermal_constitutive_law(self.mat_th, self.kinematic.grad_scal(self.dT))
+        j = self.therm.thermal_constitutive_law(self.mat_th, self.kinematic.grad_scal(self.dT), self.constitutive.p)
         self.bilinear_flux_form = self.kinematic.measure(self.kinematic.contract_scalar_gradients(j, self.kinematic.grad_scal(self.T_)), self.dx)
         
     def set_time_dependant_BCs(self, load_steps):
@@ -832,15 +796,6 @@ class Problem:
         num_pas : int Current time step number
         """
         pass
-    
-    def set_polycristal(self):
-        """
-        Set up polycrystal configuration.
-        
-        To be overridden in derived classes.
-        """
-        pass
-    
 
     def user_defined_displacement(self, t):
         """

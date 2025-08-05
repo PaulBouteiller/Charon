@@ -43,43 +43,28 @@ class Thermal:
     
     Attributes
     ----------
-    material : Material or list
-        Material properties (single material or list for multiphase)
-    multiphase : Multiphase or None
-        Object managing multiphase properties
-    T0 : Function
-        Initial temperature field
-    T : Function
-        Current temperature field
-    P : Function
-        Pressure field
-    C_tan : Expression
-        Tangent thermal capacity
+    mat : Material or list          Material properties (single material or list for multiphase)
+    multiphase : Multiphase or None Object managing multiphase properties
+    T0 : Function                   Initial temperature field
+    T : Function                    Current temperature field
+    P : Function                    Pressure field
+    C_tan : Expression              Tangent thermal capacity
     """
     
-    def __init__(self, mat, multiphase, kinematic, T0, T, P):
+    def __init__(self, mat, multiphase, T0, T):
         """Initialize thermal behavior manager.
 
         Parameters
         ----------
-        mat : Material or list
-            Material properties (single material or list for multiphase)
-        multiphase : Multiphase or None
-            Object managing multiphase properties
-        kinematic : Kinematic
-            Kinematic handler for tensor operations
-        T0 : Function
-            Initial temperature field
-        T : Function
-            Current temperature field
-        P : Function
-            Pressure field
+        mat : Material or list Material properties (single material or list for multiphase)
+        multiphase : Multiphase or None Object managing multiphase properties
+        T0 : Function Initial temperature field
+        T : Function Current temperature field
         """
         self.mat = mat
         self.multiphase = multiphase
         self.T0 = T0
         self.T = T
-        self.P = P
         
     def set_tangent_thermal_capacity(self):
         """Calculate the total tangent volumetric thermal capacity.
@@ -113,7 +98,7 @@ class Thermal:
         CTan = mat.rho_0 * mat.C_mass
         return CTan   
     
-    def thermal_constitutive_law(self, therm_mat, grad_dT):
+    def thermal_constitutive_law(self, therm_mat, grad_dT, p):
         """Define the total thermal constitutive law.
         
         Calculates the heat flux based on the temperature gradient,
@@ -132,11 +117,11 @@ class Thermal:
             Heat flux
         """
         if isinstance(therm_mat, list):
-            return sum(g * self.partial_thermal_constitutive_law(mat) for g, mat in zip(self.multiphase.g, therm_mat))
+            return sum(g * self.partial_thermal_constitutive_law(mat, grad_dT, p) for g, mat in zip(self.multiphase.g, therm_mat))
         else:
-            return self.partial_thermal_constitutive_law(therm_mat, grad_dT)
+            return self.partial_thermal_constitutive_law(therm_mat, grad_dT, p)
     
-    def partial_thermal_constitutive_law(self, therm_mat, grad_dT):
+    def partial_thermal_constitutive_law(self, therm_mat, grad_dT, p):
         """Calculate the partial thermal constitutive law for a material.
         
         Parameters
@@ -148,18 +133,12 @@ class Thermal:
             
         Returns
         -------
-        Expression
-            Heat flux
-            
-        Raises
-        ------
-        ValueError
-            If an unknown thermal model is specified
+        Expression Heat flux
         """
         if therm_mat.type == "LinearIsotropic":
             return self.LinearFourrier(therm_mat.lmbda, grad_dT)
         elif therm_mat.type == "NonLinearIsotropic":
-            return self.NonLinearFourrier(therm_mat.lmbda, therm_mat.a1, therm_mat.a2, grad_dT)
+            return self.NonLinearFourrier(therm_mat.lmbda, therm_mat.a1, therm_mat.a2, grad_dT, p)
         
     def TATB_massique_capacity_correction(self, a, b, T, C_mass):
         """Apply correction to mass thermal capacity for TATB materials.
@@ -185,37 +164,30 @@ class Thermal:
         
         Parameters
         ----------
-        lmbda : float
-            Thermal conductivity coefficient
-        grad_dT : Expression
-            Gradient of temperature variation
+        lmbda : float Thermal conductivity coefficient
+        grad_dT : Expression Gradient of temperature variation
             
         Returns
         -------
-        Expression
-            Heat flux
+        Expression Heat flux
         """
         return lmbda * grad_dT
     
-    def NonLinearFourrier(self, lmbda, a1, a2, grad_dT):
+    def NonLinearFourrier(self, lmbda, a1, a2, grad_dT, p):
         """Implement nonlinear isotropic Fourier's law.
         
         Includes temperature and pressure dependence of thermal conductivity.
         
         Parameters
         ----------
-        lmbda : float
-            Base thermal conductivity coefficient
-        a1 : float
-            Temperature dependence coefficient
-        a2 : float
-            Pressure dependence coefficient
-        grad_dT : Expression
-            Gradient of temperature variation
+        lmbda   : float Base thermal conductivity coefficient
+        a1      : float Temperature dependence coefficient
+        a2      : float Pressure dependence coefficient
+        grad_dT : Expression Gradient of temperature variation
+        p       : Expression Pressure
             
         Returns
         -------
-        Expression
-            Heat flux
+        Expression Heat flux
         """
-        return (lmbda + a1/self.T + a2 * ppart(self.P)) * grad_dT
+        return (lmbda + a1/self.T + a2 * ppart(p)) * grad_dT

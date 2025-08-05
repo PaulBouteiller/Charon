@@ -159,7 +159,7 @@ class Tridimensional(Problem):
         tensor-valued quadrature elements for stress.
         """
         cell = self.mesh.basix_cell()
-        self.U_e = element("Lagrange", cell, degree=self.u_deg, shape=(3,))  
+        self.U_e = element("Lagrange", self.mesh_manager.cell_type, degree=self.u_deg, shape=(3,))  
         self.Sig_e = self.quad.quad_element(["Tensor", 3, 3])
         self.devia_e = self.Sig_e
         

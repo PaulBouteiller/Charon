@@ -82,6 +82,21 @@ class ExportResults:
                 return [i for i in range(length)]
             elif isinstance(key, list):
                 return key
+        if self.dico.get("Sig"):            
+            self.sig_expr = Expression(self.pb.sig, self.pb.V_Sig.element.interpolation_points())
+            self.sig_func = Function(self.pb.V_Sig, name="Stress")
+
+        if self.dico.get("deviateur"):  
+            # s_expr = self.kinematic.tensor_3d_to_compact(self.constitutive.s)
+            s_expr = self.extract_deviatoric(self.constitutive.s)
+            # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
+            # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
+            self.s_expr = Expression(s_expr, self.V_devia.element.interpolation_points())
+            self.s_func = Function(self.V_devia, name = "Deviateur")
+            
+        if self.dico.get("Pressure"):  
+            self.p_expr = Expression(self.pb.constitutive.p, self.pb.V_quad_UD.element.interpolation_points())
+            self.p_func = Function(self.pb.V_quad_UD, name="Pression")
             
         if self.dico.get("D"):
             self.D_func = Function(self.pb.V_Sig, name = "Taux déformation")
