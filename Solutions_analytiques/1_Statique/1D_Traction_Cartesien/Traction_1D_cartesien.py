@@ -39,11 +39,6 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 chargement = MyConstant(mesh, Umax, Type = "Rampe")
 dictionnaire = {"mesh_manager" : mesh_manager,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["x", "x"], 
-                     "positions": [0, Longueur]
-                     },
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
                      {"component": "U", "tag": 2, "value": chargement}

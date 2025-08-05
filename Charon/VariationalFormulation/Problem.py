@@ -48,7 +48,9 @@ from petsc4py.PETSc import ScalarType
 from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc, 
                          form, assemble_scalar, Constant, Function, Expression, function)
 
-from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, SpatialCoordinate)
+
+from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, 
+                 SpatialCoordinate, FunctionSpace)
 
 class BoundaryConditions:
     """
@@ -441,9 +443,10 @@ class Problem:
         
     def _transfer_data_from_mesh_manager(self, simulation_dic):
         mesh_manager = simulation_dic["mesh_manager"]
+        self.mesh_manager = mesh_manager
         self.mesh = mesh_manager.mesh
         self.quad = mesh_manager.quad
-        self.h = mesh_manager.h
+        # self.h = mesh_manager.h
         self.dim = mesh_manager.dim
         self.fdim = mesh_manager.fdim
         self.dx = mesh_manager.dx
@@ -451,7 +454,17 @@ class Problem:
         self.ds = mesh_manager.ds
         self.u_deg = mesh_manager.u_deg
         self.facet_tag = mesh_manager.facet_tag
-    
+        
+    def create_function_space(self, mesh_manager, element):
+        if mesh_manager.mesh_type == "dolfinx_mesh":
+            # Pour un maillage DOLFINx, utiliser dolfinx.fem.functionspace
+            return functionspace(mesh_manager.mesh, element)
+        elif mesh_manager.mesh_type == "ufl_mesh":
+            # Pour un maillage UFL, utiliser ufl.FunctionSpace
+            return FunctionSpace(mesh_manager.mesh, element)
+        else:
+            raise ValueError(f"Type de maillage non reconnu: {mesh_manager.mesh_type}")
+            
     def _init_spaces_and_functions(self):
         """
         Initialize function spaces and unknown functions.
@@ -525,8 +538,7 @@ class Problem:
             self.u, self.material, self.plasticity_dictionnary,
             self.damage_dictionnary, self.multiphase,
             self.name, self.kinematic, self.quad,
-            self.relative_rho_field_init_list, self.h
-        )
+            self.relative_rho_field_init_list)
     
     def _init_temperature_and_auxiliary(self):
         """
@@ -612,10 +624,13 @@ class Problem:
         else:
             FE_T_elem = element("Lagrange", self.mesh.basix_cell(), degree=self.u_deg)
             self.V_T = functionspace(self.mesh, FE_T_elem)
-        self.V = functionspace(self.mesh, self.U_e)
+        self.V = self.create_function_space(self.mesh_manager, self.U_e)
+        # self.V = functionspace(self.mesh, self.U_e)
         self.V_quad_UD = self.quad.quadrature_space(["Scalar"])
-        self.V_Sig = functionspace(self.mesh, self.Sig_e)
-        self.V_devia = functionspace(self.mesh, self.devia_e)
+        # self.V_Sig = functionspace(self.mesh, self.Sig_e)
+        self.V_Sig = self.create_function_space(self.mesh_manager, self.Sig_e)
+        # self.V_devia = functionspace(self.mesh, self.devia_e)
+        self.V_devia = self.create_function_space(self.mesh_manager, self.devia_e)
         
     def set_functions(self):
         """
@@ -693,6 +708,7 @@ class Problem:
         self.sig_expr = Expression(self.sig, self.V_Sig.element.interpolation_points())
         self.sig_func = Function(self.V_Sig, name="Stress")
         if not self.is_pure_hydro:
+            # s_expr = self.kinematic.tensor_3d_to_compact(self.constitutive.s)
             s_expr = self.extract_deviatoric(self.constitutive.s)
             # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
             # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 

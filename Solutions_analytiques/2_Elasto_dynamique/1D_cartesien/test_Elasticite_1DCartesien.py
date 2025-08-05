@@ -35,13 +35,19 @@ import matplotlib.pyplot as plt
 import pytest
 import time
 from materiau import set_material
-Acier, wave_speed, isotherm, T0  = set_material()
+
 
 import os
 import sys
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 from Analytical_wave_propagation import cartesian1D_progressive_wave
+
+
+#Paramètre matériau#
+eos_type = "U1"
+dev_type = None
+material, wave_speed, isotherm, T0  = set_material(eos_type, dev_type)
 
 ###### Paramètre géométrique ######
 Longueur = 50
@@ -68,7 +74,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
 
-pb = CartesianUD(Acier, dictionnaire)
+pb = CartesianUD(material, dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",

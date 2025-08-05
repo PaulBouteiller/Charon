@@ -85,7 +85,7 @@ class ConstitutiveLaw:
     """
     
     def __init__(self, u, material, plasticity_dictionnary, damage_dictionnary, multiphase, 
-                 name, kinematic, quadrature, relative_rho_0, h):
+                 name, kinematic, quadrature, relative_rho_0):
         """Initialize the constitutive law manager.
 
         Parameters
@@ -102,7 +102,6 @@ class ConstitutiveLaw:
         """
         self.material = material
         self.mesh = u.function_space.mesh
-        self.h = h
         self.plasticity_dictionnary = plasticity_dictionnary
         self.plastic_model = plasticity_dictionnary.get("model")
         self.damage_dictionnary = damage_dictionnary

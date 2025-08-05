@@ -60,13 +60,12 @@ class MeshManager:
         fem_parameters_dic = dictionnaire.get("fem_parameters", default_fem_parameters())
         self.u_deg = fem_parameters_dic["u_degree"]
         self.schema= fem_parameters_dic["schema"]
-
+        self.mesh_type = self.set_mesh_type(mesh)
         # Initialize quadrature
-        self.quad = Quadrature(mesh, self.u_deg, self.schema)
+        self.quad = Quadrature(mesh, self.mesh_type, self.u_deg, self.schema)
         self.mesh = mesh
         self.dim = self.quad.dim
         self.fdim = self.dim - 1
-        self.h = self.calculate_mesh_size()
         if "tags" in dictionnaire and "coordinate" in dictionnaire and "positions" in dictionnaire:
             self.mark_boundary(dictionnaire["tags"], dictionnaire["coordinate"], dictionnaire["positions"])
         elif "facet_tag" in dictionnaire:
@@ -74,9 +73,28 @@ class MeshManager:
         else:
             print("Warning no boundary has been tagged inside CHARONX \
                   Boundary conditions cannot be used")
-            self.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
+            if self.mesh_type == "dolfinx_mesh":
+                self.facet_tag = meshtags(self.mesh, self.fdim, array([]), array([]))
+            elif self.mesh_type == "ufl_mesh":
+                self.facet_tag = None
         self.set_measures(self.quad)
+        # self.cell_type = self.get_cell_type(self.mesh_type)
+        self.cell_type = self.mesh.ufl_cell().cellname()
         
+    def set_mesh_type(self, mesh):
+        import dolfinx
+        import ufl
+        if isinstance(mesh, dolfinx.mesh.Mesh):
+            return "dolfinx_mesh"
+        elif isinstance(mesh, ufl.Mesh):
+            return "ufl_mesh"
+        
+    # def get_cell_type(self, mesh_type):
+    #     if self.mesh_type == "dolfinx_mesh":
+    #         return self.mesh.basix_cell()
+    #     elif self.mesh_type == "ufl_mesh":
+    #         return self.mesh.ufl_cell().cellname()
+
     def mark_boundary(self, flag_list, coord_list, localisation_list, tol=finfo(float).eps):
         """
         Mark boundaries of the mesh.
@@ -295,7 +313,7 @@ class MeshManager:
         self.dx_l = Measure("dx", domain = self.mesh, metadata = quadrature.lumped_metadata)
         self.ds = Measure('ds')(subdomain_data = self.facet_tag)
         
-    def calculate_mesh_size(self):
+    def calculate_mesh_size(self, mesh, dim):
         """
         Calculate the local size of mesh elements.
         
@@ -307,14 +325,14 @@ class MeshManager:
         dolfinx.fem.Function Function containing the local mesh size at each element
         """
         # Create function space to store the size
-        h_loc = Function(functionspace(self.mesh, ("DG", 0)), name="MeshSize")
+        h_loc = Function(functionspace(mesh, ("DG", 0)), name="MeshSize")
         
         # Calculate size for each cell
-        num_cells = self.mesh.topology.index_map(self.dim).size_local
+        num_cells = mesh.topology.index_map(dim).size_local
         h_local = zeros(num_cells)
         
         for i in range(num_cells):
-            h_local[i] = self.mesh.h(self.dim, array([i]))
+            h_local[i] = mesh.h(dim, array([i]))
         
         # Assign calculated values
         h_loc.x.array[:] = h_local

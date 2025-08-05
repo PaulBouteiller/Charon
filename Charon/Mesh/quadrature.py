@@ -44,16 +44,17 @@ class Quadrature():
     metadata : dict Metadata for standard integration
     mesh : dolfinx.mesh.Mesh The computational mesh
     """
-    def __init__(self, mesh, u_degree, schema):
+    def __init__(self, mesh, mesh_type, u_degree, schema):
         """Parameters
         ----------
         mesh : dolfinx.mesh.Mesh The computational mesh
         u_degree : int Degree of the displacement field interpolation
         schema : str Integration scheme type ('default', 'over', or 'reduit')"""
         self.ref_el = mesh.ufl_cell().cellname()
-        if isinstance(mesh, dolfinx.mesh.Mesh):
+        self.mesh_type = mesh_type
+        if mesh_type == "dolfinx_mesh":
             self.dim = mesh.topology.dim
-        elif isinstance(mesh, ufl.Mesh):
+        elif mesh_type == "ufl_mesh":
             self.dim = mesh.geometric_dimension()
         self.u_deg = u_degree
         self.schema = schema
@@ -227,4 +228,8 @@ class Quadrature():
         -------
         dolfinx.fem.FunctionSpace Function space using the specified quadrature element
         """
-        return functionspace(self.mesh, self.quad_element(shape))
+        quad_element = self.quad_element(shape)
+        if self.mesh_type == "dolfinx_mesh":
+            return functionspace(self.mesh, quad_element)
+        elif self.mesh_type == "ufl_mesh":
+            return ufl.FunctionSpace(self.mesh, quad_element)

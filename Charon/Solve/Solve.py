@@ -109,9 +109,10 @@ class Solve:
         dictionnaire : dict Configuration dictionary containing damping parameters
         """
         if self.pb.analysis == "explicit_dynamic":
+            h = self.pb.mesh_manager.calculate_mesh_size(self.pb.mesh, self.pb.dim)
             self.damping = Damping(dictionnaire, self.pb.u, self.pb.u_, self.pb.v, 
                                    self.pb.J_transfo, self.pb.material, self.pb.kinematic, 
-                                   self.pb.dx, self.pb.h, self.pb.multiphase, self.pb.form, self.pb.name)
+                                   self.pb.dx, h, self.pb.multiphase, self.pb.form, self.pb.name)
             self.pb.form -= self.damping.damping_form
         
     def _create_time_and_bcs_update(self):

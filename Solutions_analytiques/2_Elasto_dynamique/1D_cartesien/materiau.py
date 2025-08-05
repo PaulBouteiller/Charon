@@ -9,12 +9,10 @@ try:
     from jax.numpy import array
 except Exception:
     print("JAX has not been loaded therefore tabulated law cannot be used")
-eos_type = "U1"
-# dev_type = "Hypoelastic"
-dev_type = None
+
 
 ###### Modèle matériau ######
-def set_material():
+def set_material(eos_type, dev_type):
     rho = 7.8e-3
     C_mass = 500
     T0 = 0.
