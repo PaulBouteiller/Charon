@@ -33,10 +33,11 @@ Key components:
 
 """
 
-from .Problem import BoundaryConditions, Loading, Problem
-from ufl import as_vector
+from .Problem import Problem
 from petsc4py.PETSc import ScalarType
-from basix.ufl import element
+from basix.ufl import element    
+from .base_boundary_conditions import BoundaryConditions
+from .base_loading import Loading
 
 class UnidimensionalBoundaryConditions(BoundaryConditions):
     """
@@ -55,8 +56,8 @@ class UnidimensionalBoundaryConditions(BoundaryConditions):
         facets : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
         name : str Identifier for the boundary condition type
         """
-        BoundaryConditions.__init__(self, V, facets)
-
+        super().__init__(V, facets, name, dim=1)
+    
     def add_U(self, region, value=ScalarType(0)):
         """
         Impose a Dirichlet boundary condition on the displacement component.
@@ -64,32 +65,8 @@ class UnidimensionalBoundaryConditions(BoundaryConditions):
         Parameters
         ----------
         region, value : see add_component in Problem.py
-        """       
-        self.add_component(self.V, None, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, None, region, value)
-        
-    def add_axi(self, region, value=ScalarType(0)):
-        """
-        Add an axisymmetry boundary condition.
-        
-        This is useful for cylindrical and spherical models.
-        
-        Parameters
-        ----------
-        region : see add_component in Problem.py
-        """       
-        self.add_component(self.V, None, self.bcs_axi, region, ScalarType(1))
-        self.add_component(self.V, None, self.bcs_axi_homog, region, ScalarType(0))
-        self.add_component(self.V, None, self.bcs, region, ScalarType(0))
-    
-class UnidimensionalPeriodicBoundary:
-    """
-    Periodic boundary conditions for one-dimensional problems.
-    
-    This class provides methods to impose periodic boundary conditions
-    where the solution on one boundary matches the solution on another boundary.
-    """
-    pass
+        """   
+        self.add_component_by_name('U', region, value)
 
 class UnidimensionalLoading(Loading):
     """
@@ -102,24 +79,13 @@ class UnidimensionalLoading(Loading):
     mesh, u_, dx , kinematic : see Loading parameters in Problem.py
     """
     def __init__(self, mesh, u_, dx, kinematic):
-        """
-        Initialize 1D loading conditions.
-        
-    Parameters
-    ----------
-    mesh, u_, dx , kinematic : see Loading parameters in Problem.py
-    """
-        Loading.__init__(self, mesh, u_, dx, kinematic)
-        
+        super().__init__(mesh, u_, dx, kinematic, dim=1)
+    
     def add_F(self, value, dx):
         """
         Add an external force.
-        
-        Parameters
-        ----------
-        value, u_, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, dx)
+        self.add_force_by_name('F', value, dx)
 
 class Unidimensional(Problem):
     """

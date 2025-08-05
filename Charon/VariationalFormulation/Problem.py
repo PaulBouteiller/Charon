@@ -33,7 +33,6 @@ Key components:
 from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 
-from ..utils.MyExpression import MyConstant, Tabulated_BCs
 from ..utils.interpolation import create_function_from_expression
 
 from .multiphase import Multiphase
@@ -46,267 +45,11 @@ from dolfinx.fem.petsc import set_bc
 from petsc4py.PETSc import ScalarType
 
 from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc, 
-                         form, assemble_scalar, Constant, Function, Expression, function)
+                         form, assemble_scalar, Constant, Function, Expression)
 
 
-from ufl import (action, inner, FacetNormal, TestFunction, TrialFunction, dot, 
+from ufl import (action, inner, TestFunction, TrialFunction, 
                  SpatialCoordinate, FunctionSpace, Coefficient)
-
-class BoundaryConditions:
-    """
-    Manager for displacement boundary conditions in mechanical problems.
-    
-    This class handles Dirichlet boundary conditions for displacement,
-    velocity, and acceleration fields, supporting both constant and
-    time-dependent values.
-    
-    Attributes
-    ----------
-    V : dolfinx.fem.FunctionSpace
-        Function space for the displacement field
-    facet_tag : dolfinx.mesh.MeshTags
-        Mesh tags identifying boundary regions
-    bcs : list of dolfinx.fem.DirichletBC
-        Displacement boundary conditions
-    v_bcs : list of dolfinx.fem.DirichletBC
-        Velocity boundary conditions  
-    a_bcs : list of dolfinx.fem.DirichletBC
-        Acceleration boundary conditions
-    bcs_axi : list of dolfinx.fem.DirichletBC
-        Axisymmetry boundary conditions
-    bcs_axi_homog : list of dolfinx.fem.DirichletBC
-        Homogeneous axisymmetry boundary conditions
-    my_constant_list : list of MyExpression
-        Time-dependent boundary condition expressions
-    """
-    def __init__(self, V, facet_tag):
-        """
-        Initialize boundary conditions.
-        
-        Parameters
-        ----------
-        V : dolfinx.fem.FunctionSpace Function space for the displacement field
-        facet_tag : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
-        """
-        self.V = V
-        self.facet_tag = facet_tag
-        self.bcs = []
-        self.v_bcs = []
-        self.a_bcs = []
-        self.bcs_axi = []
-        self.bcs_axi_homog = []
-        self.my_constant_list = []
-        
-    def current_space(self, space, isub):
-        """
-        Get the current function space or subspace.
-        
-        Parameters
-        ----------
-        space : dolfinx.fem.FunctionSpace Base function space
-        isub : int or None Subspace index, or None for the whole space
-            
-        Returns
-        -------
-        dolfinx.fem.FunctionSpace The selected function space or subspace
-        """
-        if isub is None:
-            return space
-        else:
-            return space.sub(isub)
-
-    def add_component(self, space, isub, bcs, region, value=ScalarType(0)):
-        """
-        Add a Dirichlet boundary condition to the specified list.
-        
-        Parameters
-        ----------
-        space : dolfinx.fem.FunctionSpace
-            Function space for the constrained field
-        isub : int or None
-            Subspace index for vector fields, None for scalar fields
-        bcs : list
-            List to which the boundary condition will be added
-        region : int
-            Tag identifying the boundary region
-        value : float, Constant, MyConstant, optional
-            Value to impose, by default 0
-            
-        Notes
-        -----
-        For time-dependent values, use MyConstant objects which will be
-        automatically added to the time-dependent expressions list.
-        """
-        def bc_value(value):
-            if isinstance(value, float) or isinstance(value, Constant):
-                return value
-            elif isinstance(value, MyConstant):
-                return value.Expression.constant
-         
-        dof_loc = locate_dofs_topological(self.current_space(space, isub), self.facet_tag.dim, self.facet_tag.find(region))
-        bcs.append(dirichletbc(bc_value(value), dof_loc, self.current_space(space, isub)))
-        if isinstance(value, MyConstant):
-            self.my_constant_list.append(value.Expression)
-            
-    def add_associated_speed_acceleration(self, space, isub, region, value=ScalarType(0)):
-        """
-        Add associated velocity and acceleration boundary conditions.
-        
-        Parameters
-        ----------
-        space, isub, region, value : see add_component parameters
-        """
-        def associated_speed(value):
-            if isinstance(value, float) or isinstance(value, Constant):
-                return value
-            elif isinstance(value, MyConstant):
-                return value.Expression.v_constant
-            
-        def associated_acceleration(value):
-            if isinstance(value, float) or isinstance(value, Constant):
-                return value
-            elif isinstance(value, MyConstant):
-                return value.Expression.a_constant
-         
-        dof_loc = locate_dofs_topological(self.current_space(space, isub), self.facet_tag.dim, self.facet_tag.find(region))
-        self.v_bcs.append(dirichletbc(associated_speed(value), dof_loc, self.current_space(space, isub)))
-        self.a_bcs.append(dirichletbc(associated_acceleration(value), dof_loc, self.current_space(space, isub)))
-        
-    def add_T(self, V_T, T_bcs, value, region):
-        """
-        Impose a Dirichlet boundary condition on the temperature field.
-        
-        Parameters
-        ----------
-        V_T : dolfinx.fem.FunctionSpace Function space for the temperature field
-        T_bcs : list List of Dirichlet BCs for the temperature field
-        value : ScalarType or Expression Value to impose
-        region : int Tag identifying the boundary region
-        """
-        self.add_component(V_T, None, T_bcs, region, value)
-        
-    def remove_all_bcs(self):
-        """
-        Remove all boundary conditions.
-        
-        Clears all boundary condition lists, including displacement,
-        velocity, acceleration, and time-dependent expressions.
-        """
-        print("Remove_bcs")
-        self.bcs = []
-        self.v_bcs = []
-        self.a_bcs = []
-        self.my_constant_list = []
-                
-class Loading:   
-    """
-    Manager for external loads in mechanical problems.
-    
-    This class constructs the external work form (Wext) representing
-    work done by external forces, including body forces, surface tractions,
-    and pressure loads.
-    
-    Attributes
-    ----------
-    kinematic : Kinematic
-        Object handling kinematic transformations and measures
-    my_constant_list : list of MyExpression  
-        Time-dependent loading expressions
-    function_list : list
-        Additional loading functions (reserved for future use)
-    Wext : ufl.Form
-        Variational form representing external work
-    n : ufl.FacetNormal
-        Outward unit normal vector on mesh boundaries
-    u_ : ufl.TestFunction 
-    Test function for the displacement field
-    """
-    def sub_component(self, u_, sub):
-        if sub == None:
-            return u_
-        else:
-            return u_[sub]
-        
-    def __init__(self, mesh, u_, dx, kinematic, sub = None):
-        """
-        Initialize the external work form.
-        
-        Parameters
-        ----------
-        mesh : dolfinx.mesh.Mesh Computational mesh
-        u_ : ufl.TestFunction Test function for the displacement field
-        dx : ufl.Measure Integration measure
-        kinematic : Kinematic Object handling kinematics transformations
-        """
-        self.kinematic = kinematic
-        self.my_constant_list = []
-        self.function_list = []
-        self.u_ = u_ 
-        self.Wext = kinematic.measure(Constant(mesh, ScalarType(0)) * self.sub_component(self.u_, sub), dx)
-        self.n = FacetNormal(mesh)
-        
-    def add_loading(self, value, dx, sub = None):
-        """
-        Add external loads to the variational form.
-        
-        Parameters
-        ----------
-        value : ScalarType, Expression, MyConstant, or Tabulated_BCs
-            Load value or expression
-        dx : ufl.Measure
-            Integration measure (dx for body forces, ds for surface tractions)
-            
-        Notes
-        -----
-        - For volume measures (dx): adds body forces
-        - For surface measures (ds): adds Neumann boundary conditions
-        - Time-dependent loads should use MyConstant objects
-        """
-        u_component = self.sub_component(self.u_, sub)
-        if isinstance(value, MyConstant):
-            if hasattr(value, "function"):
-                self.Wext += self.kinematic.measure(inner(value.Expression.constant * value.function, u_component), dx)
-            else: 
-                self.Wext += self.kinematic.measure(inner(value.Expression.constant, u_component), dx)   
-            self.my_constant_list.append(value.Expression)
-        
-        elif isinstance(value, Tabulated_BCs):
-            pass
-        else:
-            assert(value!=0.)
-            self.Wext += self.kinematic.measure(inner(value, u_component), dx)
-            
-    def select(self, value):
-        """
-        Select the appropriate value for a boundary condition.
-        
-        Parameters
-        ----------
-        value : various types Input value or expression
-            
-        Returns
-        -------
-        function.Expression or None Selected representation of the value
-        """
-        if isinstance(value, function.Expression):
-            return value
-    
-    def add_pressure(self, p, ds):
-        """
-        Add pressure (normal surface force) on the exterior surface.
-        
-        Parameters
-        ----------
-        p : ScalarType or Expression Pressure value
-        u_ : ufl.TestFunction Test function for the displacement field
-        ds : ufl.Measure Surface integration measure
-        """
-        def value(value):
-            if isinstance(value, MyConstant):
-                return value.Expression.constant
-            else:
-                return value
-        self.Wext += self.kinematic.measure(-value(p) * dot(self.n, self.u_), ds)
         
 class Problem:
     """
@@ -507,7 +250,7 @@ class Problem:
         """
         def has_law_type(material, attribute, keyword):
             """Check if material(s) have a specific law type."""
-            materials = material if isinstance(material, list) else [material]
+            materials = material if self.n_mat >1 else [material]
             return any(getattr(mat, attribute) == keyword for mat in materials)
     
         self.is_tabulated = has_law_type(self.material, "eos_type", "Tabulated")
@@ -700,7 +443,7 @@ class Problem:
                 - Initial density field
                 - List of relative density fields for each phase
         """
-        if isinstance(self.material, list):
+        if self.n_mat >1:
             if all([self.material[0].rho_0 == self.material[i].rho_0 for i in range(self.n_mat)]):
                 return self.material[0].rho_0, [1 for _ in range(self.n_mat)]
             else:
@@ -751,8 +494,8 @@ class Problem:
         """
         T0 = 293.15
         self.T0 = self.create_function(self.mesh_manager)(self.V_T)
-        # self.T0.x.petsc_vec.set(T0)
-        # self.T.x.petsc_vec.set(T0)
+        self.T0.x.petsc_vec.set(T0)
+        self.T.x.petsc_vec.set(T0)
 
     def flux_bilinear_form(self):
         """

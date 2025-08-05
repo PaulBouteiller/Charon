@@ -151,9 +151,8 @@ class OptimizedCSVExport:
     def setup_stress_export(self):
         if "Sig" in self.dico_csv:
             self.csv_export_Sig = True
-            V_sig = self.pb.V_Sig
-            self.sig_dte = self.dofs_to_exp(V_sig, self.dico_csv.get("Sig"))
-            self.coordinate_data["Sig"] = self.get_coordinate_data(V_sig, self.sig_dte)
+            self.sig_dte = self.dofs_to_exp(self.V_Sig, self.dico_csv.get("Sig"))
+            self.coordinate_data["Sig"] = self.get_coordinate_data(self.V_Sig, self.sig_dte)
             self.setup_stress_components()
         else:
             self.csv_export_Sig = False

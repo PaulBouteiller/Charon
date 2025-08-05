@@ -37,56 +37,27 @@ Key components:
 
 """
 
-from .Problem import BoundaryConditions, Loading, Problem
-from ufl import as_vector, dot, grad
+from .Problem import Problem
+from .base_boundary_conditions import BoundaryConditions
+from .base_loading import Loading
+from ufl import dot, grad
 from petsc4py.PETSc import ScalarType
 
-class BidimensionalBoundaryConditions(BoundaryConditions):
-    """
-    Base class for boundary conditions in two-dimensional problems.
-    
-    This class provides methods to impose displacement boundary conditions
-    for two-dimensional mechanical problems. It extends the generic
-    BoundaryConditions class with specialized methods for 2D domains.
-    
-    Parameters
-    ----------
-    V : dolfinx.fem.FunctionSpace Function space for the displacement field
-    facet_tag : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
-    name : str Identifier for the boundary condition type
-    """
-    def __init__(self, V, facet_tag, name):
-        self.name = name
-        BoundaryConditions.__init__(self, V, facet_tag)
-        
-    def add_clamped(self, region):
-        """
-        Add a clamped boundary condition (fixed in all directions).
-        
-        Imposes zero displacement and zero velocity/acceleration on all
-        components of the displacement field on the specified boundary region.
-        
-        Parameters
-        ----------
-        region : int Tag identifying the boundary region where the condition is applied
-        """
-        self.add_component(self.V, 0, self.bcs, region, ScalarType(0))
-        self.add_associated_speed_acceleration(self.V, 0, region, ScalarType(0))
-        self.add_component(self.V, 1, self.bcs, region, ScalarType(0))
-        self.add_associated_speed_acceleration(self.V, 1, region, ScalarType(0))
-        
-class AxiBoundaryConditions(BidimensionalBoundaryConditions):
+class AxiBoundaryConditions(BoundaryConditions):
     """
     Boundary conditions for axisymmetric problems.
     
     This class provides methods to impose displacement boundary conditions
-    specific to axisymmetric problems, including axisymmetry conditions.
+    specific to axisymmetric problems.
     
     Parameters
     ----------
     V, facet_tag, name : see BidimensionalBoundaryConditions parameters
     """
-    def add_Ur(self, region, value = ScalarType(0)):
+    def __init__(self, V, facet_tag, name):
+        super().__init__(V, facet_tag, name, dim=2)
+    
+    def add_Ur(self, region, value=ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the radial displacement component.
         
@@ -94,36 +65,19 @@ class AxiBoundaryConditions(BidimensionalBoundaryConditions):
         ----------
         region, value : see add_component in Problem.py
         """
-        self.add_component(self.V, 0, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 0, region, value)
-
-    def add_Uz(self, region, value = ScalarType(0)):
+        self.add_component_by_name('Ur', region, value)
+    
+    def add_Uz(self, region, value=ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the axial displacement component.
         
         Parameters
         ----------
         region, value : see add_component in Problem.py
-        """       
-        self.add_component(self.V, 1, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 1, region, value)
+        """   
+        self.add_component_by_name('Uz', region, value)
 
-    def add_axi(self, region):
-        """
-        Add an axisymmetry boundary condition.
-        
-        This condition is necessary when a side of the domain lies on the
-        symmetry axis to prevent field divergence.
-        
-        Parameters
-        ----------
-        region : see add_component in Problem.py
-        """
-        self.add_component(self.V, 0, self.bcs_axi, region, ScalarType(1))
-        self.add_component(self.V, 0, self.bcs, region, ScalarType(0))
-        self.add_associated_speed_acceleration(self.V, 0, region, ScalarType(0))
-            
-class PlaneStrainBoundaryConditions(BidimensionalBoundaryConditions):
+class PlaneStrainBoundaryConditions(BoundaryConditions):
     """
     Boundary conditions for plane strain problems.
     
@@ -134,6 +88,9 @@ class PlaneStrainBoundaryConditions(BidimensionalBoundaryConditions):
     ----------
     V, facet_tag, name : see BidimensionalBoundaryConditions parameters
     """
+    def __init__(self, V, facet_tag, name):
+        super().__init__(V, facet_tag, name, dim=2)
+    
     def add_Ux(self, region, value=ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the x-component of displacement.
@@ -142,9 +99,8 @@ class PlaneStrainBoundaryConditions(BidimensionalBoundaryConditions):
         ----------
         region, value : see add_component in Problem.py
         """
-        self.add_component(self.V, 0, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 0, region, value)
-
+        self.add_component_by_name('Ux', region, value)
+    
     def add_Uy(self, region, value=ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the y-component of displacement.
@@ -153,23 +109,9 @@ class PlaneStrainBoundaryConditions(BidimensionalBoundaryConditions):
         ----------
         region, value : see add_component in Problem.py
         """
-        self.add_component(self.V, 1, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 1, region, value)
-
-class BidimensionalLoading(Loading):
-    """
-    Base class for loading conditions in two-dimensional problems.
-    
-    This class initializes the external work form for 2D mechanical problems.
-    
-    Parameters
-    ----------
-    mesh, u_, dx , kinematic : see Loading parameters in Problem.py
-    """
-    def __init__(self, mesh, u_, dx, kinematic):
-        Loading.__init__(self, mesh, u_, dx, kinematic, sub = 0)
-
-class PlaneStrainLoading(BidimensionalLoading):
+        self.add_component_by_name('Uy', region, value)
+        
+class PlaneStrainLoading(Loading):
     """
     Loading conditions for plane strain problems.
     
@@ -177,29 +119,24 @@ class PlaneStrainLoading(BidimensionalLoading):
     
     Parameters
     ----------
-    mesh, dx , kinematic : see Loading parameters in Problem.py
+    mesh, dx , kinematic : see Loading parameters in base_loading.py
     """
+    def __init__(self, mesh, u_, dx, kinematic):
+        super().__init__(mesh, u_, dx, kinematic, dim=2)
+    
     def add_Fx(self, value, dx):
         """
         Add an external force in the x-direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, dx, sub = 0)
-
+        self.add_force_by_name('Fx', value, dx)
+    
     def add_Fy(self, value, dx):
         """
         Add an external force in the y-direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
         """
-        self.add_loading(value, dx, sub = 1)
+        self.add_force_by_name('Fy', value, dx)
 
-class AxiLoading(BidimensionalLoading):
+class AxiLoading(Loading):
     """
     Loading conditions for axisymmetric problems.
     
@@ -207,27 +144,22 @@ class AxiLoading(BidimensionalLoading):
     
     Parameters
     ----------
-    mesh, dx , kinematic : see Loading parameters in Problem.py
+    mesh, dx , kinematic : see Loading parameters in base_loading.py
     """
+    def __init__(self, mesh, u_, dx, kinematic):
+        super().__init__(mesh, u_, dx, kinematic, dim=2)
+    
     def add_Fr(self, value, dx):
         """
-        Add an external force in the radial direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
+        Add an external force in the r-direction.
         """
-        self.add_loading(value, dx, sub = 0)
-
+        self.add_force_by_name('Fr', value, dx)
+    
     def add_Fz(self, value, dx):
         """
-        Add an external force in the axial direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
+        Add an external force in the z-direction.
         """
-        self.add_loading(value, dx, sub = 1)
+        self.add_force_by_name('Fz', value, dx)
 
 class Bidimensional(Problem):
     """

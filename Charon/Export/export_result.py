@@ -42,6 +42,7 @@ class ExportResults:
                             que l'on souhaite exporter au format csv.
         """
         self.pb = problem
+        self.quad = problem.quad
         self.name = name
         self.dico = dictionnaire
         self.dico_csv = dictionnaire_csv
@@ -64,6 +65,7 @@ class ExportResults:
             file_results.write_mesh(self.pb.mesh)
             self.file_results = VTKFile(self.pb.mesh.comm, self.file_name, "a")
             # XDMFFile(self.pb.mesh.comm, self.file_name, "w").write_mesh(self.pb.mesh)
+        self.set_function_space()
         self.set_expression()
         self.csv = OptimizedCSVExport(self.save_dir(name), name, problem, problem.name, dictionnaire_csv)
 
@@ -109,6 +111,11 @@ class ExportResults:
         else:
             return deviatoric
     
+    def set_function_space(self):
+        if self.dico.get("Sig") or self.dico_csv.get("Sig"):
+            Sig_e = self.set_sig_element()
+            self.V_Sig = functionspace(self.pb.mesh, Sig_e)
+    
     def set_expression(self):
         
         def get_index(key, length):
@@ -117,10 +124,8 @@ class ExportResults:
             elif isinstance(key, list):
                 return key
         if self.dico.get("Sig"):
-            Sig_e = self.set_sig_element()
-            V_Sig = functionspace(self.pb.mesh, Sig_e)
-            self.sig_expr = Expression(self.pb.sig, V_Sig.element.interpolation_points())
-            self.sig_func = Function(V_Sig, name="Stress")
+            self.sig_expr = Expression(self.pb.sig, self.V_Sig.element.interpolation_points())
+            self.sig_func = Function(self.V_Sig, name="Stress")
 
         if self.dico.get("deviateur"):  
             devia_e = self.set_devia_element()

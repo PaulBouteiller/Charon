@@ -87,13 +87,11 @@ class Thermal:
         
         Parameters
         ----------
-        mat : Material
-            Material properties
+        mat : Material Material properties
             
         Returns
         -------
-        Expression
-            Volumetric thermal capacity
+        Expression Volumetric thermal capacity
         """
         CTan = mat.rho_0 * mat.C_mass
         return CTan   

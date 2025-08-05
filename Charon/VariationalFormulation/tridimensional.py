@@ -29,9 +29,11 @@ Key components:
 - Tridimensional: Implementation for 3D problems
 """
 
-from .Problem import BoundaryConditions, Loading, Problem
+from .Problem import Problem
 from ufl import grad, dot
 from petsc4py.PETSc import ScalarType
+from .base_boundary_conditions import BoundaryConditions
+from .base_loading import Loading
 
 class TridimensionalBoundaryConditions(BoundaryConditions):
     """
@@ -50,8 +52,8 @@ class TridimensionalBoundaryConditions(BoundaryConditions):
         facet_tag : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
         name : str Identifier for the boundary condition type
         """
-        BoundaryConditions.__init__(self, V, facets)
-
+        super().__init__(V, facets, name, dim=3)
+    
     def add_Ux(self, region, value = ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the x-component of displacement.
@@ -60,10 +62,9 @@ class TridimensionalBoundaryConditions(BoundaryConditions):
         ----------
         region, value : see add_component in Problem.py
         """
-        self.add_component(self.V, 0, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 0, region, value)
-
-    def add_Uy(self, region, value=ScalarType(0)):
+        self.add_component_by_name('Ux', region, value)
+    
+    def add_Uy(self, region, value = ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the y-component of displacement.
         
@@ -71,9 +72,8 @@ class TridimensionalBoundaryConditions(BoundaryConditions):
         ----------
         region, value : see add_component in Problem.py
         """
-        self.add_component(self.V, 1, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 1, region, value)
-
+        self.add_component_by_name('Uy', region, value)
+    
     def add_Uz(self, region, value=ScalarType(0)):
         """
         Add a Dirichlet boundary condition on the z-component of displacement.
@@ -82,8 +82,7 @@ class TridimensionalBoundaryConditions(BoundaryConditions):
         ----------
         region, value : see add_component in Problem.py
         """
-        self.add_component(self.V, 2, self.bcs, region, value)
-        self.add_associated_speed_acceleration(self.V, 2, region, value)
+        self.add_component_by_name('Uz', region, value)
         
 class TridimensionalLoading(Loading):
     """
@@ -92,44 +91,16 @@ class TridimensionalLoading(Loading):
     This class provides methods to apply external forces in 3D problems.
     """
     def __init__(self, mesh, u_, dx, kinematic):
-        """
-        Initialize 3D loading conditions.
-        
-        Parameters
-        ----------
-        mesh, u_, dx , kinematic : see Loading parameters in Problem.py
-        """
-        Loading.__init__(self, mesh, u_, dx, kinematic, sub = 0)
-
+        super().__init__(mesh, u_, dx, kinematic, dim=3)
+    
     def add_Fx(self, value, dx):
-        """
-        Add an external force in the x-direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
-        """
-        self.add_loading(value, dx, sub = 0)
-        
+        self.add_force_by_name('Fx', value, dx)
+    
     def add_Fy(self, value, dx):
-        """
-        Add an external force in the y-direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
-        """
-        self.add_loading(value, dx, sub = 1)
-        
+        self.add_force_by_name('Fy', value, dx)
+    
     def add_Fz(self, value, dx):
-        """
-        Add an external force in the z-direction.
-        
-        Parameters
-        ----------
-        value, dx : see parameters of add_loading in Problem.py
-        """
-        self.add_loading(value, dx, sub = 2)
+        self.add_force_by_name('Fz', value, dx)
 
 class Tridimensional(Problem):
     """

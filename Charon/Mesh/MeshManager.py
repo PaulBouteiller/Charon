@@ -88,12 +88,6 @@ class MeshManager:
             return "dolfinx_mesh"
         elif isinstance(mesh, ufl.Mesh):
             return "ufl_mesh"
-        
-    # def get_cell_type(self, mesh_type):
-    #     if self.mesh_type == "dolfinx_mesh":
-    #         return self.mesh.basix_cell()
-    #     elif self.mesh_type == "ufl_mesh":
-    #         return self.mesh.ufl_cell().cellname()
 
     def mark_boundary(self, flag_list, coord_list, localisation_list, tol=finfo(float).eps):
         """
