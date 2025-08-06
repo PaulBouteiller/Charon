@@ -50,7 +50,7 @@ class Multiphase:
     nb_phase : int Number of phases being modeled
     c : list of dolfinx.fem.Function Concentration fields for each phase
     """
-    def __init__(self, nb_phase, quadrature, multiphase_dictionnaire):
+    def __init__(self, nb_phase, V_quad, multiphase_dictionnaire):
         """
         Initialize a multiphase object.
         
@@ -66,10 +66,11 @@ class Multiphase:
         self.multiphase_evolution = [False] * nb_phase
         self.explosive = False
         self.nb_phase = nb_phase
-        self.set_multiphase_function(quadrature)
-        self.set_multiphase(multiphase_dictionnaire)
+        self._set_multiphase_function(V_quad)
+        self._set_multiphase(multiphase_dictionnaire)
+        self.set_energy_release(multiphase_dictionnaire)
         
-    def set_multiphase_function(self, quadrature):
+    def _set_multiphase_function(self, V_quad):
         """
         Initialize the function spaces and fields for phase concentrations.
         
@@ -80,14 +81,14 @@ class Multiphase:
         ----------
         quadrature : Quadrature Quadrature scheme for function spaces
         """
-        self.V_c = quadrature.quadrature_space(["Scalar"])
+        self.V_c = V_quad
         self.inf_c = Function(self.V_c)
         self.max_c = Function(self.V_c)
         self.max_c.x.petsc_vec.set(1.)
         self.inf_c.x.petsc_vec.set(0.)
         self.c = [Function(self.V_c, name="Current_concentration") for i in range(self.nb_phase)]
     
-    def set_multiphase(self, multiphase_dictionnaire):
+    def _set_multiphase(self, multiphase_dictionnaire):
         """
         Define the concentrations of different components.
         

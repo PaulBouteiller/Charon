@@ -35,7 +35,7 @@ from ..ConstitutiveLaw.Thermal import Thermal
 
 from ..utils.interpolation import create_function_from_expression
 
-from .multiphase import Multiphase
+from ..Multiphase.multiphase import Multiphase
 from ..Kinematic import Kinematic
 
 
@@ -114,8 +114,8 @@ class Problem:
         self._init_temperature_and_auxiliary()
         
         # Configure explosive if needed
-        if self.multiphase_analysis and self.multiphase.explosive:
-            self.set_explosive()
+        # if self.multiphase_analysis and self.multiphase.explosive:
+        #     self.set_explosive()
         
         # Configure thermal analysis if needed
         self._init_thermal_analysis()
@@ -232,7 +232,8 @@ class Problem:
         self.multiphase_analysis = isinstance(self.material, list)
         if self.multiphase_analysis:
             self.n_mat = len(self.material)
-            self.multiphase = Multiphase(self.n_mat, self.quad, dictionnaire['multiphase'])
+            V_quad = self.quad.quadrature_space(["Scalar"])
+            self.multiphase = Multiphase(self.n_mat, V_quad, dictionnaire['multiphase'])
         else:
             self.n_mat = 1
             self.multiphase = None
