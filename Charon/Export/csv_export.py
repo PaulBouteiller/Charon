@@ -280,9 +280,6 @@ class OptimizedCSVExport:
         if self.csv_FreeSurf_1D:
             self.export_free_surface(t)
             
-    # def csv_export_scalar(self, name, t):
-        
-            
     def export_field(self, t, field_name, field, dofs_to_export, subfield_name = None):
         if isinstance(subfield_name, list):
             n_sub = len(subfield_name)

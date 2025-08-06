@@ -65,17 +65,11 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
 Nx = 2000
 mesh = create_interval(COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
 chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
-
-
-
-x = SpatialCoordinate(mesh)
-ufl_condition_1 = conditional(x[0]<demi_longueur, 1, 0)
-ufl_condition_2 = conditional(x[0]>=demi_longueur, 1, 0)
-
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, L]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 
+x = SpatialCoordinate(mesh)
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 2}
@@ -83,7 +77,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 1, "value" : chargement}
                     ],
-                "multiphase" : {"conditions" : [ufl_condition_1, ufl_condition_2]},
+                "multiphase" : {"conditions" : [x[0]<demi_longueur, x[0]>=demi_longueur]},
                 "isotherm" : True
                 }
 
@@ -91,13 +85,13 @@ pb = CartesianUD([Acier, Alu], dictionnaire)
         
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",
-    "csv_output" : {"Sig" : True}
+    "csv_output" : {"sig" : True}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 
-df = read_csv("Test_elasticite-results/Sig.csv")
+df = read_csv("Test_elasticite-results/sig.csv")
 import re
 temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
                   for col in df.columns if "t=" in col])

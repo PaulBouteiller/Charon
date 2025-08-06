@@ -53,18 +53,14 @@ chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
 
 x = SpatialCoordinate(mesh)
-demi_long = Longueur / 2
-ufl_condition_1 = conditional(x[0]<demi_long, 1, 0)
-ufl_condition_2 = conditional(x[0]>=demi_long, 1, 0)
-
-        
+demi_long = Longueur / 2      
 
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
                      {"component": "U", "tag": 2, "value": chargement}
                     ],
-                "multiphase" : {"conditions" : [ufl_condition_1, ufl_condition_2]},
+                "multiphase" : {"conditions" : [x[0]<demi_long, x[0]>=demi_long]},
                 "analysis" : "static",
                 "isotherm" : True
                 }

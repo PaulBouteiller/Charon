@@ -226,8 +226,7 @@ class MultiphaseSolver:
         """
         self.c_list[0].interpolate(self.mult.c_expr)
         self.c_list[1].x.array[:] = 1 - self.c_list[0].x.array
-        
-        
+            
     def auxiliary_field_evolution(self):
         """
         Mise à jour des fonctions intervenant dans le modèle de cinétique chimique KJMA

@@ -82,7 +82,7 @@ class Damping:
         damping_config = dictionnaire.get("damping", default_damping_parameters())
         self.Klin = damping_config["linear_coeff"]
         self.Kquad = damping_config["quad_coeff"]
-        self.correction = damping_config["correction"]
+        self.correction = damping_config.get("correction", True)
     
     def _pseudo_pressure_single_material(self, velocity, material, jacobian):
         """

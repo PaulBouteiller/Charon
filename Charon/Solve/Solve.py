@@ -29,7 +29,11 @@ from .PlasticSolve.finite_strain_plastic_solver import FiniteStrainPlasticSolver
 from .PlasticSolve.jax_j2_plastic_solver import JAXJ2PlasticSolver
 from .PlasticSolve.jax_gurson_plastic_solver import JAXGursonPlasticSolver
 
-from .multiphase_solve import MultiphaseSolver
+# from .multiphase_solve import MultiphaseSolver
+from .multiphase_solve_clean import MultiphaseSolver
+
+
+
 from .damage_solve import StaticJohnsonSolve, DynamicJohnsonSolve, InertialJohnsonSolve, PhaseFieldSolve
 from .hypoelastic_solve import HypoElasticSolve
 from .time_stepping import TimeStepping
@@ -140,7 +144,7 @@ class Solve:
             t = load_steps[j]
             pb_load.value = t
             self.t = t
-            pb_update_bcs(j)
+            pb_update_bcs(self.pb, j)
             for constant, values, v_constant, speeds in bcs_refs:
                 constant.value = values[j]
                 v_constant.value = speeds[j]
@@ -221,7 +225,7 @@ class Solve:
                 operations.append(lambda: self.hypo_elastic_solver.solve())
         
         # Common operations for all analysis types
-        if self.pb.multiphase_analysis and hasattr(self.pb.multiphase, 'evol') and self.pb.multiphase.evol:
+        if self.pb.multiphase_analysis and self.pb.multiphase_evolution:
             operations.append(lambda: self.multiphase_solver.solve())
         
         if not self.pb.iso_T:
@@ -330,15 +334,11 @@ class Solve:
             self.plastic_solver = plastic_class(self.pb, self.pb.constitutive.plastic, self.pb.u)
             
         # Multiphase evolution solver
-        if self.pb.multiphase_analysis:
-            if any(self.pb.multiphase.multiphase_evolution):
-                self.pb.multiphase.evol = True
-                self.multiphase_solver = MultiphaseSolver(
-                    self.pb.multiphase, self.dt, self.pb.constitutive.p,
-                    self.pb.T, self.pb.material, self.pb.load
+        if self.pb.multiphase_analysis and self.pb.multiphase_evolution:
+            self.multiphase_solver = MultiphaseSolver(
+                self.pb.multiphase, self.dt, self.pb.constitutive.p,
+                self.pb.T, self.pb.material, self.pb.load
                 )
-            else:
-                self.pb.multiphase.evol = False
 
     def set_time_step(self, **kwargs):
         """
@@ -368,7 +368,7 @@ class Solve:
         energy release rate to the internal volumetric power, affecting
         the thermodynamic state evolution.
         """
-        if self.pb.multiphase_analysis and self.pb.multiphase.explosive:
+        if self.pb.multiphase_analysis and self.pb.multiphase_evolution:
             self.pb.pint_vol += self.pb.multiphase.Delta_e_vol_chim / self.dt
          
     def set_static_u_solver(self):

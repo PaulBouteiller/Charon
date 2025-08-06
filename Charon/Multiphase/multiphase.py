@@ -31,7 +31,7 @@ Key features:
 """
 
 from dolfinx.fem import Function, Expression
-from ufl import exp
+from ufl import exp, conditional
 from ..utils.interpolation import interpolate_multiple
 from ..utils.generic_functions import smooth_shifted_heaviside
 
@@ -63,12 +63,25 @@ class Multiphase:
         nb_phase : int Number of phases to model
         quadrature : Quadrature Quadrature scheme for function spaces
         """
-        self.multiphase_evolution = [False] * nb_phase
-        self.explosive = False
         self.nb_phase = nb_phase
         self._set_multiphase_function(V_quad)
         self._set_multiphase(multiphase_dictionnaire)
-        self.set_energy_release(multiphase_dictionnaire)
+        self.multiphase_evolution = "phase_transition" in multiphase_dictionnaire
+        if self.multiphase_evolution:
+            self.phase_dictionnary = multiphase_dictionnaire["phase_transition"]
+            self._set_chemical_energy_release(multiphase_dictionnaire)
+            self.evolution_type = multiphase_dictionnaire["evolution_type"]
+            self.reactifs, self.intermediaires, self.produits_finaux, self.inertes = self.classifier_especes(self.phase_dictionnary)
+            print("\nVérification - chaînes de réaction :")
+            for i in range(len(self.phase_dictionnary)):
+                if self.reactifs[i]:
+                    print(f"Espèce {i+1}: RÉACTIF (se transforme en {i+2})")
+                elif self.intermediaires[i]:
+                    print(f"Espèce {i+1}: INTERMÉDIAIRE (produit par {i}, se transforme en {i+2})")
+                elif self.produits_finaux[i]:
+                    print(f"Espèce {i+1}: PRODUIT FINAL (produit par {i}, ne peut plus réagir)")
+                elif self.inertes[i]:
+                    print(f"Espèce {i+1}: INERTE (jamais impliqué dans les réactions)")
         
     def _set_multiphase_function(self, V_quad):
         """
@@ -96,22 +109,19 @@ class Multiphase:
         ----------
         expression_list : list Initial concentration expressions for each phase
         """
-        ufl_conditions = multiphase_dictionnaire["conditions"]
+        conditions = multiphase_dictionnaire["conditions"]
+        ufl_conditions = [conditional(condition, 1, 0) for condition in conditions]
         interp = self.V_c.element.interpolation_points()
         expression_list = [Expression(condition, interp) for condition in ufl_conditions]
         interpolate_multiple(self.c, expression_list)
-            
-    def set_two_phase_explosive(self, E_vol):
-        """
-        Define the energy variation for the heat equation due to a
-        change in the concentration of phase 1.
         
-        Parameters
-        ----------
-        E_vol : float Volumetric energy released by the explosive
-        """
-        self.c_old = [c.copy() for c in self.c]   
-        self.Delta_e_vol_chim = (self.c[1] - self.c_old[1]) * E_vol
+    def _set_chemical_energy_release(self, dic):
+        self.c_old = [c.copy() for c in self.c]
+        self.Delta_e_vol_chim = 0
+        range_list = range(self.nb_phase)
+        for i, boolean, e_vol in zip(range_list, dic["phase_transition"], dic["volumic_energy_release"]):
+            if boolean:
+                self.Delta_e_vol_chim += (self.c[i] - self.c_old[i]) * e_vol
         
     def set_evolution_parameters(self, params):
         """
@@ -142,6 +152,68 @@ class Multiphase:
             )
         else:
             raise ValueError(f"Unknown evolution type: {params.get('type')}")
+            
+    def classifier_especes(self, tableau_bool):
+        """
+        Classifie les espèces chimiques selon leurs rôles dans les réactions.
+        
+        Règles:
+        - True : peut évoluer vers l'espèce suivante
+        - False : ne peut pas évoluer (produit final ou inerte)
+        - Les inertes sont les False consécutifs à la fin
+        - Pas de False au début
+        
+        Args:
+            tableau_bool: Liste de booléens représentant les espèces
+        
+        Returns:
+            tuple: (reactifs, intermediaires, produits_finaux, inertes)
+        """
+        n = len(tableau_bool)
+        
+        # Initialisation des listes
+        reactifs = [False] * n
+        intermediaires = [False] * n
+        produits_finaux = [False] * n
+        inertes = [False] * n
+        
+        # Identifier le dernier True
+        derniere_position_true = -1
+        for i in range(n-1, -1, -1):
+            if tableau_bool[i]:  # Si on trouve un True
+                derniere_position_true = i
+                break
+        
+        # Les inertes sont les False à la fin, mais pas celui qui suit directement le dernier True
+        if derniere_position_true != -1:
+            # Le False juste après le dernier True est un produit final, pas un inerte
+            for i in range(derniere_position_true + 2, n):  # +2 pour ignorer le produit final
+                inertes[i] = True
+        else:
+            # Si aucun True, tous les False sont inertes
+            for i in range(n):
+                if not tableau_bool[i]:
+                    inertes[i] = True
+        
+        # Maintenant classifier les espèces actives (non-inertes)
+        for i in range(n):
+            if inertes[i]:
+                continue  # Skip les inertes
+                
+            if tableau_bool[i]:  # True - peut évoluer
+                # Vérifier si elle peut être produite par l'espèce précédente
+                peut_etre_produite = (i > 0) and tableau_bool[i-1]
+                
+                if peut_etre_produite:
+                    intermediaires[i] = True  # Peut être produite ET disparaître
+                else:
+                    reactifs[i] = True        # Réactif (début de chaîne), peut seulement disparaître
+                    
+            else:  # False - ne peut pas évoluer
+                # Si ce n'est pas un inerte, c'est forcément un produit final
+                produits_finaux[i] = True
+        
+        return reactifs, intermediaires, produits_finaux, inertes
     
     def _set_KJMA_kinetic(self, rho, T, melt_param, gamma_param, alpha_param, tau_param):
         """

@@ -17,15 +17,15 @@ Created on Fri Mar 11 09:28:55 2022
 @author: bouteillerp
 """
 from ..utils.default_parameters import default_post_processing_parameters
+from .csv_export import OptimizedCSVExport
 
 from dolfinx.io import XDMFFile, VTKFile
 from os import remove, path
-from dolfinx.fem import Function, Expression
 from mpi4py.MPI import COMM_WORLD
-from dolfinx.fem import functionspace
+from dolfinx.fem import functionspace, Function, Expression
 from ufl import as_vector
 
-from .csv_export import OptimizedCSVExport
+
 
 class ExportResults:
     def __init__(self, problem, output_file_name, dictionnaire, dictionnaire_csv):

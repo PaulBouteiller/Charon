@@ -114,8 +114,6 @@ class Problem:
         self._init_temperature_and_auxiliary()
         
         # Configure explosive if needed
-        # if self.multiphase_analysis and self.multiphase.explosive:
-        #     self.set_explosive()
         
         # Configure thermal analysis if needed
         self._init_thermal_analysis()
@@ -234,9 +232,11 @@ class Problem:
             self.n_mat = len(self.material)
             V_quad = self.quad.quadrature_space(["Scalar"])
             self.multiphase = Multiphase(self.n_mat, V_quad, dictionnaire['multiphase'])
+            self.multiphase_evolution = self.multiphase.multiphase_evolution
         else:
             self.n_mat = 1
             self.multiphase = None
+            self.multiphase_evolution = False
     
     def _determine_law_types(self):
         """
@@ -530,7 +530,7 @@ class Problem:
         """
         pass
     
-    def update_bcs(self, num_pas):
+    def update_bcs(self, problem, num_pas):
         """
         Update boundary conditions at a given time step.
         
