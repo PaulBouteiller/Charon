@@ -25,7 +25,7 @@ from mpi4py.MPI import COMM_WORLD
 from dolfinx.fem import functionspace
 from ufl import as_vector
 
-from .csv_export2 import OptimizedCSVExport
+from .csv_export import OptimizedCSVExport
 
 class ExportResults:
     def __init__(self, problem, output_file_name, dictionnaire, dictionnaire_csv):
@@ -42,6 +42,8 @@ class ExportResults:
                             que l'on souhaite exporter au format csv.
         """
         self.pb = problem
+        self.is_plastic = self.pb.plastic_analysis
+        self.is_damage = self.pb.damage_analysis
         self.quad = problem.quad
         self.dico = dictionnaire
         self.dico_csv = dictionnaire_csv
@@ -63,20 +65,10 @@ class ExportResults:
             file_results = VTKFile(self.pb.mesh.comm, self.file_name, "w")
             file_results.write_mesh(self.pb.mesh)
             self.file_results = VTKFile(self.pb.mesh.comm, self.file_name, "a")
-
-            
-        # Centraliser la création des espaces et expressions
-        self.export_spaces = {}
-        self.export_expressions = {}
-        self.export_functions = {}
         
         self.setup_export_fields()
-        self.csv = OptimizedCSVExport(
-            self.save_dir(output_file_name), 
-            problem, 
-            dictionnaire_csv,
-            export_context=self  # Passer la référence
-        )
+        self.csv = OptimizedCSVExport(self.save_dir(output_file_name), 
+                                      problem, dictionnaire_csv, export = self)
 
     def save_dir(self, name):
         """
@@ -102,7 +94,7 @@ class ExportResults:
         else:
             return self.quad.quad_element(["Tensor", 3, 3])
         
-    def set_devia_element(self):
+    def set_s_element(self):
         if self.model_meca in["CartesianUD", "CylindricalUD", "SphericalUD"]:
             return self.quad.quad_element(["Vector", 3])
         elif self.model_meca in ["PlaneStrain", "Axisymmetric"]:
@@ -119,78 +111,48 @@ class ExportResults:
             return self.pb.kinematic.tensor_3d_to_compact(deviatoric, symmetric = True)
         else:
             return deviatoric
-        
+            
     def setup_export_fields(self):
         """Configure tous les espaces et expressions nécessaires pour l'export"""
+        def set_func_expr(field_name, expr, V):
+            setattr(self, f"V_{field_name}", V)
+            setattr(self, f"{field_name}", Function(V, name = field_name))
+            setattr(self, f"{field_name}_expr", Expression(expr, V.element.interpolation_points()))
+
         # Contraintes
-        if self.dico.get("Sig") or self.dico_csv.get("Sig"):
+        if self.dico.get("sig") or self.dico_csv.get("sig"):
             sig_element = self.set_sig_element()
-            self.export_spaces['V_Sig'] = functionspace(self.pb.mesh, sig_element)
-            self.export_expressions['sig'] = Expression(
-                self.pb.sig, 
-                self.export_spaces['V_Sig'].element.interpolation_points()
-            )
-            self.export_functions['sig_func'] = Function(
-                self.export_spaces['V_Sig'], 
-                name="Stress"
-            )
-        
+            set_func_expr("sig", self.pb.sig, functionspace(self.pb.mesh, sig_element))
+
         # Déviateur
-        if self.dico.get("deviateur") or self.dico_csv.get("deviateur"):
-            devia_element = self.set_devia_element()
-            self.export_spaces['V_devia'] = functionspace(self.pb.mesh, devia_element)
+        if self.dico.get("s") or self.dico_csv.get("s"):
+            s_element = self.set_s_element()
             s_expr = self.extract_deviatoric(self.pb.constitutive.s)
-            self.export_expressions['s'] = Expression(
-                s_expr, 
-                self.export_spaces['V_devia'].element.interpolation_points()
-            )
-            self.export_functions['s_func'] = Function(
-                self.export_spaces['V_devia'], 
-                name="Deviateur"
-            )
-        
+            set_func_expr("s", s_expr, functionspace(self.pb.mesh, s_element))
+
         # Pression
-        if self.dico.get("Pressure") or self.dico_csv.get("Pressure"):
-            self.export_expressions['p'] = Expression(
-                self.pb.constitutive.p, 
-                self.pb.V_quad_UD.element.interpolation_points()
-            )
-            self.export_functions['p_func'] = Function(
-                self.pb.V_quad_UD, 
-                name="Pression"
-            )
+        if self.dico.get("p") or self.dico_csv.get("p"):
+            set_func_expr("p", self.pb.constitutive.p, self.pb.V_quad_UD)
+            
+        # Densité
+        if self.dico.get("rho") or self.dico_csv.get("rho"):
+            set_func_expr("rho", self.pb.rho, self.pb.V_quad_UD)
+            
+        if self.dico.get("J") or self.dico_csv.get("J"):
+            set_func_expr("J", self.pb.J_transfo, self.pb.V_quad_UD)
         
-    def set_expression(self):      
-        def get_index(key, length):
-            if key == "all" or key:
-                return [i for i in range(length)]
-            elif isinstance(key, list):
-                return key
-        if self.dico.get("Sig"):
-            self.pb.sig_expr = Expression(self.pb.sig, self.pb.V_Sig.element.interpolation_points())
-            self.pb.sig_func = Function(self.pb.V_Sig, name="Stress")
-
-        if self.dico.get("deviateur"):  
-
-            # s_expr = self.kinematic.tensor_3d_to_compact(self.constitutive.s)
-            s_expr = self.extract_deviatoric(self.pb.constitutive.s)
-            # self.sig_VM = Expression(sqrt(3./2 * inner(s_expr, s_expr)), self.V_quad_UD.element.interpolation_points())
-            # self.sig_VM_func = Function(self.V_quad_UD, name = "VonMises") 
-            self.s_expr = Expression(s_expr, self.pb.V_devia.element.interpolation_points())
-            self.s_func = Function(self.pb.V_devia, name = "Deviateur")
-            
-        if self.dico.get("Pressure"):  
-            self.p_expr = Expression(self.pb.constitutive.p, self.pb.V_quad_UD.element.interpolation_points())
-            self.p_func = Function(self.pb.V_quad_UD, name="Pression")
-            
+        # Taux de déformation
         if self.dico.get("D"):
-            self.D_func = Function(self.pb.V_Sig, name = "Taux déformation")
-            self.D_expression = Expression(self.pb.D, self.pb.V_Sig.element.interpolation_points())
-            
-        if self.dico.get("c")!=None:
-            self.c_index_list = get_index(self.dico.get("c"), len(self.pb.material))
-            self.c_func_list = [Function(self.pb.multiphase.V_c, name = "Concentration ( %i)" % (i)) for i in self.c_index_list]
-            self.c_expression_list = [Expression(self.pb.multiphase.c[i], self.pb.multiphase.V_c.element.interpolation_points()) for i in self.c_index_list]
+            D_element = self.set_sig_element()
+            set_func_expr("D", self.pb.D, functionspace(self.pb.mesh, D_element))
+        
+        # Concentration
+        if self.dico.get("c") is not None and hasattr(self.pb, 'multiphase'):
+            V_c = self.pb.multiphase.V_c
+            n_mat = len(self.pb.material)
+            self.c_list = [Function(V_c, name=f"Concentration ( {i} )")for i in range(n_mat)]    
+            self.c_expr_list= [Expression(self.pb.multiphase.c[i], V_c.element.interpolation_points())
+                               for i in range(n_mat)]
 
     def export_results(self, t):
         """Exporte les résultats au format XDMF."""
@@ -203,32 +165,23 @@ class ExportResults:
         if self.dico.get("v"):
             self.file_results.write_function(self.pb.v, t)
             
-        if self.dico.get("d") and hasattr(self.pb.constitutive, 'damage') and self.pb.constitutive.damage:
+        if self.dico.get("d") and self.is_damage:
             self.file_results.write_function(self.pb.constitutive.damage.d, t)
             
-        if self.dico.get("eps_p") and hasattr(self.pb.constitutive, 'plastic') and self.pb.constitutive.plastic:
+        if self.dico.get("eps_p") and self.is_plastic:
             self.file_results.write_function(self.pb.constitutive.plastic.eps_p, t)
             
-        if self.dico.get("Sig"):
-            sig_func = self.export_functions.get('sig_func')
-            sig_expr = self.export_expressions.get('sig')
-            if sig_func and sig_expr:
-                sig_func.interpolate(sig_expr)
-                self.file_results.write_function(sig_func, t)
+        if self.dico.get("sig"):
+            self.sig.interpolate(self.sig_expr)
+            self.file_results.write_function(self.sig, t)
     
-        if self.dico.get("Pressure"):
-            p_func = self.export_functions.get('p_func')
-            p_expr = self.export_expressions.get('p')
-            if p_func and p_expr:
-                p_func.interpolate(p_expr)
-                self.file_results.write_function(p_func, t)
+        if self.dico.get("p"):
+            self.p.interpolate(self.p_expr)
+            self.file_results.write_function(self.p, t)
     
         if self.dico.get("T"):
             self.file_results.write_function(self.pb.T, t)
             
-        if self.dico.get("deviateur"):
-            s_func = self.export_functions.get('s_func')
-            s_expr = self.export_expressions.get('s')
-            if s_func and s_expr:
-                s_func.interpolate(s_expr)
-                self.file_results.write_function(s_func, t)
+        if self.dico.get("s"):
+            self.s.interpolate(self.s_expr)
+            self.file_results.write_function(self.s, t)

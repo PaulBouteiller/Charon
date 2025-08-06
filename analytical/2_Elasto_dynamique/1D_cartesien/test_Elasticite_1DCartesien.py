@@ -78,7 +78,7 @@ pb = CartesianUD(material, dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",
-    "csv_output" : {"Sig" : True}
+    "csv_output" : {"J" : True}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
@@ -87,7 +87,7 @@ solve_instance.solve()
 tps2 = time.perf_counter()
 print("temps d'execution", tps2 - tps1)
 
-df = read_csv("Test_elasticite-results/Sig.csv")
+df = read_csv("Test_elasticite-results/sig.csv")
 import re
 temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
                   for col in df.columns if "t=" in col])

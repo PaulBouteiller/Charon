@@ -18,147 +18,186 @@ Created on Tue Sep 10 11:28:37 2024
 """
 from ..utils.gather_mpi_functions import gather_coordinate, gather_function
 
-from dolfinx.fem import Expression, Function, locate_dofs_topological
+from dolfinx.fem import locate_dofs_topological
 from mpi4py.MPI import COMM_WORLD
 from pandas import DataFrame, concat
 from csv import writer, reader, field_size_limit
-from numpy import ndarray, array
+from numpy import ndarray, array, char
 from os import remove, rename
 
 class OptimizedCSVExport:
-    def __init__(self, save_dir, pb, dico_csv, export_context = None):
+    FIELD_COMPONENTS = {
+        "CartesianUD": {
+            "U": ["u"], "v": ["v"],
+            "sig": [r"\sigma"],
+            "s": ["s_{xx}", "s_{yy}", "s_{zz}"]
+        },
+        "CylindricalUD": {
+            "U": ["u"], "v": ["v"],
+            "sig": [r"\sigma_{rr}", r"\sigma_{tt}"],
+            "s": ["s_{rr}", "s_{tt}", "s_{zz}"]
+        },
+        "SphericalUD": {
+            "U": ["u"], "v": ["v"],
+            "sig": [r"\sigma_{rr}", r"\sigma_{tt}", r"\sigma_{phiphi}"],
+            "s": ["s_{rr}", "s_{tt}", "s_{phiphi}"]
+        },
+        "PlaneStrain": {
+            "U": ["u_{x}", "u_{y}"], "v": ["v_{x}", "v_{y}"],
+            "sig": [r"\sigma_{xx}", r"\sigma_{yy}", r"\sigma_{xy}"],
+            "s": ["s_{xx}", "s_{yy}", "s_{zz}", "s_{xy}"]
+        },
+        "Axisymmetric": {
+            "U": ["u_{r}", "u_{z}"], "v": ["v_{r}", "v_{z}"],
+            "sig": [r"\sigma_{rr}", r"\sigma_{tt}", r"\sigma_{zz}", r"\sigma_{rz}"],
+            "s": ["s_{rr}", "s_{tt}", "s_{zz}", "s_{rz}"]
+        },
+        "Tridimensional": {
+            "U": ["u_{x}", "u_{y}", "u_{z}"], 
+            "v": ["v_{x}", "v_{y}", "v_{z}"],
+            "sig": [r"\sigma_{xx}", r"\sigma_{xy}", r"\sigma_{xz}", 
+                   r"\sigma_{yx}", r"\sigma_{yy}", r"\sigma_{yz}", 
+                   r"\sigma_{zx}", r"\sigma_{zy}", r"\sigma_{zz}"],
+            "s": ["s_{xx}", "s_{xy}", "s_{xz}", 
+                         "s_{yx}", "s_{yy}", "s_{yz}", 
+                         "s_{zx}", "s_{zy}", "s_{zz}"]
+        }
+    }
+    
+    def __init__(self, save_dir, pb, dico_csv, export = None):
         self.save_dir = save_dir
+        self.export = export
         self.pb = pb
-        self.export_context = export_context
         self.dico_csv = dico_csv
         self.file_handlers = {}
         self.csv_writers = {}
+        self.coordinate_data = {}
         self.initialize_export_settings()
         self.initialize_csv_files()
 
     def csv_name(self, name):
-        return self.save_dir + f"{name}.csv"
+        return self.save_dir+ f"{name}.csv"
 
     def initialize_export_settings(self):
-        """Configuration centralisée de tous les exports"""
-        # Configuration centralisée : [V_space, expr, func_name, components]
-        FIELD_CONFIGS = {
-            "U": [self.pb.V, None, None, self._get_displacement_components()],
-            "v": [self.pb.V, None, None, self._get_velocity_components()], 
-            "d": [getattr(self.pb.constitutive.damage, 'V_d', None) if hasattr(self.pb.constitutive, 'damage') and self.pb.constitutive.damage else None, None, None, None],
-            "T": [self.pb.V_T, None, None, None],
-            "J": [self.pb.V_quad_UD, self.pb.J_transfo, "Dilatation", None],
-            "Pressure": [self.pb.V_quad_UD, None, None, None],
-            "rho": [self.pb.V_quad_UD, self.pb.rho, "rho", None],
-            "eps_p": [getattr(self.pb.constitutive.plastic, 'Vepsp', None) if hasattr(self.pb.constitutive, 'plastic') and self.pb.constitutive.plastic else None, None, None, ["epsp_{xx}", "epsp_{yy}", "epsp_{zz}"]],
-            "Sig": [self.get_export_space('V_Sig'), None, None, self._get_stress_components()],
-            "deviateur": [self.get_export_space('V_devia'), None, None, self._get_devia_components()],
-            "VonMises": [self.pb.V_quad_UD, None, None, None],
-        }
+        self.setup_displacement_export()
+        self.setup_velocity_export()
+        self.setup_damage_export()
+        self.setup_dilatation_export()
+        self.setup_temperature_export()
+        self.setup_pressure_export()
+        self.setup_density_export()
+        self.setup_plastic_strain_export()
+        self.setup_stress_export()
+        self.setup_deviatoric_stress_export()
+        self.setup_concentration_export()
+        self.setup_free_surface_export()
         
-        for field_name, (V, expr, func_name, components) in FIELD_CONFIGS.items():
-            if field_name in self.dico_csv:
-                self._setup_field(field_name, V, expr, func_name, components)
-        
-        # Cas spéciaux
-        self._setup_concentration_export()
-        self._setup_free_surface_export()
-
-    def _setup_field(self, field_name, V, expr, func_name, components):
-        """Méthode générique de configuration"""
-        if V is None:  # Skip si l'espace de fonction n'existe pas
+    def setup_simple_field(self, field_name, space):
+        if field_name in self.dico_csv:
+            setattr(self, f"csv_export_{field_name}", True)
+            dofs = self.dofs_to_exp(space, self.dico_csv.get(field_name))
+            setattr(self, f"{field_name}_dte", dofs)
+            self.coordinate_data[field_name] = self.get_coordinate_data(space, dofs)
+        else:
             setattr(self, f"csv_export_{field_name}", False)
-            return
             
-        setattr(self, f"csv_export_{field_name}", True)
-        dte = self.dofs_to_exp(V, self.dico_csv[field_name])
-        setattr(self, f"{field_name}_dte", dte)
+    def setup_displacement_export(self):
+        if "U" in self.dico_csv:
+            self.csv_export_U = True
+            self.U_dte = self.dofs_to_exp(self.pb.V, self.dico_csv.get("U"))
+            self.coordinate_data["U"] = self.get_coordinate_data(self.pb.V, self.U_dte)
+            
+            components = self.FIELD_COMPONENTS[self.pb.name]["U"]
+            self.u_name_list = components
+            if len(components) > 1:
+                self.U_cte = [self.comp_to_export(self.U_dte, i) for i in range(len(components))]
+        else:
+            self.csv_export_U = False
+            
+    def setup_velocity_export(self):
+        if "v" in self.dico_csv:
+            self.csv_export_v = True
+            self.v_dte = self.dofs_to_exp(self.pb.V, self.dico_csv.get("v"))
+            self.coordinate_data["v"] = self.get_coordinate_data(self.pb.V, self.v_dte)
+            
+            components = self.FIELD_COMPONENTS[self.pb.name]["v"]
+            self.v_name_list = components
+            if len(components) > 1:
+                self.v_cte = [self.comp_to_export(self.v_dte, i) for i in range(len(components))]
+        else:
+            self.csv_export_v = False       
+
+    def setup_temperature_export(self):
+        self.setup_simple_field("T", self.pb.V_T)
+
+    def setup_pressure_export(self):
+        self.setup_simple_field("p", self.pb.V_quad_UD)
         
-        if expr:
-            setattr(self, f"{field_name}_expr", Expression(expr, V.element.interpolation_points()))
-            setattr(self, f"{field_name}_func", Function(V, name=func_name))
+    def setup_damage_export(self):
+        if self.export.is_damage:
+            self.setup_simple_field("d", self.pb.constitutive.damage.V_d)
+        else:
+            self.csv_export_d = False
+
+    def setup_density_export(self):
+        self.setup_simple_field("rho", self.pb.V_quad_UD)
         
-        if components:
-            setattr(self, f"{field_name}_cte", [self.comp_to_export(dte, i) for i in range(len(components))])
-            setattr(self, f"{field_name}_name_list", components)
+    def setup_dilatation_export(self):
+        self.setup_simple_field("J", self.pb.V_quad_UD)
 
-    def _get_displacement_components(self):
-        """Retourne les noms des composantes de déplacement"""
-        if self.pb.dim == 1:
-            return ["u"]
-        elif self.pb.dim == 2:
-            return ["u_{x}", "u_{y}"] if self.pb.name == "PlaneStrain" else ["u_{r}", "u_{z}"]
-        else:  # dim == 3
-            return ["u_{x}", "u_{y}", "u_{z}"]
+    def setup_plastic_strain_export(self):
+        if "eps_p" in self.dico_csv:
+            V_epsp = self.pb.constitutive.plastic.Vepsp
+            self.csv_export_eps_p = True
+            self.epsp_dte = self.dofs_to_exp(V_epsp, self.dico_csv.get("eps_p"))
+            self.coordinate_data["eps_p"] = self.get_coordinate_data(V_epsp, self.epsp_dte)
+            if self.pb.dim == 1:
+                self.epsp_cte = [self.comp_to_export(self.epsp_dte, i) for i in range(3)]
+                self.eps_p_name_list = ["epsp_{xx}", "epsp_{yy}", "epsp_{zz}"]
+        else:
+            self.csv_export_eps_p = False
 
-    def _get_velocity_components(self):
-        """Retourne les noms des composantes de vitesse"""
-        if self.pb.dim == 1:
-            return ["v"]
-        elif self.pb.dim == 2:
-            return ["v_{x}", "v_{y}"] if self.pb.name == "PlaneStrain" else ["v_{r}", "v_{z}"]
-        else:  # dim == 3
-            return ["v_{x}", "v_{y}", "v_{z}"]
+    def setup_stress_export(self):
+        if "sig" in self.dico_csv:
+            self.csv_export_sig = True
+            self.sig_dte = self.dofs_to_exp(self.export.V_sig, self.dico_csv.get("sig"))
+            self.coordinate_data["sig"] = self.get_coordinate_data(self.export.V_sig, self.sig_dte)
+            components = self.FIELD_COMPONENTS[self.pb.name]["sig"]
+            self.sig_name_list = components
+            if len(components) == 1:
+                self.sig_cte = self.sig_dte
+            else:
+                self.sig_cte = [self.comp_to_export(self.sig_dte, i) for i in range(len(components))]
+        else:
+            self.csv_export_sig = False
 
-    def get_export_space(self, name):
-        if self.export_context:
-            return self.export_context.export_spaces.get(name)
-        return None
-    
-    def get_export_expression(self, name):
-        if self.export_context:
-            return self.export_context.export_expressions.get(name)
-        return None
-    
-    def get_export_function(self, name):
-        if self.export_context:
-            return self.export_context.export_functions.get(name)
-        return None
+    def setup_deviatoric_stress_export(self):
+        if "s" in self.dico_csv:
+            self.csv_export_devia = True
+            self.s_dte = self.dofs_to_exp(self.export.V_s, self.dico_csv.get("s"))
+            self.coordinate_data["s"] = self.get_coordinate_data(self.export.V_s, self.s_dte)
+            components = self.FIELD_COMPONENTS[self.pb.name]["s"]
+            self.s_name_list = components
+            self.s_cte = [self.comp_to_export(self.s_dte, i) for i in range(len(components))]  
+        else:
+            self.csv_export_devia = False
 
-    def _get_stress_components(self):
-        """Retourne les noms des composantes de contrainte selon le modèle"""
-        stress_configs = {
-            "CartesianUD": [r"\sigma"],
-            "CylindricalUD": [r"\sigma_{rr}", r"\sigma_{tt}"],
-            "SphericalUD": [r"\sigma_{rr}", r"\sigma_{tt}", r"\sigma_{phiphi}"],
-            "PlaneStrain": [r"\sigma_{xx}", r"\sigma_{yy}", r"\sigma_{xy}"],
-            "Axisymmetric": [r"\sigma_{rr}", r"\sigma_{tt}", r"\sigma_{zz}", r"\sigma_{rz}"],
-            "Tridimensional": [r"\sigma_{xx}", r"\sigma_{xy}", r"\sigma_{xz}", 
-                              r"\sigma_{yx}", r"\sigma_{yy}", r"\sigma_{yz}", 
-                              r"\sigma_{zx}", r"\sigma_{zy}", r"\sigma_{zz}"]
-        }
-        return stress_configs.get(self.pb.name, [])
-
-    def _get_devia_components(self):
-        """Retourne les noms des composantes déviatoriques selon le modèle"""
-        devia_configs = {
-            "CartesianUD": ["s_{xx}", "s_{yy}", "s_{zz}"],
-            "CylindricalUD": ["s_{rr}", "s_{tt}", "s_{zz}"],
-            "SphericalUD": ["s_{rr}", "s_{tt}", "s_{phiphi}"],
-            "PlaneStrain": ["s_{xx}", "s_{yy}", "s_{zz}", "s_{xy}"],
-            "Axisymmetric": ["s_{rr}", "s_{tt}", "s_{zz}", "s_{rz}"],
-            "Tridimensional": ["s_{xx}", "s_{xy}", "s_{xz}", 
-                              "s_{yx}", "s_{yy}", "s_{yz}", 
-                              "s_{zx}", "s_{zy}", "s_{zz}"]
-        }
-        return devia_configs.get(self.pb.name, [])
-
-    def _setup_concentration_export(self):
-        """Configuration spéciale pour les concentrations"""
+    def setup_concentration_export(self):
         if "c" in self.dico_csv:
             self.csv_export_c = True
             n_mat = len(self.pb.material)
             V_c = self.pb.multiphase.V_c
-            self.c_dte = self.dofs_to_exp(V_c, self.dico_csv["c"])
+            self.c_dte = self.dofs_to_exp(V_c, self.dico_csv.get("c"))
+            coordinate_data = self.get_coordinate_data(V_c, self.c_dte)
+            self.coordinate_data.update(({f"Concentration{i}": coordinate_data  for i in range(n_mat)}))
             self.c_name_list = [f"Concentration{i}" for i in range(n_mat)]
         else:
             self.csv_export_c = False
 
-    def _setup_free_surface_export(self):
-        """Configuration spéciale pour la surface libre"""
+    def setup_free_surface_export(self):
         if "FreeSurf_1D" in self.dico_csv:
             self.csv_FreeSurf_1D = True
-            self.free_surf_dof = self.dofs_to_exp(self.pb.V, self.dico_csv["FreeSurf_1D"])
+            self.free_surf_dof = self.dofs_to_exp(self.pb.V, self.dico_csv.get("FreeSurf_1D"))
             self.time = []
             self.free_surf_v = []
         else:
@@ -189,102 +228,95 @@ class OptimizedCSVExport:
             return keyword
 
     def comp_to_export(self, keyword, component):
-        if isinstance(keyword, str):
-            return keyword
-        elif isinstance(keyword, ndarray):
+        if component == None:
+            return keyword[0]
+        else:
             vec_dof_to_exp = keyword.copy()
             vec_dof_to_exp *= self.pb.dim
             vec_dof_to_exp += component
             return vec_dof_to_exp
 
     def csv_export(self, t):
-        """Export principal utilisant un dictionnaire de dispatch"""
+        # def export_with_interpolation(field_name, subfield_name):
+        #     getattr(self.export, field_name).interpolate(getattr(self.export, field_name+"expr"))
+        #     self.export_field(t, field_name, getattr(self.export, field_name), getattr(self, field_name+"_dte"))
+            
         if not self.dico_csv:
             return
-    
-        export_methods = {
-            "U": lambda t: self._export_displacement(t),
-            "v": lambda t: self._export_velocity(t),
-            "d": lambda t: self._export_damage(t),
-            "T": lambda t: self.export_field(t, "T", self.pb.T, self.T_dte),
-            "Pressure": lambda t: self._export_with_interpolation(t, "Pressure", 'p_func', 'p', self.Pressure_dte),
-            "rho": lambda t: self._export_with_interpolation(t, "rho", 'rho_func', 'rho', self.rho_dte),
-            "J": lambda t: self._export_with_interpolation(t, "J", 'J_func', 'J', self.J_dte),
-            "eps_p": lambda t: self._export_plastic_strain(t),
-            "Sig": lambda t: self._export_with_interpolation(t, "Sig", 'sig_func', 'sig', self.Sig_cte, self.Sig_name_list),
-            "deviateur": lambda t: self._export_with_interpolation(t, "deviateur", 's_func', 's', self.deviateur_cte, self.deviateur_name_list),
-            "VonMises": lambda t: self._export_with_interpolation(t, "VonMises", 'sig_VM_func', 'sig_VM', self.VonMises_dte),
-            "c": lambda t: self._export_concentration(t),
-            "FreeSurf_1D": lambda t: self.export_free_surface(t)
-        }
-
-        for field_name in self.dico_csv:
-            if hasattr(self, f"csv_export_{field_name}") and getattr(self, f"csv_export_{field_name}"):
-                export_methods.get(field_name, lambda t: None)(t)
-
-    def _export_displacement(self, t):
-        """Export des déplacements"""
-        if self.pb.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]:
-            self.export_field(t, "U", self.pb.u, self.U_dte)
-        else:
-            self.export_field(t, "U", self.pb.u, self.U_cte, self.u_name_list)
-
-    def _export_velocity(self, t):
-        """Export des vitesses"""
-        if self.pb.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]:
-            self.export_field(t, "v", self.pb.v, self.v_dte)
-        else:
-            self.export_field(t, "v", self.pb.v, self.v_cte, self.v_name_list)
-
-    def _export_damage(self, t):
-        """Export du dommage (avec vérification)"""
-        if hasattr(self.pb.constitutive, 'damage') and self.pb.constitutive.damage and hasattr(self, 'd_dte'):
+        if self.csv_export_U:
+            if self.pb.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]:
+                self.export_field(t, "U", self.pb.u, self.U_dte)
+            else:
+                self.export_field(t, "U", self.pb.u, self.U_cte, subfield_name = self.u_name_list)
+        if self.csv_export_v:
+            if self.pb.name in ["CartesianUD", "CylindricalUD", "SphericalUD"]:
+                self.export_field(t, "v", self.pb.v, self.v_dte)
+            else:
+                self.export_field(t, "v", self.pb.v, self.v_cte, subfield_name = self.v_name_list)
+        if self.csv_export_d:
             self.export_field(t, "d", self.pb.constitutive.damage.d, self.d_dte)
-
-    def _export_plastic_strain(self, t):
-        """Export des déformations plastiques (avec vérification)"""
-        if hasattr(self.pb.constitutive, 'plastic') and self.pb.constitutive.plastic and hasattr(self, 'epsp_cte'):
-            self.export_field(t, "eps_p", self.pb.constitutive.plastic.eps_p, self.epsp_cte, self.eps_p_name_list)
-
-    def _export_with_interpolation(self, t, field_name, func_key, expr_key, dofs_to_export, subfield_names=None):
-        """Export d'un champ nécessitant une interpolation"""
-        func = self.get_export_function(func_key)
-        expr = self.get_export_expression(expr_key)
-        
-        if func and expr:
-            func.interpolate(expr)
-            self.export_field(t, field_name, func, dofs_to_export, subfield_names)
-
-    def _export_stress(self, t):
-        """Export des contraintes"""
-        self._export_with_interpolation(
-            t, "Sig", 'sig_func', 'sig', 
-            self.Sig_cte, self.Sig_name_list
-        )
-    
-    def _export_deviator(self, t):
-        """Export du déviateur"""
-        self._export_with_interpolation(
-            t, "deviateur", 's_func', 's', 
-            self.deviateur_cte, self.deviateur_name_list
-        )
-
-    def _export_concentration(self, t):
-        """Export des concentrations"""
-        for i, c_field in enumerate(self.pb.multiphase.c):
-            self.export_field(t, f"Concentration{i}", c_field, self.c_dte)
+        if self.csv_export_T:
+            self.export_field(t, "T", self.pb.T, self.T_dte)
+        if self.csv_export_p:
+            self.export.p_func.interpolate(self.export.p_expr)
+            self.export_field(t, "p", self.export.p, self.p_dte)
+        if self.csv_export_rho:
+            self.export.rho.interpolate(self.export.rho_expr)
+            self.export_field(t, "rho", self.export.rho, self.rho_dte)
+        if self.csv_export_J:
+            self.export.J.interpolate(self.export.J_expr)
+            self.export_field(t, "J", self.export.J, self.J_dte)
+        if self.csv_export_eps_p:
+            self.export_field(t, "eps_p", self.pb.constitutive.plastic.eps_p, self.epsp_cte, subfield_name = self.eps_p_name_list)
+        if self.csv_export_sig:
+            self.export.sig.interpolate(self.export.sig_expr)
+            self.export_field(t, "sig", self.export.sig, self.sig_cte, subfield_name = self.sig_name_list)
+        if self.csv_export_devia:
+            self.export.s.interpolate(self.export.s_expr)
+            self.export_field(t, "s", self.export.s, self.s_cte, subfield_name = self.s_name_list)
+        if self.csv_export_c:
+            for i, c_field in enumerate(self.pb.multiphase.c):
+                self.export_field(t, f"Concentration{i}", c_field, self.c_dte)
+        if self.csv_FreeSurf_1D:
+            self.export_free_surface(t)
             
-    def export_field(self, t, field_name, field, dofs_to_export, subfield_name=None):
+    # def csv_export_scalar(self, name, t):
+        
+            
+    def export_field(self, t, field_name, field, dofs_to_export, subfield_name = None):
         if isinstance(subfield_name, list):
             n_sub = len(subfield_name)
             for i in range(n_sub):
-                data = self.gather_field_data(field, dofs_to_export[i], size=n_sub, comp=i)
+                data = self.gather_field_data(field, dofs_to_export[i], size = n_sub, comp = i)
                 self.write_field_data(field_name, t, data)
         else:
             data = self.gather_field_data(field, dofs_to_export)
             self.write_field_data(field_name, t, data)        
 
-    def gather_field_data(self, field, dofs_to_export, size=None, comp=None):
+    def get_coordinate_data(self, V, key):
+        dof_coords = gather_coordinate(V) if self.pb.mpi_bool else V.tabulate_dof_coordinates()
+        def specific(array, coord, dof_to_exp):
+            if isinstance(dof_to_exp, str):
+                return array[:, coord]
+            elif isinstance(dof_to_exp, ndarray):
+                return array[dof_to_exp, coord]
+            elif isinstance(dof_to_exp, ndarray):
+                return array[dof_to_exp, coord]
+        self.pb.name
+        if COMM_WORLD.rank == 0:
+            if self.pb.name == "CartesianUD":
+                data = {"x": specific(dof_coords, 0, key)}
+            elif self.pb.name in ["CylindricalUD", "SphericalUD"]:
+                data = {"r": specific(dof_coords, 0, key)}
+            elif self.pb.name == "PlaneStrain":
+                data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key)}
+            elif self.pb.name =="Axisymmetric":
+                data = {"r": specific(dof_coords, 0, key), "z": specific(dof_coords, 1, key)}
+            elif self.pb.name =="Tridimensional":
+                data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key), "z" : specific(dof_coords, 2, key)}
+            return data
+
+    def gather_field_data(self, field, dofs_to_export, size = None, comp = None):
         if self.pb.mpi_bool:
             field_data = gather_function(field)
         else:
@@ -301,8 +333,18 @@ class OptimizedCSVExport:
             
     def write_field_data(self, field_name, t, data):
         if COMM_WORLD.Get_rank() == 0:
-            data = array(data).flatten()
-            formatted_data = [f"{t:.6e}"] + [f"{val:.6e}" for val in data]
+            # Convertir en tableau NumPy si ce n'est pas déjà le cas
+            if not isinstance(data, ndarray):
+                data = array(data)
+            
+            # Aplatir le tableau si c'est un tableau multidimensionnel
+            data = data.flatten()
+            
+            # Convertir les données en chaîne de caractères avec une précision fixe
+            formatted_data = [f"{t:.6e}"]  # Temps avec 6 décimales
+            formatted_data.extend(char.mod('%.6e', data))  # Données en notation scientifique
+            
+            # Écrire les données en tant que chaîne unique
             self.csv_writers[field_name].writerow([','.join(formatted_data)])
             self.file_handlers[field_name].flush()
 
@@ -321,27 +363,28 @@ class OptimizedCSVExport:
             self.post_process_all_files()
 
     def post_process_all_files(self):
-        """Post-traitement avec dispatch"""
-        post_process_config = {
-            "c": lambda: [self.post_process_csv(f"Concentration{i}") for i in range(len(self.pb.material))],
-            "U": lambda: self.post_process_csv("U", getattr(self, 'u_name_list', None)),
-            "v": lambda: self.post_process_csv("v", getattr(self, 'v_name_list', None)),
-            "Sig": lambda: self.post_process_csv("Sig", getattr(self, 'sig_name_list', None)),
-            "eps_p": lambda: self.post_process_csv("eps_p", getattr(self, 'eps_p_name_list', None)),
-            "deviateur": lambda: self.post_process_csv("deviateur", getattr(self, 's_name_list', None)),
-            "FreeSurf_1D": lambda: None  # Pas de post-traitement
-        }
-        
-        # Champs simples (sans sous-champs)
-        simple_fields = ["d", "T", "Pressure", "rho", "VonMises", "J"]
-        
         for field_name in self.dico_csv.keys():
-            if field_name in post_process_config:
-                post_process_config[field_name]()
-            elif field_name in simple_fields:
+            if field_name == "c":
+                for i in range(len(self.pb.material)):
+                    conc_name = f"Concentration{i}"
+                    self.post_process_csv(conc_name)
+            elif field_name in ["d", "T", "p", "rho",  "J"]:
                 self.post_process_csv(field_name)
+            elif field_name == "U":
+                self.post_process_csv(field_name, subfield_name = self.u_name_list)
+            elif field_name == "v":
+                self.post_process_csv(field_name, subfield_name = self.v_name_list)
+            elif field_name == "sig":
+                self.post_process_csv(field_name, subfield_name = self.sig_name_list)
+            elif field_name == "eps_p":
+                self.post_process_csv(field_name, subfield_name = self.eps_p_name_list)
+            elif field_name == "s":
+                self.post_process_csv(field_name, subfield_name = self.s_name_list)
+            elif field_name == "FreeSurf_1D":
+                pass
             else:
                 raise ValueError(f"{field_name} can not be post process")
+
 
     def post_process_csv(self, field_name, subfield_name=None):
         input_file = self.csv_name(field_name)
@@ -349,26 +392,21 @@ class OptimizedCSVExport:
 
         def parse_row(row):
             return array([float(val) for val in row.split(',')])
-        
-        field_size_limit(int(1e9))
+        field_size_limit(int(1e9))  # Augmenter à une valeur très élevée, par exemple 1 milliard
         with open(input_file, 'r') as f:
             csv_reader = reader(f)
-            headers = next(csv_reader)
-            data = [parse_row(row[0]) for row in csv_reader]
+            headers = next(csv_reader)# Lire la première ligne (en-têtes)
+            data = [parse_row(row[0]) for row in csv_reader]# Lire le reste des données
 
         data = array(data)
         times = data[:, 0]
         values = data[:, 1:]
 
-        # Coordonnées simplifiées
-        coord_data = self.get_coordinate_data(field_name)
-        coord = DataFrame(coord_data)
-        
+        coord = DataFrame(self.coordinate_data[field_name])
         if subfield_name is None:
             times_pd = [f"t={t}" for t in times]
         else:
             times_pd = [f"{subfield_name[compteur%len(subfield_name)]} t={t}" for compteur, t in enumerate(times)]
-        
         datas = DataFrame({name: lst for name, lst in zip(times_pd, values)})
         result = concat([coord, datas], axis=1)
 
@@ -376,48 +414,3 @@ class OptimizedCSVExport:
 
         remove(input_file)
         rename(temp_output_file, input_file)
-
-    def get_coordinate_data(self, field_name):
-        """Version simplifiée pour récupérer les coordonnées"""
-        V_mapping = {
-            "U": self.pb.V, 
-            "v": self.pb.V, 
-            "T": self.pb.V_T, 
-            "d": getattr(self.pb.constitutive.damage, 'V_d', None) if hasattr(self.pb.constitutive, 'damage') and self.pb.constitutive.damage else None,
-            "J": self.pb.V_quad_UD, 
-            "Pressure": self.pb.V_quad_UD, 
-            "rho": self.pb.V_quad_UD, 
-            "VonMises": self.pb.V_quad_UD, 
-            "eps_p": getattr(self.pb.constitutive.plastic, 'Vepsp', None) if hasattr(self.pb.constitutive, 'plastic') and self.pb.constitutive.plastic else None,
-            "Sig": self.get_export_space('V_Sig'),  # CORRIGER ICI
-            "deviateur": self.get_export_space('V_devia')  # CORRIGER ICI
-        }
-        
-        # Gestion des concentrations
-        if field_name.startswith("Concentration"):
-            V = self.pb.multiphase.V_c
-            key = self.c_dte
-        else:
-            V = V_mapping.get(field_name)
-            if V is None:  # Si l'espace n'existe pas, retourner un dict vide
-                return {}
-            key = getattr(self, f"{field_name}_dte", "all")
-        
-        if COMM_WORLD.rank != 0:
-            return {}
-            
-        dof_coords = gather_coordinate(V) if self.pb.mpi_bool else V.tabulate_dof_coordinates()
-        
-        def extract_coord(array, coord_idx, dof_key):
-            if isinstance(dof_key, str):
-                return array[:, coord_idx]
-            elif isinstance(dof_key, ndarray):
-                return array[dof_key, coord_idx]
-        
-        coord_names = {
-            "CartesianUD": ["x"], "CylindricalUD": ["r"], "SphericalUD": ["r"],
-            "PlaneStrain": ["x", "y"], "Axisymmetric": ["r", "z"], 
-            "Tridimensional": ["x", "y", "z"]
-        }.get(self.pb.name, ["x"])
-        
-        return {name: extract_coord(dof_coords, i, key) for i, name in enumerate(coord_names)}
