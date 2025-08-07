@@ -58,7 +58,6 @@ class MultiphaseSolver:
         self.init_dot_c_expression()
         if self.mult.explosive:
             self.set_c_old()
-            
         
     def set_c_evolution(self, material):
         self.c_list = []
@@ -117,68 +116,6 @@ class MultiphaseSolver:
         for i in range(1, n):
             self.dot_c[i] = self.c_list[i-1] * self.exp_list[i-1] - \
                             self.c_list[i] * self.exp_list[i]
-            
-    def wgt(self, T, *args):
-        """
-        Loi d'évolution de type wgt
-
-        Parameters
-        ----------
-        T : Function, champ de température actuelle.
-        """
-        SG1 = 25
-        SG2 = 0.92
-        TALL = 400
-        TADIM = 1035
-        KDG = 1.6e7
-        NDG = 2
-        KB = 2.8e5
-        NB = 1
-        
-        sf2 = 1./2 * (1 - tanh(SG1 * (self.c_list[1] - SG2)))
-        r_t = (T - TALL) / TADIM
-        rate_2 = KDG * ppart(r_t)**NDG * (1 - self.c_list[1])
-        rate_3 = KB * ppart(r_t) **NB * sqrt(1 - self.c_list[1])
-        self.dot_c =  ppart(sf2 * rate_2 + (1-sf2) * rate_3)
-        
-    def set_KJMA(self, mult, t, n_lim = 100):
-        """
-        Définition des dérivées temporelles des fonctions intervenants
-        dans le modèle de cinétique chimique KJMA
-        """
-        interp = mult.V_c.element.interpolation_points()
-        #Transient alpha
-        S = 2
-        for i in range(1, n_lim):
-            S += 2 * ((-1)**i * exp(-i**2 * t / mult.tau))
-        mult.alpha *= S
-        # mult.alpha_expr = Expression(mult.alpha, interp)
-        
-        #Création des fonctions et des expression des dérivées temporelles
-        #successives de U
-        self.dot_U = Function(mult.V_c)
-        self.ddot_U = Function(mult.V_c)
-        self.dddot_U = Function(mult.V_c)
-        
-        self.dot_U_expr = Expression(2 * mult.gamma * mult.G, interp)
-        self.ddot_U_expr = Expression(2 * mult.gamma**2 * mult.J, interp)
-        self.dddot_U_expr = Expression(mult.gamma**2 * mult.alpha, interp)
-        
-        #Création des fonctions et des expression des dérivées temporelles
-        #successives de G   
-        self.dot_G = Function(mult.V_c)
-        self.ddot_G = Function(mult.V_c)
-        
-        self.dot_G_expr = Expression(mult.gamma * mult.J, interp)
-        self.ddot_G_expr = Expression(mult.gamma * mult.alpha, interp)
-        
-        #Création de la fonction et de l'expression de la dérivée temporelle
-        #première de J   
-        self.dot_J = Function(mult.V_c)
-        self.dot_J_expr = Expression(mult.alpha, interp)
-
-        self.dot_c_expression = Expression(4 * pi * (1 - self.c_list[1])  * mult.gamma * mult.U, interp)
-        self.dot_c = Function(mult.V_c)
         
     def init_dot_c_expression(self):
         """
@@ -226,23 +163,7 @@ class MultiphaseSolver:
         """
         self.c_list[0].interpolate(self.mult.c_expr)
         self.c_list[1].x.array[:] = 1 - self.c_list[0].x.array
-            
-    def auxiliary_field_evolution(self):
-        """
-        Mise à jour des fonctions intervenant dans le modèle de cinétique chimique KJMA
-        """
-        if self.evol_type == "KJMA":  
-            self.dot_U.interpolate(self.dot_U_expr)
-            self.ddot_U.interpolate(self.ddot_U_expr)
-            self.dddot_U.interpolate(self.dddot_U_expr)
-            self.dot_G.interpolate(self.dot_G_expr)
-            self.ddot_G.interpolate(self.ddot_G_expr)
-            self.dot_J.interpolate(self.dot_J_expr)
-            higher_order_dt_update(self.mult.U, [self.dot_U, self.ddot_U, self.dddot_U], self.dt)
-            higher_order_dt_update(self.mult.G, [self.dot_G, self.ddot_G], self.dt)
-            dt_update(self.mult.J, self.dot_J, self.dt)
-        else:
-            pass
+
         
     def update_c_old(self):
         """

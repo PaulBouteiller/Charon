@@ -1,0 +1,260 @@
+
+%%%% Changement marge %%%%
+\newenvironment{changemargin}[2]{\begin{list}{}{%
+\setlength{\topsep}{0pt}%
+\setlength{\leftmargin}{0pt}%
+\setlength{\rightmargin}{0pt}%
+\setlength{\listparindent}{\parindent}%
+\setlength{\itemindent}{\parindent}%
+\setlength{\parsep}{0pt plus 1pt}%
+\addtolength{\leftmargin}{#1}%
+\addtolength{\rightmargin}{#2}%
+}\item }{\end{list}}
+
+%-----------------Définition référence
+\newcommand{\pref}[1]{[\text{p. }\pageref{#1}]}
+\newcommand{\Secref}[1]{Section \ref{#1}\pref{#1}}
+\newcommand{\secref}[1]{section \ref{#1}\pref{#1}}
+
+\newcommand{\Subsecref}[1]{Sous-section \ref{#1}\pref{#1}}
+\newcommand{\subsecref}[1]{sous-section \ref{#1}\pref{#1}}
+
+\newcommand{\Chapref}[1]{Chapitre \ref{#1}\pref{#1}}
+\newcommand{\chapref}[1]{chapitre \ref{#1}\pref{#1}}
+
+\newcommand{\Annexeref}[1]{Annexe \ref{#1}\pref{#1}}
+\newcommand{\annexeref}[1]{annexe \ref{#1}\pref{#1}}
+
+\newcommand{\partref}[1]{Partie \ref{#1}}
+
+\newcommand{\Figref}[1]{Figure \ref{#1}\pref{#1}}
+\newcommand{\figref}[1]{figure \ref{#1}\pref{#1}}
+
+\newcommand{\Defiref}[1]{\text{D\'efinition} \ref{#1}\pref{#1}}
+\newcommand{\defiref}[1]{\text{d\'efinition} \ref{#1}\pref{#1}}
+
+\newcommand{\Noteref}[1]{Notations \ref{#1}\pref{#1}}
+\newcommand{\noteref}[1]{notations \ref{#1}\pref{#1}}
+
+\newcommand{\Cororef}[1]{\text{Corollaire }\ref{#1}\pref{#1}}
+\newcommand{\cororef}[1]{\text{corollaire }\ref{#1}\pref{#1}}
+
+\newcommand{\Postulatref}[1]{Postulat \ref{#1}\pref{#1}}
+\newcommand{\postulatref}[1]{postulat \ref{#1}\pref{#1}}
+
+\newcommand{\Proporef}[1]{\text{Proposition }\ref{#1}\pref{#1}}
+\newcommand{\proporef}[1]{\text{proposition }\ref{#1}\pref{#1}}
+
+\newcommand{\Hypref}[1]{\text{Hypoth\`ese }\ref{#1}\pref{#1}}
+\newcommand{\hypref}[1]{hypoth\`ese \ref{#1}\pref{#1}}
+
+\newcommand{\Tableref}[1]{\text{Tableau \ref{#1} }\pref{#1}}
+\newcommand{\tableref}[1]{\text{tableau \ref{#1} }\pref{#1}}
+
+\newcommand{\Theoref}[1]{\text{Th\'eor\`eme }\ref{#1}\pref{#1}}
+\newcommand{\theoref}[1]{\text{th\'eor\`eme }\ref{#1}\pref{#1}}
+
+\newcommand{\Remref}[1]{\text{Remarque }\ref{#1}\pref{#1}}
+\newcommand{\remref}[1]{\text{remarque }\ref{#1}\pref{#1}}
+
+\newcommand{\exref}[1]{exercice \ref{#1}\pref{#1}}
+\newcommand{\exempleref}[1]{exemple \ref{#1}\pref{#1}}
+\newcommand{\eref}[1]{\text{eq. }\eqref{#1}\pref{#1}}
+
+\newcommand{\lemmeref}[1]{\text{lemme }\ref{#1}\pref{#1}}
+
+%Référence extérieure
+\newcommand{\refext}[1]{\text{(partie \ref{#1)}}}
+\newcommand{\exteqref}[2]{\eref{#2} \refext{#1}}
+\newcommand{\exteqrefs}[3]{\eref{#2}, \eref{#3} \refext{#1}}
+\newcommand{\exteqrefstrois}[4]{\eref{#2}, \eref{#3}, \eref{#4} \refext{#1}}
+\newcommand{\extnoteref}[2]{\noteref{#2} \refext{#1}}
+\newcommand{\extsecref}[2]{\secref{#2} \refext{#1}}
+\newcommand{\extsubsecref}[2]{\subsecref{#2} \refext{#1}}
+\newcommand{\exttheoref}[2]{\theoref{#2} \refext{#1}}
+\newcommand{\extdefiref}[2]{\defiref{#2} \refext{#1}}
+\newcommand{\extchapref}[2]{\chapref{#2} \refext{#1}}
+\newcommand{\extexref}[2]{\exref{#2} \refext{#1}}
+\newcommand{\extcororef}[2]{\cororef{#2} \refext{#1}}
+\newcommand{\extproporef}[2]{\proporef{#2} \refext{#1}}
+\newcommand{\extlemmeref}[2]{\lemmeref{#2} \refext{#1}}
+\newcommand{\extfigref}[2]{\figref{#2} \refext{#1}}
+\newcommand{\extremref}[2]{\remref{#2} \refext{#1}}
+\newcommand{\extannexeref}[2]{\annexeref{#2} \refext{#1}}
+\newcommand{\exttableref}[2]{\tableref{#2} \refext{#1}}
+%%%%%%Environnement PAUL%%%%%%%
+%------------------------------
+\newenvironment{Hypothese}[1]{\refstepcounter{NoHyp} \par\smallskip\noindent {\bf \textcolor{darkgray}{Hypoth\`ese~\theNoHyp} {#1}.} \it}{\par\noindent} 
+
+\newenvironment{Postulat}[1]{\refstepcounter{NoPost} \par\smallskip\noindent {\bf \textcolor{darkgray}{Postulat~\theNoPost} {#1}.} \it}{\par\noindent}
+
+\newenvironment{Theo}[1]{\refstepcounter{NoTheo} \par\smallskip\noindent {\bf \textcolor{darkgray}{Th\'eor\`eme~\theNoTheo} {#1}.} \it}{\par\noindent}
+
+\newenvironment{Corollaire}[1]{\refstepcounter{NoCorol} \par\smallskip\noindent {\bf \textcolor{darkgray}{Corollaire~\theNoCorol} {#1}.} \it}{\par\noindent}
+
+\newenvironment{Propo}[1]{\refstepcounter{NoPropo} \par\smallskip\noindent {\bf \textcolor{darkgray}{Proposition~\theNoPropo} \textbf{{#1}}.} \it}{\par\noindent}
+
+\newenvironment{Lemme}[1]{\refstepcounter{NoLemme} \par\smallskip\noindent {\bf \textcolor{darkgray}{Lemme~\theNoLemme} \textbf{{#1}}.} \it}{\par\noindent}
+
+\newenvironment{Defi}[1]{\refstepcounter{NoDefi} \par\smallskip\noindent {\bf \textcolor{darkgray}{D\'efinition~\theNoDefi} \textbf{{#1}}.\index{#1}} \it}{\par\noindent}
+
+\newenvironment{Not}[1]{\refstepcounter{NoNot} \par\smallskip\noindent {\bf \textcolor{darkgray}{Notation~\theNoNot} {#1}.} \it}{\par\noindent}
+
+\newenvironment{Ex}[1]{\refstepcounter{NoEx} \par \smallskip \noindent {\small \textcolor{darkgray}{\textbf{Exemple~\theNoEx}} \textbf{{#1}}}}{$\square$ \par\noindent}
+
+\newenvironment{Exercice}[1]{\refstepcounter{NoExe} \par \smallskip \noindent {\small \textcolor{darkgray}{\textbf{Exercice}} \textbf{{#1}} }}{\par\noindent}
+
+\newenvironment{conclusion}[0]{\par \smallskip \noindent {\small \textcolor{darkgray}{\textbf{Conclusion}}}}{\par\noindent}
+
+\newenvironment{Rem}[1]{\refstepcounter{NoRem} \par \smallskip  
+\begin{changemargin}{1cm}{0cm}{ 
+\noindent 
+{\small \textcolor{darkgray}{\textbf{Remarque~\theNoRem}} {#1}}
+}
+\end{changemargin}}{\par\smallskip \noindent}
+
+\newenvironment{Demo}[1]{\par \smallskip  \begin{changemargin}{1cm}{0cm}{
+\noindent 
+{\small \textcolor{darkgray}{\textbf{D\'emonstration}} {#1}}
+}
+\end{changemargin}}{\par\noindent}
+
+\newenvironment{Correction}[1]{\par \smallskip  \begin{changemargin}{1cm}{0cm}{
+\noindent 
+{\small \textcolor{darkgray}{\textbf{Correction}} {#1}}
+}
+\end{changemargin}}{\par\noindent}
+
+\newenvironment{Autre}[2]{\par
+\begin{changemargin}{1cm}{0cm}{ 
+\noindent 
+{\small \textcolor{darkgray}{\textbf{#1}} {#2}}
+}
+\end{changemargin}}{\par\noindent}
+
+\newenvironment{PtCle}[0]{\refstepcounter{NoTheo} \par\smallskip\noindent {\bf \textcolor{darkgray}{Point cl\'e~\theNoTheo}.} \it}{\par\noindent}
+
+\newenvironment{psmallmatrix}{\left(\begin{smallmatrix}}{\end{smallmatrix}\right)}
+\newenvironment{Bsmallmatrix}{\left\lbrace\begin{smallmatrix}}{\end{smallmatrix}\right\rbrace}
+
+\newenvironment{Div}[1]{\par\smallskip\noindent {\bf \textcolor{darkgray}{#1}.} \it}{\par \noindent}
+
+\newenvironment{DivAutre}[2]{\par\smallskip\noindent {\bf \textcolor{darkgray}{#1}. {#2}} \it}{\par \noindent}
+
+%%Pour faire des tableaux avec des colonnes mieux délimitées
+\newcolumntype{A}[1]{>{\usefont{T1}{cmss}{m}{n}\fontsize{.2cm}{.2cm}\selectfont}#1}
+
+
+\newenvironment{Synthese}[1]{\Titre{#1}
+\begin{minipage}{\textwidth}
+\begin{itemize}[label=$\dagger$]}{\end{itemize}
+\end{minipage}}
+
+
+\newenvironment{Condition}[1]{\refstepcounter{NoCondi} \par\smallskip\noindent {\bf \textcolor{darkgray}{Condition~\theNoCondi} \textbf{{#1}}.} \it}{\par\noindent}
+
+%%%%%%Compteurs PAUL%%%%%%%
+%------------------------------
+\newcounter{NoHyp}[section]\renewcommand\theNoHyp{\thesection.\arabic{NoHyp}}
+
+\newcounter{NoPost}[section]\renewcommand\theNoPost{\thesection.\arabic{NoPost}}
+
+\newcounter{NoTheo}[section]\renewcommand\theNoTheo{\thesection.\arabic{NoTheo}}
+
+\newcounter{NoCorol}[section]\renewcommand\theNoCorol{\thesection.\arabic{NoCorol}}
+
+\newcounter{NoPropo}[section]\renewcommand\theNoPropo{\thesection.\arabic{NoPropo}}
+
+\newcounter{NoLemme}[section]\renewcommand\theNoLemme{\thesection.\arabic{NoLemme}}
+
+\newcounter{NoDefi}[section]\renewcommand\theNoDefi{\thesection.\arabic{NoDefi}}
+
+\newcounter{NoNot}[section]\renewcommand\theNoNot{\thesection.\arabic{NoNot}}
+
+\newcounter{NoRem}[section]\renewcommand\theNoRem{\thesection.\arabic{NoRem}}
+
+\newcounter{NoEx}[section]\renewcommand\theNoEx{\thesection.\arabic{NoEx}}
+
+\newcounter{NoExe}[section]\renewcommand\theNoExe{\thesection.\arabic{NoExe}}
+
+
+%%%%%%%%% Environnement notation %%%%%%%%%
+\newenvironment{DefNotations}[1]
+{\Titre{#1}\begin{minipage}{\textwidth}\begin{center}\begin{tabular}{|c|l|}\hline}
+{\end{tabular}\end{center}\end{minipage}}
+
+
+%%%%%%Environnement non utilisé%%%%%%%
+%------------------------------
+\newenvironment{Propriete}[1]{\par\medskip\noindent{\bf  #1.} \it}{\par\medskip}
+\newtheorem*{Remark}{Remarque}
+\newenvironment{Definition}[1]{\par\smallskip\noindent{\bf Définition #1.} \it}{\par}
+\newenvironment{Example}{\bigskip\par \noindent {\sc\underline{Exemple} : }}{\bigskip\par}
+\newcounter{examples}
+\newenvironment{Examples}{\addtocounter{examples}{1}\bigskip\par \noindent {\sc\underline{Exemple~\theexamples} : }}{\bigskip\par}
+\newenvironment{Assume}{\bigskip\par \noindent {\sc\underline{Hypoth\`eses} : \it}}{\bigskip\par}
+\newenvironment{Proof}[1]{\smallskip\noindent{\sc Preuve#1.} }{\hfill$\Box$\medskip\\}
+\newenvironment{Preuve}[1]{\smallskip\noindent\small{\sc Preuve#1.} }{\hfill$\Box$\medskip\\}
+\newenvironment{Corrige}{\small\smallskip\noindent{\sc Corrigé.} }{\hfill$\Box$\medskip\\}
+\newenvironment{warning}{\par\bigskip {\sc\underline{attention}.} }{\par\bigskip}
+\newenvironment{Items}{$$\left\{\begin{array}{lcl }}{\end{array}\right.$$}
+
+\newcounter{exo}
+
+\newlength{\lpreuve}
+\setlength{\lpreuve}{\textwidth}
+\addtolength{\lpreuve}{-\leftmargin}
+\addtolength{\lpreuve}{-1em}
+\newenvironment{preuve}{\par\medskip\small \begin{tabular}{|p{\lpreuve}|}}{\end{tabular}\medskip\par}
+\newenvironment{mini}{\par\medskip\small \parbox[b]{1em}{\hfill }\begin{minipage}{\lpreuve} }{\end{minipage}\medskip\par}
+\newenvironment{prouf}{\par\smallskip\small\noindent\begin{itemize}\item[]{\sc Preuve.} }{\hfill$\Box$\end{itemize}\par\medskip}
+\newenvironment{fig-txt}[2]{\par\medskip\begin{minipage}[c]{16cm}
+\parbox[c]{7cm}{\mbox{}\\ \centerline{#1}}
+\hfill
+\parbox[c]{8cm}{\mbox{}\\#2}}
+{\end{minipage}\par\medskip}
+\newenvironment{Exo-Fig}[2]{\par\medskip\begin{minipage}[c]{16cm}
+\parbox[c]{10.5cm}{ #1}
+\hfill
+\parbox[c]{5.cm}{\mbox{}\\\centerline{#2}}}
+{\end{minipage}\par\medskip}
+
+%%%%%%%
+\newlength{\lboxa}\newlength{\lboxb}
+\newenvironment{Tex-Fig}[3]{\par\medskip\begin{minipage}[c]{17cm}
+\setlength{\lboxa}{\textwidth*#1}\setlength{\lboxb}{\textwidth-\textwidth*#1}
+\hspace{-20pt}
+\parbox[c]{\lboxa}{ #2}
+\hfill
+\parbox[c]{\lboxb}{\mbox{}\\\centerline{#3}}}
+{\end{minipage}\par\medskip}
+%%
+\newcounter{PROOF}\newcounter{subproof}[PROOF]
+              \def\Proofmark{\noindent{\sc Proof. }}
+              \newlength{\prooflength}\settowidth{\prooflength}{\Proofmark}
+\newenvironment{PROOF}{\stepcounter{PROOF}\Proofmark  La preuve est divisée \ref{Proof\thePROOF} étapes.}
+                      {\addtocounter{subproof}{-1}\refstepcounter{subproof} \label{Proof\thePROOF}$\Box$\par\medskip}
+              \def\beginmarkproof{\underline{\'Etape \arabic{subproof}} } \def\endmarkproof{\hfill$\boxdot$\smallskip}
+\newenvironment{SubProof}[1][]
+             {\stepcounter{subproof}\\ \noindent\hspace{\prooflength}\beginmarkproof{: {\it #1}\ifthenelse{\equal{#1}{}}{}{.\\ }} }
+                                  {\endmarkproof}
+\newcommand{\Warning}[1]{\par\medskip\noindent\fbox{\parbox{\lwarning}{{\sc \underline{Attention}} : #1}}\par\medskip}
+\newcommand{\Astuce}[1]{\par\medskip\noindent\fbox{\parbox{\lwarning}{{\sc \underline{Astuce}}: #1}}\par\medskip}
+\newcommand{\Cadre}[1]{\par\medskip\noindent\fbox{\parbox{\lwarning}{ #1}}\par\medskip}
+\newcommand{\Cle}[1]{{\fbox{ \ensuremath{\displaystyle{#1}}}}}
+\newcommand{\CleCentre}[1]{$${\fbox{ \ensuremath{\displaystyle{#1}}}}$$}
+\newcommand{\Afaire}[1]{{\par\medskip\color{red}\fbox{\underline{Ë faire}: {#1}}}}
+%\def\minus{\!\setminus\!}
+
+%%%%%%%%
+%\newenvironment{Synthese}{\begin{minipage}{17cm}\begin{itemize}}{\end{itemize}\end{minipage}}
+\def\itemmark{\item[$\bullet$]}
+\newenvironment{arrays}{$$\begin{array}{p{6cm}c p{9cm}}}{\end{array}$$}
+\def\beas{\begin{arrays}}
+\def\eeas{\end{arrays}}
+\newcommand{\titleitem}[1]{{\bf #1}}
+\newcommand{\texte}[1]{\begin{minipage}{6cm}#1\end{minipage}}
+\newcommand{\lina}[2]{\texte{#1}&:&\ensuremath{#2}}
+\newcommand{\Titre}[1]{\newpage\begin{center}\fbox{\large\bf #1}\end{center}}
+\newcommand{\Prop}[2]{ \par \item {\it #1 :} #2}
+\newcommand{\Lina}[2]{\begin{minipage}{9cm}{#1}\end{minipage}&:&\ensuremath{#2}}

@@ -1,0 +1,974 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% PRÉAMBULE MÉCANIQUE - VERSION RÉORGANISÉE %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% NOTATIONS DE BASE %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Vecteurs et tenseurs
+\renewcommand{\vec}[1]{\underline{#1}}
+\newcommand{\ten}[1]{\underline{\underline{#1}}}
+\newcommand{\tten}[1]{\ten{\ten{#1}}}
+\newcommand{\ttrois}[1]{\ten{\vec{#1}}}
+\newcommand{\ften}[1]{\mathbb{#1}}
+
+% Dérivées partielles
+\newcommand{\dep}[2]{\dfrac{\partial #1}{\partial #2}}
+\newcommand{\ddep}[3]{\dfrac{\partial^{#1} #2}{\partial #3^{#1}}}
+\newcommand{\difftemp}{\dfrac{\mathrm{d}}{\mathrm{d}t}}
+\newcommand{\partialtemp}{\dfrac{\partial}{\partial t}}
+
+% Unités et identités
+\newcommand{\TenUnit}{\ten{1\!\!1}}
+\newcommand{\TU}{\TenUnit}
+\newcommand{\UnitFourth}{\ften{I}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% OPÉRATEURS DIFFÉRENTIELS %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Opérateurs sur scalaires
+\def\div{\mathop{\operator@font div}\nolimits}
+\def\divE{\mathop{\operator@font div_{E}}\nolimits}
+\newcommand{\Lap}{\Delta\,}
+
+% Opérateurs sur vecteurs
+\def\vdiv{\mathop{\operator@font \vec{\mathrm{div}}}\nolimits}
+\def\vDIV{\mathop{\operator@font \vec{\mathrm{DIV}}}\nolimits}
+\def\rot{\mathop{\operator@font \vec{rot}}\nolimits}
+\newcommand{\vrot}{\mathop{\operator@font \vec{rot}}\nolimits}
+\newcommand{\vLap}{\vec{\Delta}\,}
+
+% Opérateurs sur tenseurs
+\def\tdiv{\mathop{\operator@font \ten{\mathrm{div}}}\nolimits}
+\def\bdiv{\mathop{\operator@font \mathbf{div}}\nolimits}
+\newcommand{\tgrad}{\mathop{\operator@font \ten{\mathrm{grad}}} \nolimits}
+\newcommand{\ttgrad}{\vec{\tgrad}\,}
+\newcommand{\bgrad}{\mathop{\operator@font \mathbf{grad}}\nolimits}
+\newcommand{\trot}{\mathop{\operator@font \ten{rot}}\nolimits}
+\newcommand{\brot}{\mathop{\operator@font \mathbf{rot}}\nolimits}
+\newcommand{\tLap}{\ten{\Delta}\,}
+\def\bLap{\boldsymbol{\Delta}}
+
+% Opérateurs de structure tensorielle
+\def\dev{\mathop{\operator@font \ten{dev}}\nolimits}
+\def\DEV{\mathop{\operator@font \ten{DEV}}\nolimits}
+\newcommand{\sym}{\mathop{\operator@font \ten{sym}\,}\nolimits}
+\newcommand{\asym}{\mathop{\operator@font \ten{asym}\,}\nolimits}
+\newcommand{\sph}{\mathop{\operator@font \ten{sph}\,}\nolimits}
+\newcommand{\SPH}{\mathop{\operator@font \ten{SPH}\,}\nolimits}
+\def\tsym{\mathop{\operator@font \ten{\mathrm{sym}}\,}\nolimits}
+\def\bsym{\mathop{\operator@font \mathbf{sym}\,}\nolimits}
+\def\tasym{\mathop{\operator@font \ten{\mathrm{asym}}\,}\nolimits}
+\def\basym{\mathop{\operator@font \mathbf{asym}\,}\nolimits}
+
+% Opérateurs spéciaux
+\newcommand{\adj}{\vec{\mathrm{adj}}\,}
+\newcommand{\Cof}{\mathop{\operator@font \ten{Cof}\,}\nolimits}
+\newcommand{\cof}{\ten{\mathrm{cof}}\,}
+\newcommand{\GradSym}{\tgrad^{s}}
+\newcommand{\GradAsym}{\tgrad^{asym}}
+
+% Projecteurs
+\newcommand{\ProjSph}{\ften{P}^{sph}}
+\newcommand{\ProjDev}{\ften{P}^{dev}}
+\newcommand{\PDEV}{\ften{P}^{\mathrm{DEV}}}
+\newcommand{\PSPH}{\ften{P}^{\mathrm{SPH}}}
+\newcommand{\Pdev}{\ften{P}^{\mathrm{dev}}}
+\newcommand{\Psph}{\ften{P}^{\mathrm{sph}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% GÉOMÉTRIE ET DOMAINES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Domaines et configurations
+\newcommand{\Configuration}{\Omega}
+\newcommand{\Configo}{\Configuration_{0}}
+\newcommand{\Configt}{\Configuration_{t}}
+\newcommand{\ConfigTan}{\kappa}
+\newcommand{\ConfigAct}{\kappa_{t}}
+\newcommand{\ConfigInit}{\kappa_{0}}
+
+% Domaines matériels
+\newcommand{\DomMat}{\mathscr{D}^{m}}
+\newcommand{\dDomMat}{\partial \DomMat}
+\newcommand{\Dmt}{\DomMat_{t}}
+\newcommand{\Dmo}{\DomMat_{0}}
+\newcommand{\DomMatPrime}{\mathscr{D}^{m\prime}}
+\newcommand{\DmtPrime}{\mathscr{D}^{m'}_{t}}
+\newcommand{\DmoPrime}{\mathscr{D}^{m'}_{0}}
+
+% Domaines géométriques
+\newcommand{\Dg}{\mathscr{D}^{g}}
+\newcommand{\Dgt}{\Dg_{t}}
+\newcommand{\Dt}{\mathscr{D}_{t}}
+\newcommand{\Do}{\mathscr{D}_{0}}
+
+% Frontières
+\def\dOm{\partial\Omega}
+\def\dDOm{\partial_D\Omega}
+\def\dNOm{\partial_N\Omega}
+\newcommand{\NeuSigt}{\partial\Dt^{N}}
+\newcommand{\NeuCalt}{\partial\Dt^{q}}
+\newcommand{\NeuSigo}{\partial\Do^{N}}
+\newcommand{\NeuCalo}{\partial\Do^{q}}
+
+% Surfaces et volumes
+\newcommand{\SDisconti}{\Sigma}
+\newcommand{\Omt}{\Omega_{t}}
+
+% Intégrales sur domaines
+\def\intO{{\int_{\Omega}}}
+\def\intdOm{{\int_{\partial\Omega}}}
+\def\intdDOm{{\int_{\partial_D\Omega}}}
+\def\intdNOm{{\int_{\partial_N\Omega}}}
+
+% Normales
+\newcommand{\Normale}{\vec{n}}
+\newcommand{\NormaleInit}{\vec{N}}
+\newcommand{\NormaleAct}{\Normale_{t}}
+\def\n{\vec{n}}
+
+% Vecteurs de base
+\newcommand{\e}{\vec{e}}
+\newcommand{\er}{\vec{e}_{r}}
+\newcommand{\ex}{\vec{e}_{x}}
+\newcommand{\ey}{\vec{e}_{y}}
+\newcommand{\ez}{\vec{e}_{z}}
+\newcommand{\etheta}{\vec{e}_{\theta}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% CINÉMATIQUE %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Positions et transformations
+\newcommand{\Pos}{\vec{x}}
+\newcommand{\PosInit}{\vec{X}}
+\newcommand{\PosInitComp}{X}
+\newcommand{\PosInitTilde}{\tilde{\PosInit}}
+\newcommand{\PosAct}{\vec{x}_{t}}
+\newcommand{\OM}{\vec{\mathrm{OM}}}
+\newcommand{\dM}{\vec{\mathrm{d}M}}
+\newcommand{\PosInitUn}{\PosInitComp_{1}}
+\newcommand{\PosInitDeux}{\PosInitComp_{2}}
+\newcommand{\PosInitTrois}{\PosInitComp_{3}}
+\newcommand{\PosActUn}{x_{t1}}
+\newcommand{\PosActDeux}{x_{t2}}
+\newcommand{\PosActTrois}{x_{t3}}
+
+% Transformations
+\newcommand{\TransfoComp}{\varphi}
+\newcommand{\Transfo}{\vec{\TransfoComp}}
+\newcommand{\placement}{p}
+
+% Gradient de la transformation
+\newcommand{\GT}{\ten{F}}
+\newcommand{\GTBar}{\bar{\GT}}
+\newcommand{\GTp}{\GT^{p}}
+\newcommand{\GTe}{\GT^{e}}
+\newcommand{\GTpTop}{\GT^{p\,\top}}
+\newcommand{\GTeTop}{\GT^{e\,\top}}
+\newcommand{\InvGTp}{\GT^{p-1}}
+\newcommand{\InvGTe}{\GT^{e-1}}
+\newcommand{\InvGTpTop}{\GT^{p\,-\top}}
+\newcommand{\InvGTeTop}{\GT^{e\,-\top}}
+\newcommand{\GTInt}{\ten{f}}
+
+% Déplacements
+\newcommand{\LGenDeplacement}{u}
+\newcommand{\Dep}{\vec{\LGenDeplacement}}
+\newcommand{\DepComp}{\LGenDeplacement_{i}}
+\newcommand{\DepImp}{\Dep^{D}}
+\newcommand{\DepImpComp}{\DepComp^{D}}
+\newcommand{\DepVirt}{\hat{\vec{w}}}
+\newcommand{\Depx}{\LGenDeplacement_{x}}
+\newcommand{\Depy}{\LGenDeplacement_{y}}
+\newcommand{\Depz}{\LGenDeplacement_{z}}
+
+% Vitesses
+\newcommand{\LGenVitesse}{v}
+\newcommand{\vit}{\vec{\LGenVitesse}}
+\newcommand{\VitEul}{\vit_{E}}
+\newcommand{\VitComp}{\LGenVitesse_{i}}
+\newcommand{\VitImp}{\vit^{D}}
+\newcommand{\VitImpComp}{\vit^{D}_{i}}
+\newcommand{\vtheta}{\LGenVitesse_{\theta}}
+
+% Accélérations
+\newcommand{\Accel}{\vec{\gamma}}
+\newcommand{\AccelLag}{\Accel_{L}}
+\newcommand{\AccelEul}{\Accel_{E}}
+
+% Taux de déformation et gradient de vitesse
+\newcommand{\TD}{\ten{D}}
+\newcommand{\TDe}{\TD^{e}}
+\newcommand{\TDp}{\TD^{p}}
+\newcommand{\TenTourb}{\ten{W}}
+\newcommand{\VecTourb}{\vec{w}}
+\newcommand{\GV}{\ten{L}}
+
+% Rotations
+\newcommand{\RotMat}{\ten{R}}
+\newcommand{\TenRot}{\ten{Q}}
+\newcommand{\TenRotAct}{\TenRot_{t}}
+\newcommand{\Qo}{\TenRot_{0}}
+\newcommand{\Qt}{\TenRot_{t}}
+\newcommand{\ConjTenRot}{\mathbb{Q}}
+
+% Référentiels
+\newcommand{\referentiel}{\mathscr{R}}
+\newcommand{\repere}{\mathcal{R}}
+\newcommand{\RQ}{\referentiel_{\TenRot}}
+\newcommand{\RotQt}{\referentiel_{\TenRotAct}}
+
+% Invariants cinématiques
+%\newcommand{\DilatVol}{J}
+%\newcommand{\DilatVolL}{\DilatVol_{L}}
+%\newcommand{\DilatVolE}{\DilatVol_{E}}
+%\newcommand{\DotDilatVol}{\dot{\DilatVol}}
+%\newcommand{\DilatVolLim}{\DilatVol_{\lim}}
+%\newcommand{\DilatVolo}{\DilatVol_{0}}
+%\newcommand{\DilatVolun}{\DilatVol_{1}}
+%\newcommand{\DilatVolel}{\DilatVol_{el}}
+%\newcommand{\DilatVolth}{\DilatVol_{th}}
+%\newcommand{\JTilde}{\tilde{\DilatVol}}
+%\newcommand{\DotDilatVolL}{\dot{\DilatVol}_{L}}
+\def\J{J}
+
+\newcommand{\DilatLin}{K_{\ell}}
+\newcommand{\DilatLinBar}{\bar{K}_{\ell}}
+\newcommand{\DilatSurf}{K_{s}}
+\newcommand{\DilatSurfL}{K_{sL}}
+
+% Invariants de cisaillement
+\newcommand{\Gliss}{\gamma}
+\newcommand{\GlissLim}{\Gliss_{\lim}}
+\newcommand{\Glisss}{\Gliss_{s}}
+\newcommand{\GlisssTilde}{\tilde{\gamma}_{s}}
+\newcommand{\Glisst}{\gamma_{t}}
+\newcommand{\GlissPerp}{\Gliss_{\perp}}
+\def\gap{\gamma^p}
+
+% Distorsions
+\newcommand{\DistSter}{\delta^{s}}
+\newcommand{\DistSterMax}{\delta_{\max}^{s}}
+\newcommand{\DistMax}{\delta_{\max}}
+\newcommand{\DistAng}{\delta^{a}}
+\newcommand{\DistAngMax}{\DistMax^{a}}
+\newcommand{\DotDistAng}{\dot{\delta}^{a}}
+\newcommand{\deltaTilde}{\tilde{\delta}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% DÉFORMATIONS %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Tenseurs de déformation génériques
+\newcommand{\DefoGen}{\ten{X}}
+\newcommand{\TenDefoGen}{\ten{X}}
+
+% Tenseurs de déformation Eulériens
+\newcommand{\LCauchyGG}{B}
+\newcommand{\CGG}{\ten{\LCauchyGG}}
+\newcommand{\CGDiese}{\CGG^{\sharp}}
+\newcommand{\CGGBar}{\bar{\CGG}}
+\newcommand{\GLG}{\ten{J}}
+\newcommand{\GLGIsov}{\bar{\ten{J}}}
+\newcommand{\EpsV}{\ten{\varepsilon}^{V}}
+\newcommand{\EpsVIsov}{\bar{\ten{\varepsilon}}^{V}}
+\newcommand{\Almansi}{\ten{e}}
+
+% Déformation pure gauche
+\newcommand{\DefoPureG}{\ten{V}}
+\newcommand{\DefoPureGIsov}{\bar{\ten{V}}}
+\newcommand{\LnDefoPureD}{\ten{M}}
+
+% Tenseurs de déformation Lagrangiens
+\newcommand{\DefoPureD}{\ten{U}}
+\newcommand{\LnDefoPureG}{\ten{L}}
+\newcommand{\LnDefoPureGIsov}{\bar{\ten{L}}}
+\newcommand{\EpsU}{\ten{\varepsilon}^{U}}
+\newcommand{\EpsUIsov}{\bar{\ten{\varepsilon}}^{U}}
+\newcommand{\CDDiese}{\CGD^{\sharp}}
+\newcommand{\CGD}{\ten{C}}
+\newcommand{\CGDp}{\ten{C}^{p}}
+\newcommand{\CGDBar}{\bar{\CGD}}
+\newcommand{\GLD}{\ten{E}}
+\newcommand{\GLDIsov}{\bar{\GLD}}
+
+% Déformations linéarisées (HPP)
+\newcommand{\DefoHPP}{\ten{\varepsilon}}
+\newcommand{\DE}{\DefoHPP}
+\newcommand{\Eps}{\DefoHPP}
+\newcommand{\EpsP}{\DefoHPPPlas}
+\newcommand{\DefoHPPTest}{\hat{\DefoHPP}}
+\newcommand{\DefoHPPPlas}{\DefoHPP^p}
+\newcommand{\DefoHPPEl}{\DefoHPP^e}
+\newcommand{\DotDefoHPP}{\dot{\DefoHPP}}
+\newcommand{\DotDefoHPPPlas}{\DotDefoHPP^p}
+\newcommand{\DotDefoHPPEl}{\DotDefoHPP^e}
+\newcommand{\EpsEl}{\DefoHPPEl}
+\newcommand{\DotEps}{\DotDefoHPP}
+\newcommand{\DotEpsPlas}{\DotDefoHPPPlas}
+\newcommand{\DotEpsEl}{\DotDefoHPPEl}
+\newcommand{\DeltaEps}{\ten{\Delta}\Eps}
+\newcommand{\DeltaEpsPlas}{\DeltaEps^{p}}
+
+% Versions scalaires (composantes)
+\def\Epse{\ten{\varepsilon}^e}
+\def\Epsp{\ten{\varepsilon}^p}
+\def\Epsd{\ten{\dot{\varepsilon}}}
+\def\Epsde{\ten{\dot{\varepsilon}}^e}
+\def\Epsdp{\ten{\dot{\varepsilon}}^p}
+\def\eps{{\varepsilon}}
+\def\epsc{{\varepsilon}_c}
+\def\epse{{\eps}^e}
+\def\epsp{{\eps}^p}
+\def\epsd{{\dot{\varepsilon}}}
+\def\epsde{{\dot{\varepsilon}}^e}
+\def\epsdp{{\dot{\varepsilon}}^p}
+
+% Composantes cylindriques
+\def\epsrr{\eps_{rr}}
+\def\epsrt{\eps_{r\theta}}
+\def\epsrz{\eps_{rz}}
+\def\epstr{\eps_{\theta r}}
+\def\epstt{\eps_{\theta\theta}}
+\def\epstz{\eps_{\theta z}}
+\def\epszr{\eps_{zr}}
+\def\epszt{\eps_{z\theta}}
+\def\epszz{\eps_{zz}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% CONTRAINTES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Tenseurs de contrainte
+\newcommand{\SC}{\ten{\sigma}}
+\newcommand{\SCTest}{\hat{\SC}}
+\newcommand{\SCD}{\SC^{D}}
+\newcommand{\SK}{\ten{\tau}}
+\newcommand{\SPK}{\ten{\pi}}
+\newcommand{\SB}{\ten{P}}
+\newcommand{\Contrainte}{\vec{c}}
+\newcommand{\devia}{\ten{s}}
+
+% Versions scalaires
+\def\sig{{\sigma}}
+\def\sigd{{\dot{\sig}}}
+\def\sic{\sigma_c}
+\def\SigD{\ten{\sigma}^D}
+\def\Sigd{\ten{\dot{\sigma}}}
+
+% Composantes cylindriques
+\def\sigrr{\sig_{rr}}
+\def\sigrt{\sig_{r\theta}}
+\def\sigrz{\sig_{rz}}
+\def\sigtr{\sig_{\theta r}}
+\def\sigtt{\sig_{\theta\theta}}
+\def\sigtz{\sig_{\theta z}}
+\def\sigzr{\sig_{zr}}
+\def\sigzt{\sig_{z\theta}}
+\def\sigzz{\sig_{zz}}
+
+% Contraintes principales
+\newcommand{\SigI}{\sigma_{\mathrm{I}}}
+\newcommand{\SigII}{\sigma_{\mathrm{II}}}
+\newcommand{\SigIII}{\sigma_{\mathrm{III}}}
+\newcommand{\SIGI}{\Sigma_{1}}
+\newcommand{\deviaII}{s_{2}}
+\newcommand{\deviaIII}{s_{3}}
+
+% Contraintes équivalentes
+\def\seq{\sig_{\!eq}}
+\newcommand{\SigVM}{\sigma_{\mathrm{VM}}}
+\newcommand{\sigY}{\sigma_{Y}}
+
+% Contraintes thermodynamiques
+\newcommand{\sigref}{\sigma^{\mathrm{nd}}}
+\newcommand{\SigRef}{\SC^{\mathrm{nd}}}
+\newcommand{\sigdiss}{\sigma^{\mathrm{d}}}
+\newcommand{\SigDiss}{\SC^{\mathrm{d}}}
+\newcommand{\SPKRef}{\SPK^{\mathrm{nd}}}
+\newcommand{\SPKDiss}{\SPK^{\mathrm{d}}}
+
+% Contraintes relatives et anisotropes
+\newcommand{\SigRel}{\ten{\psi}_{Rel}}
+\newcommand{\HatSigRel}{\hat{\ten{\psi}}_{Rel}}
+\newcommand{\TenVMAnis}{\PP}
+\newcommand{\DeltaSC}{\ten{\Delta}\SC}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% PLASTICITÉ %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Multiplicateurs et écrouissage
+\newcommand{\MultLag}{\lambda}
+\newcommand{\TenEcroui}{\HH}
+\newcommand{\lad}{\dot{\eta}}
+\def\pd{\dot{p}}
+
+% Seuils et potentiels
+\newcommand{\piVM}{\pi_{\scriptscriptstyle{\Vsf\Msf}}}
+\newcommand{\piT}{\pi_{\scriptscriptstyle{\Tsf}}}
+\newcommand{\PotDiss}{\varphi}
+\newcommand{\PotDissDual}{\PotDiss^{\star}}
+
+% Domaines de convexité
+\newcommand{\Rev}{\mathbb{S}}
+\newcommand{\dRev}{\partial\Rev}
+\newcommand{\Dev}{\mathbb{E}}
+\newcommand{\dDev}{\partial\Dev}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\dQ}{\partial \Q}
+\newcommand{\ConvElas}{\Convexe}
+\newcommand{\CentreConv}{\ten{X}}
+\newcommand{\TenNormale}{\ten{n}}
+\newcommand{\FChargeConvexe}{f_{\Convexe}}
+
+% Directions et structures
+\newcommand{\DirMat}{\vec{u}}
+\newcommand{\DirMatAct}{\DirMat_{t}}
+\newcommand{\DirMatInit}{\DirMat_{0}}
+\newcommand{\TDirMat}{\ten{U}}
+\newcommand{\DotDirMatAct}{\dot{\vec{u}}_{t}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% RIGIDITÉS ET ÉLASTICITÉ %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Tenseurs de rigidité
+\newcommand{\SoupLin}{\ften{S}}
+\newcommand{\RigiLin}{\ften{C}}
+\newcommand{\RigiLinComp}{\RigiLin}
+\newcommand{\RigiSph}{\ften{J}}
+\newcommand{\RigiDev}{\ften{K}}
+\newcommand{\RigiTan}{\ften{K}}
+\newcommand{\RigiTanComp}{\ften{K}}
+
+% Constantes élastiques
+\newcommand{\BulkModulus}{\kappa}
+\newcommand{\ModCis}{\mu}
+\newcommand{\LeviC}{\epsilon}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% THERMODYNAMIQUE %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Température et chaleur
+\newcommand{\TTilde}{\tilde{T}}
+\newcommand{\CondTh}{\alpha}
+\newcommand{\CourantChal}{\vec{q}}
+\newcommand{\CouChalLag}{\CourantChal_{0}}
+\newcommand{\CouChalEul}{\vec{q}}
+\newcommand{\GradET}{\vec{g}}
+\newcommand{\GradLT}{\vec{G}}
+
+% Puissances de chaleur
+\newcommand{\PCalSurf}{q^{s}_{ext}}
+\newcommand{\PCalSurfE}{q^{s}_{ext E}}
+\newcommand{\PCaloVol}{r^{v}_{\text{ext}}}
+\newcommand{\PCaloVolL}{r^{v}_{\mathrm{ext} \, L}}
+\newcommand{\PCaloVolE}{r^{v}_{\mathrm{ext}\, E}}
+
+% Dissipation
+\newcommand{\dint}{\Phi_{\mathrm{int}}}
+\newcommand{\dth}{\Phi_{\mathrm{cond}}}
+\newcommand{\dplas}{\dtot_{p}}
+\newcommand{\dtot}{\Phi}
+
+% Énergies libres
+\newcommand{\eHelm}{\psi}
+\newcommand{\PotDual}{\psi^{*}}
+\newcommand{\eHelmMass}{\eHelm^{m}}
+\newcommand{\DoteHelmMass}{\dot{\eHelm}^{m}}
+
+% Entropie
+\newcommand{\Entrop}{s}
+\newcommand{\EntropMass}{\Entrop^{m}}
+\newcommand{\EntropMassE}{\EntropMass_{E}}
+\newcommand{\EntropMassL}{\EntropMass_{L}}
+\newcommand{\DotEntropMass}{\dot{\Entrop}^{m}}
+\newcommand{\ProdEntrop}{p_{s}}
+
+% Énergies volumiques et massiques
+\newcommand{\bPsiVol}{\bPsi^{v}}
+\newcommand{\bPsiVolE}{\bPsiVol_{E}}
+\newcommand{\bPsiVolL}{\bPsiVol_{L}}
+\newcommand{\bPsiMass}{\bPsi^{m}}
+\newcommand{\bPsiMassE}{\bPsiMass_{E}}
+\newcommand{\bPsiMassL}{\bPsiMass_{L}}
+\newcommand{\DotbPsi}{\dot{\bPsi}}
+\newcommand{\DotbPsiVol}{\dot{\bPsi}^{v}}
+
+% Énergies internes
+\newcommand{\eint}{e}
+\newcommand{\EtotMass}{E^{m}}
+\newcommand{\EIntMass}{e^{m}}
+\newcommand{\DotEIntMass}{\dot{e}^{m}}
+\newcommand{\TEIntMass}{\tilde{e}^{m}}
+
+% Forces thermodynamiques
+\newcommand{\FThVI}{\mathcal{A}}
+\newcommand{\vFThVI}{\vec{\FThVI}}
+\newcommand{\tFThVI}{\ten{\FThVI}}
+\newcommand{\bFThVI}{\bAa}
+\newcommand{\FThVIDiss}{\FThVI^{\mathrm{d}}}
+\newcommand{\vFThVIDiss}{\vFThVI^{\mathrm{d}}}
+\newcommand{\bFThVIDiss}{\bFThVI^{\mathrm{d}}}
+\newcommand{\FThVIRev}{\FThVI^{\mathrm{nd}}}
+\newcommand{\bFThVIRev}{\bFThVI^{\mathrm{nd}}}
+\newcommand{\FThEpsP}{\ten{\mathcal{A}}_{\DefoHPPPlas}}
+\newcommand{\FThP}{\mathcal{A}_{p}}
+\newcommand{\bFThD}{\bFf^{\mathrm{d}}}
+
+% Fonctions d'énergie libre
+\newcommand{\FHelm}{f_{\eHelm}}
+\newcommand{\FeHelmB}{\FHelm^{B}}
+\newcommand{\FeHelmV}{\FHelm^{V}}
+\newcommand{\FeHelmM}{\FHelm^{M}}
+\newcommand{\FeHelmEpsV}{\FHelm^{\varepsilon^{V}}}
+\newcommand{\FeHelmC}{\FHelm^{C}}
+\newcommand{\FeHelmU}{\FHelm^{U}}
+\newcommand{\FeHelmL}{\FHelm^{L}}
+\newcommand{\FeHelmEpsU}{\FHelm^{\varepsilon^{U}}}
+\newcommand{\FeHelmE}{\FHelm^{E}}
+\newcommand{\FeHelm}{\overline{f}_{\eHelm}}
+\newcommand{\FeHelmBBar}{\FHelm^{\bar{B}}}
+\newcommand{\TFeHelm}{\tilde{f}_{\eHelm}}
+\newcommand{\TFeHelmB}{\TFeHelm^{B}}
+\newcommand{\TFeHelmE}{\TFeHelm^{E}}
+\newcommand{\TFeHelmC}{\TFeHelm^{C}}
+\newcommand{\PsiMDist}{\eHelmMass_{e}}
+\newcommand{\PsiMB}{\eHelmMass_{B}}
+
+% Fractions et paramètres
+\newcommand{\Fs}{f_{s}}
+\newcommand{\FsBar}{\overline{f}_{s}}
+\newcommand{\Fe}{f_{e}}
+\newcommand{\FeBar}{\overline{f}_{e}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% ÉNERGÉTIQUE %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Puissances
+\newcommand{\CalligraphiePuissance}{\mathscr{P}}
+\newcommand{\PMec}{\CalligraphiePuissance_{mec}}
+\newcommand{\PCal}{\CalligraphiePuissance_{cal}}
+\newcommand{\PMecExt}{\CalligraphiePuissance_{mec,ext}}
+\newcommand{\PCalExt}{\CalligraphiePuissance_{cal,ext}}
+\newcommand{\PVolCalExt}{\CalligraphiePuissance^{v cal}_{ext}}
+\newcommand{\PCalContExt}{\CalligraphiePuissance^{cal \, cont}_{ext}}
+\newcommand{\PCalDistExt}{\CalligraphiePuissance^{cal \, dist}_{ext}}
+\newcommand{\PAcc}{\CalligraphiePuissance_{acc}}
+\newcommand{\PMecInt}{\CalligraphiePuissance_{int}}
+\newcommand{\PCin}{\CalligraphiePuissance_{cin}}
+\newcommand{\PMecIntVol}{p_{(int)}}
+
+% Énergies
+\newcommand{\CalligraphieEnergie}{\mathcal{E}}
+\newcommand{\ECin}{\CalligraphieEnergie_{cin}}
+\newcommand{\EInt}{\CalligraphieEnergie_{int}}
+\newcommand{\EElas}{\CalligraphieEnergie_{el}}
+\newcommand{\EPot}{\CalligraphieEnergie_{pot}}
+\newcommand{\ECompl}{\CalligraphieEnergie^{*}}
+\newcommand{\EFiss}{\CalligraphieEnergie_{F}}
+\newcommand{\Etot}{\CalligraphieEnergie}
+\newcommand{\DotEInt}{\dot{\CalligraphieEnergie}_{\mathrm{int}}}
+\newcommand{\DotECin}{\dot{\CalligraphieEnergie}_{\mathrm{cin}}}
+\newcommand{\ELib}{\CalligraphieEnergie_{\mathrm{lib}}}
+\newcommand{\DotELib}{\dot{\CalligraphieEnergie}_{\mathrm{lib}}}
+
+% Travaux
+\newcommand{\Wext}{\mathcal{W}_\mathrm{ext}}
+\def\We{W_{\textsf{\footnotesize ext}}}
+\def\Wl{W_{\textsf{\footnotesize rea}}}
+\newcommand{\Lagrangian}{\mathcal{L}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% FORCES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Forces génériques
+\newcommand{\LGenForce}{f}
+\def\f{\vec{f}}
+\def\fp{f}
+
+% Forces massiques
+\newcommand{\FMassScal}{\LGenForce^{m}}
+\newcommand{\FMass}{\vec{\LGenForce}^{m}}
+\newcommand{\FMassGen}[1]{\vec{\LGenForce}^{m#1}}
+\newcommand{\FMassE}{\FMass_{E}}
+\newcommand{\FMassEo}{\FMass_{E0}}
+
+% Forces volumiques
+\newcommand{\FVol}{\vec{\LGenForce}^{v}}
+\newcommand{\FVolo}{\FVol_{0}}
+\newcommand{\FVolGen}[1]{\vec{f}^{v#1}}
+\newcommand{\FVolE}{\FVol_{E}}
+\newcommand{\FVolEo}{\FVol_{E0}}
+
+% Forces surfaciques
+\newcommand{\FSurf}{\vec{\LGenForce}^{s}}
+\newcommand{\FSurfo}{\FSurf_{0}}
+\newcommand{\FSurfImp}{\vec{\LGenForce}^{s\,D}}
+\newcommand{\FSurfImpComp}{\LGenForce^{s\,D}_{i}}
+\newcommand{\FSurfE}{\FSurf_{E}}
+
+% Vecteurs contraintes
+\def\T{\vec{T}}
+\def\Td{\T^d}
+\def\M{\vec{M}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% INVARIANTS %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Invariants génériques
+\newcommand{\XI}{X_{\mathrm{I}}}
+\newcommand{\XII}{X_{\mathrm{II}}}
+\newcommand{\XIII}{X_{\mathrm{III}}}
+\newcommand{\DXI}{\dot{X}_{\mathrm{I}}}
+\newcommand{\DXII}{\dot{X}_{\mathrm{II}}}
+\newcommand{\DXIII}{\dot{X}_{\mathrm{III}}}
+\newcommand{\XIp}{X_{1}}
+\newcommand{\XIIp}{X_{2}}
+\newcommand{\XIIIp}{X_{3}}
+
+\newcommand{\YI}{Y_{\mathrm{I}}}
+\newcommand{\YII}{Y_{\mathrm{II}}}
+\newcommand{\YIII}{Y_{\mathrm{III}}}
+\newcommand{\YIp}{Y_{1}}
+\newcommand{\YIIp}{Y_{2}}
+\newcommand{\YIIIp}{Y_{3}}
+
+% Invariants Cauchy-Green gauche
+\newcommand{\BI}{\LCauchyGG_{\mathrm{I}}}
+\newcommand{\BII}{\LCauchyGG_{\mathrm{II}}}
+\newcommand{\BIII}{\LCauchyGG_{\mathrm{III}}}
+\newcommand{\DBI}{\dot{\LCauchyGG}_{\mathrm{I}}}
+\newcommand{\DBII}{\dot{\LCauchyGG}_{\mathrm{II}}}
+\newcommand{\DBIII}{\dot{\LCauchyGG}_{\mathrm{III}}}
+\newcommand{\BIp}{\LCauchyGG_{1}}
+\newcommand{\BIIp}{\LCauchyGG_{2}}
+\newcommand{\BIIIp}{\LCauchyGG_{3}}
+
+\newcommand{\BBarI}{\bar{\LCauchyGG}_{\mathrm{I}}}
+\newcommand{\BBarII}{\bar{\LCauchyGG}_{\mathrm{II}}}
+\newcommand{\DBBarI}{\dot{\bar{\LCauchyGG}}_{\mathrm{I}}}
+\newcommand{\DBBarII}{\dot{\bar{\LCauchyGG}}_{\mathrm{II}}}
+
+% Invariants standards
+\newcommand{\IUnGen}{I_{1}^{S}}
+\newcommand{\IDeuxGen}{I_{2}^{S}}
+\newcommand{\IUnB}{I_{1}^{B}}
+\newcommand{\IDeuxB}{I_{2}^{B}}
+\newcommand{\DIUnB}{\dot{I}_{1}^{B}}
+\newcommand{\DIDeuxB}{\dot{I}_{2}^{B}}
+\newcommand{\IUnBBar}{I_{1}^{\bar{B}}}
+\newcommand{\IDeuxBBar}{I_{2}^{\bar{B}}}
+\newcommand{\DIUnBBar}{\dot{I}_{1}^{\bar{B}}}
+\newcommand{\DIDeuxBBar}{\dot{I}_{2}^{\bar{B}}}
+\newcommand{\IUnInvB}{I_{1}^{B^{-1}}}
+\newcommand{\IDeuxInvB}{I_{2}^{B^{-1}}}
+\newcommand{\IUnInvBBar}{I_{1}^{\bar{B}^{-1}}}
+\newcommand{\DIUnInvBBar}{\dot{I}_{1}^{\bar{B}^{-1}}}
+\newcommand{\IDeuxInvBBar}{I_{2}^{\bar{B}^{-1}}}
+
+% Invariants Cauchy-Green droit
+\newcommand{\CI}{C_{\mathrm{I}}}
+\newcommand{\CII}{C_{\mathrm{II}}}
+\newcommand{\CIII}{C_{\mathrm{III}}}
+\newcommand{\CIp}{C_{1}}
+\newcommand{\CIIp}{C_{2}}
+\newcommand{\CIIIp}{C_{3}}
+\newcommand{\CBarIp}{\bar{C}_{1}}
+\newcommand{\CBarIIp}{\bar{C}_{2}}
+\newcommand{\CBarI}{\bar{C}_{\mathrm{I}}}
+\newcommand{\CBarII}{\bar{C}_{\mathrm{II}}}
+\newcommand{\CBarInvI}{\bar{C}^{-1}_{\mathrm{I}}}
+\newcommand{\IUnC}{I_{1}^{C}}
+\newcommand{\IDeuxC}{I_{2}^{C}}
+\newcommand{\IUnCBar}{I_{1}^{\bar{C}}}
+\newcommand{\IDeuxCBar}{I_{2}^{\bar{C}}}
+
+% Invariants déformation pure
+\newcommand{\VI}{V_{\mathrm{I}}}
+\newcommand{\VII}{V_{\mathrm{II}}}
+\newcommand{\VIII}{V_{\mathrm{III}}}
+\newcommand{\DVI}{\dot{V}_{\mathrm{I}}}
+\newcommand{\DVII}{\dot{V}_{\mathrm{II}}}
+\newcommand{\DVIII}{\dot{V}_{\mathrm{III}}}
+
+\newcommand{\UI}{U_{\mathrm{I}}}
+\newcommand{\UII}{U_{\mathrm{II}}}
+\newcommand{\UIII}{U_{\mathrm{III}}}
+
+% Invariants déformation logarithmique
+\newcommand{\MI}{M_{\mathrm{I}}}
+\newcommand{\MII}{M_{\mathrm{II}}}
+\newcommand{\MIII}{M_{\mathrm{III}}}
+\newcommand{\DMI}{\dot{M}_{\mathrm{I}}}
+\newcommand{\DMII}{\dot{M}_{\mathrm{II}}}
+\newcommand{\DMIII}{\dot{M}_{\mathrm{III}}}
+
+% Invariants Green-Lagrange
+\newcommand{\EI}{E_{\mathrm{I}}}
+\newcommand{\EII}{E_{\mathrm{II}}}
+\newcommand{\EIII}{E_{\mathrm{III}}}
+\newcommand{\EIp}{E_{1}}
+\newcommand{\EIIp}{E_{2}}
+\newcommand{\EIIIp}{E_{3}}
+\newcommand{\EIpBar}{\bar{E}_{1}}
+\newcommand{\EIIpBar}{\bar{E}_{2}}
+\newcommand{\EVI}{\varepsilon^{V}_{\mathrm{I}}}
+\newcommand{\EVII}{\varepsilon^{V}_{\mathrm{II}}}
+\newcommand{\EVIII}{\varepsilon^{V}_{\mathrm{III}}}
+\newcommand{\EpsI}{\varepsilon_{\mathrm{I}}}
+\newcommand{\EpsII}{\varepsilon_{\mathrm{II}}}
+\newcommand{\EpsIII}{\varepsilon_{\mathrm{III}}}
+\newcommand{\IUnE}{I_{1}^{E}}
+\newcommand{\IDeuxE}{I_{2}^{E}}
+
+% Invariants contraintes
+\newcommand{\SI}{S_{\mathrm{I}}}
+\newcommand{\SII}{S_{\mathrm{II}}}
+\newcommand{\SIII}{S_{\mathrm{III}}}
+\newcommand{\SIp}{S_{1}}
+\newcommand{\SIIp}{S_{2}}
+\newcommand{\SIIIp}{S_{3}}
+\newcommand{\DSI}{\dot{S}_{\mathrm{I}}}
+\newcommand{\DSII}{\dot{S}_{\mathrm{II}}}
+\newcommand{\DSIII}{\dot{S}_{\mathrm{III}}}
+
+\newcommand{\TI}{T_{\mathrm{I}}}
+\newcommand{\TII}{T_{\mathrm{II}}}
+\newcommand{\TIII}{T_{\mathrm{III}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% ANISOTROPIE ET STRUCTURES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Tenseurs de structure
+\newcommand{\LStruSpat}{m}
+\newcommand{\LStruMat}{M}
+\newcommand{\TenStruMat}{\boldsymbol{\LStruMat}}
+\newcommand{\TenStruAct}{\boldsymbol{\LStruSpat}}
+\newcommand{\TenStruMatDeux}{\ten{\LStruMat}}
+\newcommand{\TenStruMatQuatre}{\mathbb{\LStruMat}}
+\newcommand{\TenStruActDeux}{\ten{\LStruSpat}}
+\newcommand{\TenStruDeux}{\ten{\LStruMat}}
+
+% Directions d'anisotropie
+\newcommand{\DirAnis}{\vec{n}}
+\newcommand{\DirAnisInit}{\vec{n}_{0}}
+\newcommand{\DirAnisAct}{\vec{n}_{t}}
+
+% Tenseurs de structure uniaxiale
+\newcommand{\TenStruUniax}{\ten{N}}
+\newcommand{\TenStruUniaxAct}{\TenStruUniax_{t}}
+\newcommand{\TenStruUniaxInit}{\TenStruUniax_{0}}
+
+% Tenseurs d'orientation
+\newcommand{\TenOrient}{\ten{\vec{\Oo}}}
+\newcommand{\tenMetrique}{\ten{G}}
+\newcommand{\TM}{\tenMetrique}
+\newcommand{\MetriqueMat}{\ten{G}}
+\newcommand{\MetriqueSpat}{\ten{g}}
+\newcommand{\g}{\ten{g}}
+\newcommand{\G}{\ten{G}}
+
+% Vecteurs matériels
+\newcommand{\VecMat}{\vec{V}}
+\newcommand{\VecSpat}{\vec{v}}
+\newcommand{\VecPropreMat}{\vec{N}_{\alpha}}
+\newcommand{\VecPropreSpat}{\vec{n}_{\alpha}}
+\newcommand{\VecAireo}{\vec{s}_{0}}
+\newcommand{\VecAiret}{\vec{s}_{t}}
+
+% Unités et directions
+\newcommand{\Uniax}{\ten{U}}
+\newcommand{\UniaxInit}{\Uniax_{0}}
+\newcommand{\UniaxAct}{\Uniax_{t}}
+\newcommand{\UniaxUnit}{\bar{\UU}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% DÉRIVÉES OBJECTIVES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\Truesdell}[1]{\overset{\Delta}{#1}}
+\newcommand{\Naghdi}[1]{\overset{\square}{#1}}
+\newcommand{\Jaumann}[1]{\overset{\nabla}{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% OPÉRATIONS DE TRANSPORT %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\PullBackBig}[1]{\GT_{\triangleleft}\left(#1\right)}
+\newcommand{\PullBack}[1]{\GT_{\triangleleft}(#1)}
+\newcommand{\PushForward}[1]{\GT_{\triangleright}(#1)}
+\newcommand{\PushForwardBig}[1]{\GT_{\triangleright}\left(#1\right)}
+\newcommand{\PullBackE}[1]{\GT^{e}_{\triangleleft}(#1)}
+\newcommand{\PushForwardE}[1]{\GT^{e}_{\triangleright}(#1)}
+\newcommand{\Lv}{\Ll_{v}}
+\newcommand{\DerivConv}[1]{\LieDeriv #1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% FONCTIONNELLES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fonctionnelles de comportement
+\newcommand{\FoncGen}{\boldsymbol{\mathcal{F}}}
+\newcommand{\FoncGenNL}{\FoncNL{\FoncGen}}
+\newcommand{\FoncGenL}{\FoncL{\FoncGen}}
+\newcommand{\FoncNL}[1]{#1_{\forall\PosInit,t}}
+\newcommand{\FoncL}[1]{#1_{\PosInit,t}}
+
+% Fonctionnelles spécifiques
+\newcommand{\FoncSig}{\ten{\Sigma}}
+\newcommand{\FoncSigNL}{\FoncNL{\FoncSig}}
+\newcommand{\FoncSigL}{\FoncL{\FoncSig}}
+\newcommand{\FoncE}{E}
+\newcommand{\FoncENL}{\FoncNL{\FoncE}}
+\newcommand{\FoncEL}{\FoncL{\FoncE}}
+\newcommand{\FoncS}{S}
+\newcommand{\FoncSNL}{\FoncNL{\FoncS}}
+\newcommand{\FoncSL}{\FoncL{\FoncS}}
+\newcommand{\FoncPsi}{\Psi}
+\newcommand{\FoncPsiNL}{\FoncNL{\FoncS}}
+\newcommand{\FoncPsiL}{\FoncL{\FoncS}}
+\newcommand{\FoncPs}{Ps}
+\newcommand{\FoncPsNL}{\FoncNL{\FoncPs}}
+\newcommand{\FoncPsL}{\FoncL{\FoncPs}}
+\newcommand{\FoncQ}{\vec{Q}}
+\newcommand{\FoncQNL}{\FoncNL{\FoncQ}}
+\newcommand{\FoncQL}{\FoncL{\FoncQ}}
+\newcommand{\FoncPi}{\ten{\Pi}}
+\newcommand{\FoncPiNL}{\FoncNL{\FoncPi}}
+\newcommand{\FoncPiL}{\FoncL{\FoncPi}}
+
+% Fonctions de réponse
+\newcommand{\FuncSig}{f_{\SC}}
+\newcommand{\FuncSPK}{f_{\SPK}}
+\newcommand{\FuncQ}{f_{\CourantChal}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% ENSEMBLES ET ESPACES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Ensembles admissibles
+\newcommand{\Cad}{\mathscr{C}^{ad}}
+\newcommand{\Cado}{\mathscr{C}^{ad}_{0}}
+\newcommand{\Sad}{\mathscr{S}^{ad}}
+\newcommand{\AutoSig}{\mathscr{A}}
+
+% Espaces vectoriels
+\newcommand{\Espace}{\mathscr{E}}
+\newcommand{\EspaceV}{\VV}
+\newcommand{\EspaceVDual}{\EspaceV^{*}}
+\newcommand{\EspaceVBiDual}{\EspaceV^{**}}
+\newcommand{\Vasym}{\mathbb{A}}
+\newcommand{\Vsym}{\mathbb{S}}
+
+% Groupes
+\newcommand{\GroupeOrtho}{O(3)}
+\newcommand{\GroupeSpecOrtho}{SO(3)}
+\newcommand{\GroupeLineaire}{\Gg\ell}
+\newcommand{\GroupeLineaireSpecial}{\Ss\ell}
+\newcommand{\GroupeInvConfig}{\Gg}
+\newcommand{\GroupeIT}{\GroupeInvConfig_{it}}
+\newcommand{\GroupeOrthotrope}{\GroupeInvConfig_{o}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% COVARIANCE-CONTRAVARIANCE %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\CovCon}[3]{#1_{#2}^{\;\, #3}}
+\newcommand{\ConCov}[3]{#1^{#2}_{\;\, #3}}
+\newcommand{\ConCon}[3]{#1^{#2#3}}
+\newcommand{\CovCov}[3]{#1_{#2#3}}
+\newcommand{\Cov}[2]{#1_{#2}}
+\newcommand{\Con}[2]{#1^{#2}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% INTÉGRATION %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Éléments de surface et volume
+\newcommand{\dst}{\ds_{t}}
+\newcommand{\dso}{\ds_{0}}
+\newcommand{\dS}{\d S}
+\newcommand{\dvt}{\dv_{t}}
+\newcommand{\dvo}{\dv_{0}}
+\newcommand{\dm}{\d m}
+\newcommand{\dxt}{\dx_{t}}
+\newcommand{\dxo}{\dx_{0}}
+\newcommand{\dl}{\d\ell}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% VARIABLES ET PARAMÈTRES %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Variables internes
+\newcommand{\VarInterne}{\balpha}
+\newcommand{\VarEndo}{d}
+\newcommand{\VarGen}{\bTheta}
+\newcommand{\VarEtat}{\bchi}
+
+% Paramètres et chemins
+\newcommand{\Chemin}{\mathscr{C}}
+\newcommand{\LiaisonScal}{\phi}
+\newcommand{\Liaison}{\vec{\phi}}
+\newcommand{\LiaisonTen}{\ten{\phi}}
+\newcommand{\parti}{P}
+\newcommand{\mnesique}{interne}
+
+% Tenseurs génériques
+\newcommand{\TenObj}{\ten{X}}
+\newcommand{\TenInvar}{\ten{Y}}
+\newcommand{\VecGen}{\vec{x}}
+\newcommand{\TenGen}{\ten{T}}
+\newcommand{\TenGenVirt}{\hat{\TenGen}}
+\newcommand{\TenSym}{\ten{S}}
+\newcommand{\TenAsym}{\ten{A}}
+\newcommand{\TenTranslatDom}{\ten{X}}
+\newcommand{\TenTherm}{\ten{\Kk}}
+\newcommand{\TenAcous}{\ten{Q}}
+
+% Coordonnées cylindriques
+\def\xir{\xi_r}
+\def\xit{\xi_\theta}
+\def\xiz{\xi_z}
+\def\X{\ten{X}}
+\def\Y{\ten{Y}}
+
+% Fonctions spéciales
+\newcommand{\Heav}{\mathcal{H}eav}
+\newcommand{\vecPolyconv}{\vec{\xi}}
+
+% Chaleur spécifique
+\newcommand{\ChalMassUn}{q_{exp}^{m\, (1)}}
+\newcommand{\ChalMassCinq}{q_{exp}^{m\, (5)}}
+
+% Opérateurs d'assemblage
+\newcommand{\AssembleOp}{\overset{n_{el}}{\underset{e=1}{\mathbf{A}}}}
+
+% Définitions d'espaces
+\newcommand{\Lin}{\mathrm{Lin}}
+\newcommand{\Base}{\mathscr{B}}
+\newcommand{\Corps}{\Omega}
+
+% Puissances de Hamilton
+\newcommand{\HPow}{H}
+\newcommand{\FPow}{F}
+\newcommand{\QPow}{Q}
+\newcommand{\TChgtConf}{\ten{Z}}
+\newcommand{\TSymMat}{\ten{H}}
+
+% Équations aux limites
+\def\eqS{\Sig.{\underline{n}}(\xact)={\underline{T}}^{d}}
+\def\eqV{\vec {div} \, \Sig(\xact)+\vec f (\vec x)=0}
+
+% Géométrie finale
+\geometry{hmargin=3.15cm,top=3cm,bottom=3cm}

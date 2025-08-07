@@ -1,0 +1,303 @@
+%%%%%%%
+\setcounter{tocdepth}{3}
+
+\renewcommand{\bar}{\overline}
+\setcounter{MaxMatrixCols}{30}
+\renewcommand{\hat}{\widehat}
+
+%--------------
+\topmargin=0cm
+\headheight=1cm
+\headsep=1cm
+\textheight=21cm
+\oddsidemargin=-0.5cm
+\evensidemargin=-0.5cm
+\marginparsep=0cm
+\marginparwidth=0cm
+\textwidth=17cm
+\pagestyle{plain}
+
+%-----------------Définition couleur
+\definecolor{blue}{rgb}{0.2, 0.2, 0.6}
+\definecolor{red}{rgb}{0.5, 0.0, 0.13}
+\definecolor{yellow}{rgb}{1.0, 0.75, 0.0}
+\definecolor{orange}{rgb}{1.0, 0.49, 0.0}
+\definecolor{green}{rgb}{0.0, 0.5, 0.0}
+\definecolor{darkblue}{rgb}{0.23, 0.27, 0.29}
+\definecolor{orange}{rgb}{0.76, 0.23, 0.13}
+\makeatletter
+\def\mathcolor#1#{\@mathcolor{#1}}
+\def\@mathcolor#1#2#3{%
+\protect\leavevmode
+\begingroup
+\color#1{#2}#3%
+\endgroup
+}
+
+%\newcommand{\bblue}[1]{#1}
+%\newcommand{\green}[1]{#1}
+%\newcommand{\purple}[1]{#1}
+\newcommand{\red}[1]{#1}
+%\newcommand{\red}[1]{\textcolor{Red}{#1}}
+\newcommand{\bblue}[1]{\textcolor{Blue}{#1}}
+\newcommand{\orange}[1]{\textcolor{Orange}{#1}}
+\newcommand{\green}[1]{\textcolor{Green}{#1}}
+\newcommand{\purple}[1]{\textcolor{Purple}{#1}}
+
+\newcommand{\keyword}[1]{\green{"#1"}}
+\newcommand{\namefunc}[1]{\textcolor{cyan}{#1}}
+
+\newcommand{\centered}[1]{\begin{tabular}{@{}c@{}} #1 \\[0.2pt]\end{tabular}}
+\newcommand{\vmoove}[2]{\adjustbox{raise =#1 ex}{#2}}
+\newcommand{\widecell}[2]{\vmoove{#1}{$\,$}#2\vmoove{-#1}{$\,$}}
+\newcommand{\widecellh}[3]{\vmoove{#1}{$\,$}#3\vmoove{-#2}{$\,$}}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\ToDo}[1]{{\large\color{red} \underline{To do:} #1}}
+\newcommand{\REF}{\ToDo{REF}}
+\newcommand{\blue}[1]{\textcolor{Blue}{#1}}
+
+%----------------------
+\newcommand{\ind}[1]{\emph{#1}\index{#1}}
+\newcommand{\Ind}[2]{\emph{#1}\index{#2}}
+\newcommand{\Inde}[2]{\emph{#2}\index{#1@#2}}
+\newcommand{\Index}[3]{\emph{#1 #2 #3}\index{#1 #2 #3}}
+%............................................................................................
+\providecommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
+\providecommand{\mb}[1]{\ensuremath{\mathbf{#1}}}
+\providecommand{\bs}[1]{\ensuremath{\boldsymbol{#1}}}
+\providecommand{\jump}[1]{\lbrack\!\lbrack #1 \rbrack\!\rbrack}
+\providecommand{\norm}[1]{\Vert #1 \Vert}
+\providecommand{\abs}[1]{\left\vert #1 \right\vert}
+\providecommand{\mean}[1]{\left\langle #1 \right\rangle}
+%%%%%
+%%%%%%
+\def\ie{\emph{i.e.\/ }}
+\def\croix{\!\times\!}
+\def\en{\mbox{ en }}
+\def\sign{\mbox{sign}}
+\def\con{:}
+\def\sca{\!\cdot\!}
+\def\demi{{\textstyle \frac{1}{2}}\,}
+\newcommand{\ppart}[1]{\left\langle #1\right\rangle_{+}}
+
+
+%%%%%%%%%%
+% alphabets
+%----------------------
+% mathbf = suffixe bf
+%
+\def\abf{\mathbf{a}} \def\bbf{\mathbf{b}} \def\cbf{\mathbf{c}} \def\dbf{\mathbf{d}} \def\ebf{\mathbf{e}} \def\fbf{\mathbf{f}}\def\gbf{\mathbf{g}} \def\hbf{\mathbf{h}}
+\def\ibf{\mathbf{i}} \def\jbf{\mathbf{j}} \def\kbf{\mathbf{k}} \def\lbf{\mathbf{l}} \def\mbf{\mathbf{m}} \def\nbf{\mathbf{n}} \def\obf{\mathbf{o}} \def\pbf{\mathbf{p}} \def\qbf{\mathbf{q}}
+\def\rbf{\mathbf{r}} \def\sbf{\mathbf{s}} \def\tbf{\mathbf{t}} \def\ubf{\mathbf{u}} \def\vbf{\mathbf{v}}  \def\wbf{\mathbf{w}} \def\xbf{\mathbf{x}} \def\ybf{\mathbf{y}} \def\zbf{\mathbf{z}}
+
+\def\Abf{\mathbf{A}} \def\Bbf{\mathbf{B}} \def\Cbf{\mathbf{C}} \def\Dbf{\mathbf{D}} \def\Ebf{\mathbf{E}} \def\Fbf{\mathbf{F}} \def\Gbf{\mathbf{G}} \def\Hbf{\mathbf{H}}
+\def\Ibf{\mathbf{I}} \def\Jbf{\mathbf{J}} \def\Kbf{\mathbf{K}} \def\Lbf{\mathbf{L}} \def\Mbf{\mathbf{M}} \def\Nbf{\mathbf{N}} \def\Obf{\mathbf{O}} \def\Pbf{\mathbf{P}} \def\Qbf{\mathbf{Q}}
+\def\Rbf{\mathbf{R}} \def\Sbf{\mathbf{S}} \def\Tbf{\mathbf{T}} \def\Ubf{\mathbf{U}} \def\Vbf{\mathbf{V}}  \def\Wbf{\mathbf{W}} \def\Xbf{\mathbf{X}} \def\Ybf{\mathbf{Y}} \def\Zbf{\mathbf{Z}}
+%-------------------------
+% mathcal = suffixe cl
+%
+\def\acl{\mathcal{a}} \def\bcl{\mathcal{b}} \def\ccl{\mathcal{c}} \def\dcl{\mathcal{d}} \def\ecl{\mathcal{e}} \def\fcl{\mathcal{f}}\def\gcl{\mathcal{g}} \def\hcl{\mathcal{h}}
+\def\icl{\mathcal{i}} \def\jcl{\mathcal{j}} \def\kcl{\mathcal{k}} \def\lcl{\mathcal{l}} \def\mcl{\mathcal{m}} \def\ncl{\mathcal{n}} \def\ocl{\mathcal{o}} \def\pcl{\mathcal{p}} \def\qcl{\mathcal{q}}
+\def\rcl{\mathcal{r}} \def\scl{\mathcal{s}} \def\tcl{\mathcal{t}} \def\ucl{\mathcal{u}} \def\vcl{\mathcal{v}} \def\wcl{\mathcal{w}} \def\xcl{\mathcal{x}} \def\ycl{\mathcal{y}} \def\zcl{\mathcal{z}}
+
+%-------------------------
+% mathcal majuscule
+\newcommand{\Aa}{\mathcal{A}}
+\newcommand{\Bb}{\mathcal{B}}
+\newcommand{\Cc}{\mathcal{C}}
+\newcommand{\Dd}{\mathcal{D}}
+\newcommand{\Ee}{\mathcal{E}}
+\newcommand{\Ff}{\mathcal{F}}
+\newcommand{\Gg}{\mathcal{G}}
+\newcommand{\Hh}{\mathcal{H}}
+\newcommand{\Ii}{\mathcal{I}}
+\newcommand{\Jj}{\mathcal{J}}
+\newcommand{\Kk}{\mathcal{K}}
+\newcommand{\Ll}{\mathcal{L}}
+\newcommand{\Mm}{\mathcal{M}}
+\newcommand{\Nn}{\mathcal{N}}
+\newcommand{\Oo}{\mathcal{O}}
+\newcommand{\Pp}{\mathcal{P}}
+\newcommand{\Qq}{\mathcal{Q}}
+\newcommand{\Rr}{\mathcal{R}}
+\newcommand{\Ss}{\mathcal{S}}
+\newcommand{\Tt}{\mathcal{T}}
+\newcommand{\Uu}{\mathcal{U}}
+\newcommand{\Vv}{\mathcal{V}}
+\newcommand{\Ww}{\mathcal{W}}
+\newcommand{\Xx}{\mathcal{X}}
+\newcommand{\Yy}{\mathcal{Y}}
+\newcommand{\Zz}{\mathcal{Z}}
+
+%-------------------------
+% mathsf= suffixe sf
+%
+\def\asf{\mathsf{a}} \def\bsf{\mathsf{b}} \def\csf{\mathsf{c}} \def\dsf{\mathsf{d}} \def\esf{\mathsf{e}} \def\fsf{\mathsf{f}}\def\gsf{\mathsf{g}} \def\hsf{\mathsf{h}}
+\def\isf{\mathsf{i}} \def\jsf{\mathsf{j}} \def\ksf{\mathsf{k}} \def\lsf{\mathsf{l}} \def\msf{\mathsf{m}} \def\nsf{\mathsf{n}} \def\osf{\mathsf{o}} \def\psf{\mathsf{p}} \def\qsf{\mathsf{q}}
+\def\rsf{\mathsf{r}} \def\ssf{\mathsf{s}} \def\tsf{\mathsf{t}} \def\usf{\mathsf{u}} \def\vsf{\mathsf{v}} \def\wsf{\mathsf{w}} \def\xsf{\mathsf{x}} \def\ysf{\mathsf{y}} \def\zsf{\mathsf{z}}
+
+\def\Asf{\mathsf{A}} \def\Bsf{\mathsf{B}} \def\Csf{\mathsf{C}} \def\Dsf{\mathsf{D}} \def\Esf{\mathsf{E}} \def\Fsf{\mathsf{F}} \def\Gsf{\mathsf{G}} \def\Hsf{\mathsf{H}}
+\def\Isf{\mathsf{I}} \def\Jsf{\mathsf{J}} \def\Ksf{\mathsf{K}} \def\Lsf{\mathsf{L}} \def\Msf{\mathsf{M}} \def\Nsf{\mathsf{N}} \def\Osf{\mathsf{O}} \def\Psf{\mathsf{P}} \def\Qsf{\mathsf{Q}}
+\def\Rsf{\mathsf{R}} \def\Ssf{\mathsf{S}} \def\Tsf{\mathsf{T}} \def\Usf{\mathsf{U}} \def\Vsf{\mathsf{V}} \def\Wsf{\mathsf{W}} \def\Xsf{\mathsf{X}} \def\Ysf{\mathsf{Y}} \def\Zsf{\mathsf{Z}}
+
+%-------------------------
+% Boldsymbols= prefixe b
+\def\ba{\boldsymbol{a}} \def\bb{\boldsymbol{b}} \def\bc{\boldsymbol{c}} \def\bd{\boldsymbol{d}} \def\boldf{\boldsymbol{f}} \def\bg{\boldsymbol{g}}\def\bh{\mathsf{h}} \def\bi{\boldsymbol{i}}
+\def\bj{\boldsymbol{j}} \def\bk{\boldsymbol{k}} \def\bl{\boldsymbol{l}} \def\bn{\boldsymbol{n}} \def\bo{\boldsymbol{o}} \def\bp{\boldsymbol{p}} \def\bq{\boldsymbol{q}} \def\br{\boldsymbol{r}} \def\bt{\boldsymbol{t}}
+\def\bu{\boldsymbol{u}} \def\bv{\boldsymbol{v}} \def\bw{\boldsymbol{w}} \def\bx{\boldsymbol{x}} \def\by{\boldsymbol{y}} \def\bz{\boldsymbol{z}}
+
+\def\bA{\boldsymbol{A}} \def\bB{\boldsymbol{B}} \def\bC{\boldsymbol{C}} \def\bD{\boldsymbol{D}} \def\bE{\boldsymbol{E}} \def\bF{\boldsymbol{F}} \def\bG{\boldsymbol{G}} \def\bH{\boldsymbol{H}}
+\def\bI{\boldsymbol{I}} \def\bJ{\boldsymbol{J}} \def\bK{\boldsymbol{K}} \def\bL{\boldsymbol{L}} \def\bM{\boldsymbol{M}} \def\bN{\boldsymbol{N}} \def\bO{\boldsymbol{O}} \def\bP{\boldsymbol{P}} \def\bQ{\boldsymbol{Q}}
+\def\bR{\boldsymbol{R}} \def\bS{\boldsymbol{S}} \def\bT{\boldsymbol{T}} \def\bU{\boldsymbol{U}} \def\bV{\boldsymbol{V}} \def\bW{\boldsymbol{W}} \def\bX{\boldsymbol{X}} \def\bY{\boldsymbol{Y}} \def\bZ{\boldsymbol{Z}}
+
+
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+\newcommand{\bbeta}{\boldsymbol{\beta}}
+\newcommand{\bgamma}{\boldsymbol{\gamma}}
+\newcommand{\bdelta}{\boldsymbol{\delta}}
+\newcommand{\bepsilon}{\boldsymbol{\epsilon}}
+\newcommand{\bvarepsilon}{\boldsymbol{\varepsilon}}
+\newcommand{\bzeta}{\boldsymbol{\zeta}}
+\newcommand{\boeta}{\boldsymbol{\eta}}
+\newcommand{\btheta}{\boldsymbol{\theta}}
+\newcommand{\bvartheta}{\boldsymbol{\vartheta}}
+\newcommand{\biota}{\boldsymbol{\iota}}
+\newcommand{\bkappa}{\boldsymbol{\kappa}}
+\newcommand{\blambda}{\boldsymbol{\lambda}}
+\newcommand{\bmu}{\boldsymbol{\mu}}
+\newcommand{\bnu}{\boldsymbol{\nu}}
+\newcommand{\bxi}{\boldsymbol{\xi}}
+\newcommand{\bpi}{\boldsymbol{\pi}}
+\newcommand{\brho}{\boldsymbol{\rho}}
+\newcommand{\bvarrho}{\boldsymbol{\varrho}}
+\newcommand{\bsig}{\boldsymbol{\sigma}}
+\newcommand{\btau}{\boldsymbol{\tau}}
+\newcommand{\bupsilon}{\boldsymbol{\upsilon}}
+\newcommand{\bphi}{\boldsymbol{\phi}}
+\newcommand{\bvarphi}{\boldsymbol{\varphi}}
+\newcommand{\bchi}{\boldsymbol{\chi}}
+\newcommand{\bpsi}{\boldsymbol{\psi}}
+\newcommand{\bomega}{\boldsymbol{\omega}}
+\newcommand{\bnabla}{\boldsymbol{\nabla}}
+\newcommand{\bGamma}{\boldsymbol{\Gamma}}
+\newcommand{\bDelta}{\boldsymbol{\Delta}}
+\newcommand{\bTheta}{\boldsymbol{\Theta}}
+\newcommand{\bLambda}{\boldsymbol{\Lambda}}
+\newcommand{\bXi}{\boldsymbol{\Xi}}
+\newcommand{\bPi}{\boldsymbol{\Pi}}
+\newcommand{\bSig}{\boldsymbol{\Sigma}}
+\newcommand{\bUpsilon}{\boldsymbol{\Upsilon}}
+\newcommand{\bPhi}{\boldsymbol{\Phi}}
+\newcommand{\bPsi}{\boldsymbol{\Psi}}
+\newcommand{\bOmega}{\boldsymbol{\Omega}}
+
+%% Mathcal boldsymbols
+\DeclareMathAlphabet\mathbfcal{OMS}{cmsy}{b}{n}
+\newcommand{\bAa}{\mathbfcal{A}}
+\newcommand{\bBb}{\mathbfcal{B}}
+\newcommand{\bCc}{\mathbfcal{C}}
+\newcommand{\bDd}{\mathbfcal{D}}
+\newcommand{\bEe}{\mathbfcal{E}}
+\newcommand{\bFf}{\mathbfcal{F}}
+\newcommand{\bGg}{\mathbfcal{G}}
+\newcommand{\bHh}{\mathbfcal{H}}
+\newcommand{\bIi}{\mathbfcal{I}}
+\newcommand{\bJj}{\mathbfcal{J}}
+\newcommand{\bKk}{\mathbfcal{K}}
+\newcommand{\bLl}{\mathbfcal{L}}
+\newcommand{\bMm}{\mathbfcal{M}}
+\newcommand{\bNn}{\mathbfcal{N}}
+\newcommand{\bOo}{\mathbfcal{O}}
+\newcommand{\bPp}{\mathbfcal{P}}
+\newcommand{\bQq}{\mathbfcal{Q}}
+\newcommand{\bRr}{\mathbfcal{R}}
+\newcommand{\bSs}{\mathbfcal{S}}
+\newcommand{\bTt}{\mathbfcal{T}}
+\newcommand{\bUu}{\mathbfcal{U}}
+\newcommand{\bVv}{\mathbfcal{V}}
+\newcommand{\bWw}{\mathbfcal{W}}
+\newcommand{\bXx}{\mathbfcal{X}}
+\newcommand{\bYy}{\mathbfcal{Y}}
+\newcommand{\bZz}{\mathbfcal{Z}}
+
+%% Mathbb symbols
+\newcommand{\BB}{\mathbb{B}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\DD}{\mathbb{D}}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\FF}{\mathbb{F}}
+\newcommand{\GG}{\mathbb{G}}
+\newcommand{\HH}{\mathbb{H}}
+\newcommand{\II}{\mathbb{I}}
+\newcommand{\JJ}{\mathbb{J}}
+\newcommand{\KK}{\mathbb{K}}
+\newcommand{\LL}{\mathbb{L}}
+\newcommand{\MM}{\mathbb{M}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\OO}{\mathbb{O}}
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\SSm}{\mathbb{S}}
+\newcommand{\TT}{\mathbb{T}}
+\newcommand{\UU}{\mathbb{U}}
+\newcommand{\VV}{\mathbb{V}}
+\newcommand{\WW}{\mathbb{W}}
+\newcommand{\XX}{\mathbb{X}}
+\newcommand{\YY}{\mathbb{Y}}
+\newcommand{\ZZ}{\mathbb{Z}}
+
+
+%%%%%%%%% Intégration %%%%%%%%%
+%\renewcommand{\ds}{\,\mathrm{d}\omega}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\dX}{\,\mathrm{d}X}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\dxx}{\,\mathrm{d}\mathrm{x}_1}
+\newcommand{\dy}{\,\mathrm{d}y}
+\newcommand{\dY}{\,\mathrm{d}Y}
+\newcommand{\dz}{\,\mathrm{d}z}
+\newcommand{\dr}{\,\mathrm{d}r}
+\newcommand{\dtheta}{\,\mathrm{d}\theta}
+\newcommand{\drho}{\,\mathrm{d}\rho}
+\newcommand{\dphi}{\,\mathrm{d}\phi}
+\newcommand{\ds}{\,\mathrm{d}s}
+\newcommand{\dv}{\,\mathrm{d}v}
+
+%Divers
+\newcommand{\avec}{\text{ avec }}
+\newcommand{\et}{\text{ et }}
+\newcommand{\sur}{\text{ sur }}
+\newcommand{\dans}{\text{ dans }}
+\newcommand{\si}{\text{ si }}
+\newcommand{\sinon}{\text{ sinon }}
+\newcommand{\ou}{\text{ ou }}
+\newcommand{\pour}{\text{ pour }}
+\newcommand{\equivalent}{\; \Leftrightarrow \;}
+\newcommand{\Longequivalent}{\; \Longleftrightarrow \;}
+\newcommand{\implique}{\; \Rightarrow \;}
+\newcommand{\tq}{\text{ tel que }}
+\newcommand{\pa}[1]{\left(#1\right)}
+\newcommand{\car}{\text{car} \; }
+\newcommand{\voir}[1]{\; \text{voir}\; #1}
+\newcommand{\dapres}{\; \text{d'apr\`es}\; }
+
+\def\tr{\mathop{\operator@font Tr}\nolimits}
+\def\Jac{\mathop{\operator@font Jac}\nolimits}
+\def\Hess{\mathop{\operator@font Hess}\nolimits}
+\def\Vol{\mathop{\operator@font Vol}\nolimits}
+\def\Aire{\mathop{\operator@font Aire}\nolimits}
+
+
+\newcommand{\GrandO}{\mathscr{O}}
+\newcommand{\vGrandO}{\vec{\GrandO}}
+\newcommand{\bGrandO}{\pmb{\mathscr{O}}}
+\newcommand{\PetitO}{\scriptstyle{\mathscr{O}}\displaystyle}
+\newcommand{\ToutPetitO}{\scriptscriptstyle{\mathscr{O}}\displaystyle}
+\renewcommand{\d}{\mathrm{d}}
+
+\newcommand{\Fonction}[5]{\begin{array}{crcl}
+#1:& #2 & \rightarrow & #3\\
+&#4 & \mapsto & #5\\
+\end{array}}

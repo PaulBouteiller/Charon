@@ -31,9 +31,8 @@ Key features:
 """
 
 from dolfinx.fem import Function, Expression
-from ufl import exp, conditional
+from ufl import conditional
 from ..utils.interpolation import interpolate_multiple
-from ..utils.generic_functions import smooth_shifted_heaviside
 
 class Multiphase:
     """
@@ -70,8 +69,8 @@ class Multiphase:
         if self.multiphase_evolution:
             self.phase_dictionnary = multiphase_dictionnaire["phase_transition"]
             self._set_chemical_energy_release(multiphase_dictionnaire)
-            self.evolution_type = multiphase_dictionnaire["evolution_type"]
-            self.reactifs, self.intermediaires, self.produits_finaux, self.inertes = self.classifier_especes(self.phase_dictionnary)
+            self.evolution_law = multiphase_dictionnaire["evolution_law"]
+            self.reactifs, self.intermediaires, self.produits_finaux, self.inertes = self._species_classifier(self.phase_dictionnary)
             print("\nVérification - chaînes de réaction :")
             for i in range(len(self.phase_dictionnary)):
                 if self.reactifs[i]:
@@ -122,38 +121,8 @@ class Multiphase:
         for i, boolean, e_vol in zip(range_list, dic["phase_transition"], dic["volumic_energy_release"]):
             if boolean:
                 self.Delta_e_vol_chim += (self.c[i] - self.c_old[i]) * e_vol
-        
-    def set_evolution_parameters(self, params):
-        """
-        Unified method for configuring phase evolution.
-        
-        Parameters
-        ----------
-        params : dict Dictionary of evolution parameters
             
-        Raises
-        ------
-        ValueError If an unknown evolution type is specified
-        """
-        if params.get("type") == "KJMA":
-            self._set_KJMA_kinetic(
-                params["rho"], 
-                params["T"], 
-                params["melt_param"], 
-                params["gamma_param"], 
-                params["alpha_param"],
-                params["tau_param"]
-            )
-        elif params.get("type") == "smooth_instantaneous":
-            self._set_smooth_instantaneous_evolution(
-                params["rho"],
-                params["rholim"],
-                params["width"]
-            )
-        else:
-            raise ValueError(f"Unknown evolution type: {params.get('type')}")
-            
-    def classifier_especes(self, tableau_bool):
+    def _species_classifier(self, tableau_bool):
         """
         Classifie les espèces chimiques selon leurs rôles dans les réactions.
         
@@ -214,43 +183,3 @@ class Multiphase:
                 produits_finaux[i] = True
         
         return reactifs, intermediaires, produits_finaux, inertes
-    
-    def _set_KJMA_kinetic(self, rho, T, melt_param, gamma_param, alpha_param, tau_param):
-        """
-        Initialize functions needed for the KJMA kinetic model.
-        
-        This model describes phase transformations based on nucleation
-        and growth processes, often used for crystallization phenomena.
-        
-        Parameters
-        ----------
-        rho : float or Function Current density field
-        T : Function Current temperature field
-        melt_param : list List containing two floats needed for the melting temperature definition
-        gamma_param : float Speed of the liquid-solid interface as a function of temperature
-        alpha_param : list List containing three parameters for the alpha field (nucleation rate)
-        tau_param : list List containing three parameters for the tau field (induction time)
-        """
-        T_fusion = melt_param[0] * rho ** melt_param[1]
-        self.gamma = - gamma_param * (T - T_fusion)
-        self.alpha = exp(alpha_param[0] + alpha_param[1] * rho + alpha_param[2] * T)
-        self.tau = exp(tau_param[0] + tau_param[1] * rho + tau_param[2] * T)
-        self.U = Function(self.V_c)
-        self.G = Function(self.V_c)
-        self.J = Function(self.V_c)
-        
-    def _set_smooth_instantaneous_evolution(self, rho, rholim, width):
-        """
-        Create a smooth interpolation function between 0 and 1 around rholim.
-        
-        This function creates a smooth transition for phase concentration
-        based on density, using a logistic function.
-        
-        Parameters
-        ----------
-        rho : float or numpy.array Density field
-        rholim : float Central point of the transition
-        width : float Width over which the function changes from 0.01 to 0.99
-        """
-        c_expr = smooth_shifted_heaviside(rho, rholim, width)
-        self.c_expr = Expression(c_expr, self.V_c.element.interpolation_points())
