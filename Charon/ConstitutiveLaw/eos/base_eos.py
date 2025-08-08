@@ -39,7 +39,6 @@ BaseEOS : Abstract base class for equation of state models
 
 from abc import ABC, abstractmethod
 
-
 class BaseEOS(ABC):
     """Abstract base class for all equation of state models.
     

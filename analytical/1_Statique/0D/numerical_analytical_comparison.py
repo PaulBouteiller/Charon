@@ -64,7 +64,7 @@ def comparison(mat, varepsilon, T):
             s_analytique_array.append(MooneyRivlin(devia.mu, devia.mu_quad, J))
 
     
-    p_csv = read_csv("Test_0D_"+eos_type+"-results/Pressure.csv")
+    p_csv = read_csv("Test_0D_"+eos_type+"-results/p.csv")
     resultat = [p_csv[colonne].to_numpy() for colonne in p_csv.columns]
     p_array = array([resultat[i+1][0] for i in range(len(resultat)-1)])
     

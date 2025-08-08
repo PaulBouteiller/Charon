@@ -563,7 +563,7 @@ class AnisotropicDeviator(BaseDeviator):
         # First term 
         term_1 = compute_pibar_contribution(M0, J, u)
         # Build different strain measure
-        C = kinematic.C_3D(u)
+        C = kinematic.right_cauchy_green_3d(u)
         C_bar = J**(-2./3) * C
         inv_C = inv(C)
         GLD_bar = 1./2 * (C_bar - Identity(3))

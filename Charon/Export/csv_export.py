@@ -119,7 +119,6 @@ class OptimizedCSVExport:
             self.csv_export_v = True
             self.v_dte = self.dofs_to_exp(self.pb.V, self.dico_csv.get("v"))
             self.coordinate_data["v"] = self.get_coordinate_data(self.pb.V, self.v_dte)
-            
             components = self.FIELD_COMPONENTS[self.pb.name]["v"]
             self.v_name_list = components
             if len(components) > 1:
@@ -228,9 +227,9 @@ class OptimizedCSVExport:
             return keyword
 
     def comp_to_export(self, keyword, component):
-        if component == None:
-            return keyword[0]
-        else:
+        if isinstance(keyword, str):
+            return keyword
+        elif isinstance(keyword, ndarray):
             vec_dof_to_exp = keyword.copy()
             vec_dof_to_exp *= self.pb.dim
             vec_dof_to_exp += component
@@ -258,7 +257,7 @@ class OptimizedCSVExport:
         if self.csv_export_T:
             self.export_field(t, "T", self.pb.T, self.T_dte)
         if self.csv_export_p:
-            self.export.p_func.interpolate(self.export.p_expr)
+            self.export.p.interpolate(self.export.p_expr)
             self.export_field(t, "p", self.export.p, self.p_dte)
         if self.csv_export_rho:
             self.export.rho.interpolate(self.export.rho_expr)

@@ -53,7 +53,7 @@ pb.T0.x.petsc_vec.set(T0)
 
 dictionnaire_solve = {
     "Prefix" : "Test_0D_" + eos_type,
-    "csv_output" : {"Pressure" : True, "U" : ["Boundary", 2], "deviateur" :  True}
+    "csv_output" : {"p" : True, "U" : ["Boundary", 2], "s" :  True}
     }
 
 def final_output(problem):

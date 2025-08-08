@@ -66,7 +66,7 @@ pb = CylindricalUD(Acier, dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Onde_cylindrique",
-    "csv_output" : {"Sig" : True}
+    "csv_output" : {"sig" : True}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)

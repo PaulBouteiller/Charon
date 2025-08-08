@@ -142,7 +142,7 @@ for traction in ["Fibre", "maty", "matz"]:
     pb.F_list = []
     dictionnaire_solve = {
         "Prefix" : "Traction_3D"+traction,
-        "csv_output" : {"Pressure" : True, "rho" : True}
+        "csv_output" : {"p" : True, "rho" : True}
         }
     def query_output(problem, t):
         problem.eps_list.append(eps * t)

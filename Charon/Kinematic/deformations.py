@@ -118,6 +118,11 @@ class Deformations:
         F_3d = self.deformation_gradient_3d(displacement_field)
         return dot(F_3d, F_3d.T)
     
+    def right_cauchy_green_3d(self, displacement_field):
+        """Return the full 3D right Cauchy-Green tensor."""
+        F_3d = self.deformation_gradient_3d(displacement_field)
+        return dot(F_3d.T, F_3d)
+    
     def reduced_det(self, tensor):
         """Compute determinant for 1D reduced tensors."""
         if self._is_1d:
