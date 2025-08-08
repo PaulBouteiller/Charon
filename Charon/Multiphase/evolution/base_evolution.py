@@ -103,24 +103,8 @@ class BaseEvolutionLaw(ABC):
         pass
     
     @abstractmethod
-    def compute_concentration_rates(self, concentrations, T, pressure, material, **kwargs):
-        """Compute the time derivatives of concentrations.
-        
-        This is the core method that calculates dc/dt for all phases
-        based on the current state and evolution law.
-        
-        Parameters
-        ----------
-        concentrations : list of dolfinx.fem.Function Current concentration fields for all phases
-        T : dolfinx.fem.Function Current temperature field
-        pressure : ufl.Expression Current pressure expression
-        material : Material Material object containing properties
-        **kwargs : dict Additional parameters specific to each evolution law
-            
-        Returns
-        -------
-        list of ufl.Expression List of concentration rate expressions dc/dt for each phase
-        """
+    def compute_single_phase_rate(self, concentration, T, pressure, material, **kwargs):
+        """Compute intrinsic rate for a single phase (before weighting)."""
         pass
     
     @abstractmethod

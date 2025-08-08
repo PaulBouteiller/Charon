@@ -60,14 +60,10 @@ class KJMAEvolution(BaseEvolutionLaw):
     
     Attributes
     ----------
-    melt_param : list of float
-        Parameters [a, b] for melting temperature: T_melt = a * rho^b
-    gamma_param : float
-        Interface velocity parameter
-    alpha_param : list of float
-        Parameters [a0, a1, a2] for nucleation rate: alpha = exp(a0 + a1*rho + a2*T)
-    tau_param : list of float
-        Parameters [t0, t1, t2] for induction time: tau = exp(t0 + t1*rho + t2*T)
+    melt_param  : list of float Parameters [a, b] for melting temperature: T_melt = a * rho^b
+    gamma_param : float         Interface velocity parameter
+    alpha_param : list of float Parameters [a0, a1, a2] for nucleation rate: alpha = exp(a0 + a1*rho + a2*T)
+    tau_param   : list of float Parameters [t0, t1, t2] for induction time: tau = exp(t0 + t1*rho + t2*T)
     """
     
     def required_parameters(self):
@@ -85,16 +81,11 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing:
-            melt_param : list of float
-                Melting temperature parameters [a, b]
-            gamma_param : float
-                Interface velocity parameter
-            alpha_param : list of float
-                Nucleation rate parameters [a0, a1, a2]
-            tau_param : list of float
-                Induction time parameters [t0, t1, t2]
+        params : dict Dictionary containing:
+                        melt_param  : list of float Melting temperature parameters [a, b]
+                        gamma_param : float         Interface velocity parameter
+                        alpha_param : list of float Nucleation rate parameters [a0, a1, a2]
+                        tau_param   : list of float Induction time parameters [t0, t1, t2]
         """
         super().__init__(params)
         
@@ -119,14 +110,10 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        V_c : dolfinx.fem.FunctionSpace
-            Function space for concentration and auxiliary fields
-        rho : dolfinx.fem.Function or ufl.Expression
-            Current density field
-        T : dolfinx.fem.Function or ufl.Expression
-            Current temperature field
-        **kwargs : dict
-            Additional setup parameters
+        V_c : dolfinx.fem.FunctionSpace Function space for concentration and auxiliary fields
+        rho : dolfinx.fem.Function or ufl.Expression Current density field
+        T : dolfinx.fem.Function or ufl.Expression Current temperature field
+        **kwargs : dict Additional setup parameters
         """
         # Temperature-dependent melting point
         T_fusion = self.melt_param[0] * rho ** self.melt_param[1]
@@ -162,8 +149,7 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        V_c : dolfinx.fem.FunctionSpace
-            Function space for expressions
+        V_c : dolfinx.fem.FunctionSpace Function space for expressions
         """
         interp = V_c.element.interpolation_points()
         
@@ -194,15 +180,12 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        t : float
-            Current time
-        n_lim : int, optional
-            Maximum number of terms in series expansion
+        t : float Current time
+        n_lim : int, optional Maximum number of terms in series expansion
             
         Returns
         -------
-        float
-            Transient correction factor
+        float Transient correction factor
         """
         S = 2.0
         for i in range(1, n_lim):
@@ -218,22 +201,14 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentration fields
-        T : dolfinx.fem.Function
-            Current temperature field
-        pressure : ufl.Expression
-            Current pressure expression (unused for KJMA)
-        material : Material
-            Material object
-        phase_transitions : list of bool
-            Phase transition flags
-        species_types : dict
-            Species classification
-        t : float, optional
-            Current time for transient effects
-        **kwargs : dict
-            Additional parameters
+        concentrations : list of dolfinx.fem.Function Current concentration fields
+        T              : dolfinx.fem.Function Current temperature field
+        pressure       : ufl.Expression Current pressure expression (unused for KJMA)
+        material       : Material Material object
+        phase_transitions : list of bool Phase transition flags
+        species_types  : dict Species classification
+        t : float, optional Current time for transient effects
+        **kwargs : dict Additional parameters
             
         Returns
         -------
@@ -277,10 +252,8 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        dt : float
-            Time step size
-        **kwargs : dict
-            Additional update parameters
+        dt : float Time step size
+        **kwargs : dict Additional update parameters
         """
         if self.U is None or self.G is None or self.J is None:
             raise RuntimeError("Auxiliary fields not initialized. Call setup_auxiliary_fields first.")
@@ -309,8 +282,7 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        dict
-            Dictionary containing auxiliary fields and parameters
+        dict Dictionary containing auxiliary fields and parameters
         """
         return {
             'U': self.U,
@@ -328,22 +300,3 @@ class KJMAEvolution(BaseEvolutionLaw):
                 'dot_J': self.dot_J
             }
         }
-    
-    def get_transformation_degree(self, concentrations):
-        """Calculate the degree of transformation.
-        
-        For KJMA, this is typically the fraction of new phase formed.
-        
-        Parameters
-        ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentration fields
-            
-        Returns
-        -------
-        dolfinx.fem.Function or float
-            Transformation degree (0 = no transformation, 1 = complete)
-        """
-        if len(concentrations) < 2:
-            return 0.0
-        return concentrations[1]  # Assuming second phase is the product

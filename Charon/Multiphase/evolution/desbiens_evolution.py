@@ -43,13 +43,11 @@ References:
 - Desbiens, N. (2017). "Modeling of the Jack Rabbit Series of Experiments 
   with a Temperature Based Reactive Burn Model"
 """
-
-from math import tanh, log
 from ufl import tanh as ufl_tanh, ln as ufl_ln, conditional
 from .base_evolution import BaseEvolutionLaw
 
 
-class Desbiens Evolution(BaseEvolutionLaw):
+class DesbiensEvolution(BaseEvolutionLaw):
     """Desbiens temperature-based reactive burn model evolution law.
     
     Implementation of the comprehensive 4-regime explosive reaction model
@@ -57,24 +55,15 @@ class Desbiens Evolution(BaseEvolutionLaw):
     
     Attributes
     ----------
-    Tadim : float
-        Dimensioning temperature [K]
-    Tall : float
-        Ignition threshold temperature [K]  
-    Tc : float
-        Critical temperature for regime switching [K]
-    T0 : float
-        Reference temperature [K]
-    kI, kIG, kDG, kB : float
-        Rate constants for each regime [μs^-1]
-    nI, nIG, nDG, nB : float
-        Temperature exponents for each regime
-    W1 : float
-        Switching function parameter
-    SI1, SI2 : float
-        Initiation shape function parameters
-    SG1, SG2 : float
-        Growth shape function parameters
+    Tadim : float Dimensioning temperature [K]
+    Tall  : float Ignition threshold temperature [K]  
+    Tc    : float Critical temperature for regime switching [K]
+    T0    : float Reference temperature [K]
+    kI, kIG, kDG, kB : float Rate constants for each regime [μs^-1]
+    nI, nIG, nDG, nB : float Temperature exponents for each regime
+    W1 : float Switching function parameter
+    SI1, SI2 : float Initiation shape function parameters
+    SG1, SG2 : float Growth shape function parameters
     """
     
     def required_parameters(self):
@@ -178,13 +167,11 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        lambda_burn : ufl.Expression or dolfinx.fem.Function
-            Burn fraction (0 ≤ λ ≤ 1)
+        lambda_burn : ufl.Expression or dolfinx.fem.Function Burn fraction (0 ≤ λ ≤ 1)
             
         Returns
         -------
-        ufl.Expression
-            Shape function value
+        ufl.Expression Shape function value
         """
         return conditional(lambda_burn < self.SI2,
                           self.SI1 * lambda_burn,
@@ -197,13 +184,11 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        lambda_burn : ufl.Expression or dolfinx.fem.Function
-            Burn fraction (0 ≤ λ ≤ 1)
+        lambda_burn : ufl.Expression or dolfinx.fem.Function Burn fraction (0 ≤ λ ≤ 1)
             
         Returns
         -------
-        ufl.Expression
-            Shape function value (0 to 1)
+        ufl.Expression Shape function value (0 to 1)
         """
         arg = self.SG1 * (lambda_burn - self.SG2)
         return 0.5 * (1.0 - ufl_tanh(arg))
@@ -213,15 +198,12 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T_shock : ufl.Expression
-            Shock temperature
-        lambda_burn : ufl.Expression
-            Current burn fraction
+        T_shock : ufl.Expression Shock temperature
+        lambda_burn : ufl.Expression Current burn fraction
             
         Returns
         -------
-        ufl.Expression
-            Initiation rate
+        ufl.Expression Initiation rate
         """
         temp_ratio = conditional(T_shock > self.Tall,
                                 (T_shock - self.Tall) / self.Tall,
@@ -234,15 +216,12 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T_shock : ufl.Expression
-            Shock temperature  
-        lambda_burn : ufl.Expression
-            Current burn fraction
+        T_shock : ufl.Expression Shock temperature  
+        lambda_burn : ufl.Expression Current burn fraction
             
         Returns
         -------
-        ufl.Expression
-            Ignition-growth rate
+        ufl.Expression Ignition-growth rate
         """
         temp_ratio = conditional(T_shock > self.Tall,
                                 (T_shock - self.Tall) / self.Tall,
@@ -260,15 +239,12 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T : ufl.Expression
-            Local temperature
-        lambda_burn : ufl.Expression
-            Current burn fraction
+        T : ufl.Expression Local temperature
+        lambda_burn : ufl.Expression Current burn fraction
             
         Returns
         -------
-        ufl.Expression
-            Diffusion-growth rate
+        ufl.Expression Diffusion-growth rate
         """
         temp_ratio = conditional(T > self.Tall,
                                 (T - self.Tall) / self.Tadim,
@@ -282,15 +258,12 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T : ufl.Expression
-            Local temperature
-        lambda_burn : ufl.Expression  
-            Current burn fraction
+        T : ufl.Expression Local temperature
+        lambda_burn : ufl.Expression  Current burn fraction
             
         Returns
         -------
-        ufl.Expression
-            Burn rate
+        ufl.Expression Burn rate
         """
         temp_ratio = conditional(T > self.Tall,
                                 (T - self.Tall) / self.Tadim,
@@ -298,77 +271,27 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         return self.kB * (temp_ratio ** self.nB) * ((1.0 - lambda_burn) ** 0.5)
     
-    def compute_concentration_rates(self, concentrations, T, pressure, material,
-                                   phase_transitions, species_types, T_shock=None, **kwargs):
-        """Compute Desbiens concentration rates.
+    def compute_single_phase_rate(self, concentration, T, pressure, material, T_shock=None, **kwargs):
+        """Compute Desbiens rate for single phase."""
+        from ...utils.generic_functions import ppart
         
-        Combines all 4 regimes with appropriate shape and switching functions.
-        
-        Parameters
-        ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentration fields [c_unreacted, c_reacted]
-        T : dolfinx.fem.Function
-            Local temperature field
-        pressure : ufl.Expression
-            Pressure (unused)
-        material : Material
-            Material object (unused)
-        phase_transitions : list of bool
-            Phase transition flags
-        species_types : dict
-            Species classification (unused)
-        T_shock : dolfinx.fem.Function, optional
-            Shock temperature field (uses T if not provided)
-        **kwargs : dict
-            Additional parameters
-            
-        Returns
-        -------
-        list of ufl.Expression
-            Concentration rate expressions
-        """
-        nb_phase = len(concentrations)
-        rates = [0] * nb_phase
-        
-        if nb_phase < 2:
-            return rates
-        
-        # Use shock temperature if provided, otherwise use local temperature
         if T_shock is None:
-            T_shock = self.T_shock if self.T_shock is not None else T
+            T_shock = T
         
-        # Get burn fraction (reacted material concentration)
-        lambda_burn = concentrations[1]
-        
-        # Individual regime rates
-        rI = self.rate_initiation(T_shock, lambda_burn)
-        rIG = self.rate_ignition_growth(T_shock, lambda_burn)  
-        rDG = self.rate_diffusion_growth(T, lambda_burn)
-        rB = self.rate_burn(T, lambda_burn)
+        # Individual rates
+        rI = self.rate_initiation(T_shock, concentration)
+        rIG = self.rate_ignition_growth(T_shock, concentration)
+        rDG = self.rate_diffusion_growth(T, concentration)
+        rB = self.rate_burn(T, concentration)
         
         # Shape and switching functions
-        SI = self.shape_function_SI(lambda_burn)
-        SG = self.shape_function_SG(lambda_burn)
+        SI = self.shape_function_SI(concentration)
+        SG = self.shape_function_SG(concentration)
         W = self.switching_function_W(T_shock)
         
-        # Combined rate - Equation (1) from Desbiens (2017)
-        total_rate = (rI * SI + 
-                     (rIG * W + rDG * (1.0 - W)) * SG + 
-                     rB * (1.0 - SG))
-        
-        # Ensure positive rate
-        from ...utils.generic_functions import ppart
-        total_rate = ppart(total_rate)
-        
-        # Apply to concentration fields
-        if phase_transitions[0]:  # Unreacted can react
-            rates[0] = -total_rate  # Reactant decreases
-            
-        if len(concentrations) > 1:  # Reacted exists
-            rates[1] = total_rate   # Product increases
-            
-        return rates
+        # Combined rate
+        total_rate = (rI * SI + (rIG * W + rDG * (1.0 - W)) * SG + rB * (1.0 - SG))
+        return ppart(total_rate)
     
     def update_auxiliary_fields(self, dt, **kwargs):
         """Update auxiliary fields.
@@ -377,10 +300,8 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        dt : float
-            Time step size
-        **kwargs : dict
-            Additional parameters
+        dt : float Time step size
+        **kwargs : dict Additional parameters
         """
         pass
     
@@ -389,8 +310,7 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Returns
         -------
-        dict
-            Dictionary with shock temperature if available
+        dict Dictionary with shock temperature if available
         """
         fields = {}
         if self.T_shock is not None:
@@ -402,12 +322,9 @@ class Desbiens Evolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentrations
-        T : dolfinx.fem.Function  
-            Local temperature
-        T_shock : dolfinx.fem.Function, optional
-            Shock temperature
+        concentrations : list of dolfinx.fem.Function Current concentrations
+        T : dolfinx.fem.Function  Local temperature
+        T_shock : dolfinx.fem.Function, optional Shock temperature
             
         Returns
         -------

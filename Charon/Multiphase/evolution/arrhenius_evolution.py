@@ -100,76 +100,11 @@ class ArrheniusEvolution(BaseEvolutionLaw):
         """
         pass  # No auxiliary fields needed for Arrhenius
     
-    def compute_concentration_rates(self, concentrations, T, pressure, material, 
-                                   phase_transitions, species_types, **kwargs):
-        """Compute concentration rates using Arrhenius kinetics.
-        
-        The method handles different types of species (reactants, intermediates,
-        products) in a reaction chain based on the species classification.
-        
-        Parameters
-        ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentration fields for all phases
-        T : dolfinx.fem.Function or ufl.Expression
-            Current temperature field
-        pressure : ufl.Expression
-            Current pressure expression (unused for Arrhenius)
-        material : Material
-            Material object containing properties (unused for basic Arrhenius)
-        phase_transitions : list of bool
-            Boolean list indicating which phases can evolve
-        species_types : dict
-            Dictionary containing species classification:
-            - 'reactifs': list of bool for reactant species
-            - 'intermediaires': list of bool for intermediate species
-            - 'produits_finaux': list of bool for final product species
-            - 'inertes': list of bool for inert species
-            
-        Returns
-        -------
-        list of ufl.Expression
-            List of concentration rate expressions dc/dt for each phase
-        """
-        nb_phase = len(concentrations)
-        rates = [0] * nb_phase
-        
-        # Arrhenius rate expression: k = A * exp(-E_a / (R * T))
+    def compute_single_phase_rate(self, concentration, T, pressure, material, **kwargs):
+        """Compute Arrhenius rate for single phase."""
         arrhenius_rate = self.kin_pref * ufl_exp(-self.e_activation / (self.R * T))
+        return arrhenius_rate * concentration
         
-        # Extract species type lists
-        reactifs = species_types.get('reactifs', [False] * nb_phase)
-        intermediaires = species_types.get('intermediaires', [False] * nb_phase)
-        produits_finaux = species_types.get('produits_finaux', [False] * nb_phase)
-        inertes = species_types.get('inertes', [False] * nb_phase)
-        
-        for i in range(nb_phase):
-            # Skip inert species
-            if inertes[i]:
-                rates[i] = 0
-                continue
-                
-            # Skip non-reactive species
-            if not phase_transitions[i] and not (i > 0 and phase_transitions[i-1]):
-                rates[i] = 0
-                continue
-            
-            if reactifs[i]:
-                # Reactant species: only consumption (-dc/dt)
-                rates[i] = -concentrations[i] * arrhenius_rate
-                
-            elif intermediaires[i]:
-                # Intermediate species: production from previous - consumption to next
-                production = concentrations[i-1] * arrhenius_rate if i > 0 else 0
-                consumption = concentrations[i] * arrhenius_rate if phase_transitions[i] else 0
-                rates[i] = production - consumption
-                
-            elif produits_finaux[i]:
-                # Final product species: only production (+dc/dt)
-                rates[i] = concentrations[i-1] * arrhenius_rate if i > 0 else 0
-        
-        return rates
-    
     def update_auxiliary_fields(self, dt, **kwargs):
         """Update auxiliary fields for the next time step.
         
@@ -177,10 +112,8 @@ class ArrheniusEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        dt : float
-            Time step size (unused)
-        **kwargs : dict
-            Additional update parameters (unused)
+        dt : float Time step size (unused)
+        **kwargs : dict Additional update parameters (unused)
         """
         pass  # No auxiliary fields to update
     

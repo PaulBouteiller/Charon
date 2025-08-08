@@ -314,44 +314,29 @@ class Multiphase:
                 print(f"Auxiliary fields setup for phase {i} evolution law")
     
     def compute_concentration_rates(self, T, pressure, material, **kwargs):
-        """Compute concentration rates using the configured evolution laws.
-        
-        Parameters
-        ----------
-        T : dolfinx.fem.Function
-            Current temperature field
-        pressure : ufl.Expression
-            Current pressure expression
-        material : Material
-            Material properties object
-        **kwargs : dict
-            Additional parameters for evolution laws
-            
-        Returns
-        -------
-        list of ufl.Expression
-            Concentration rate expressions dc/dt for each phase
-        """
         if not self.has_evolution:
             return [0] * self.nb_phase
         
-        # Combine rates from all evolution laws
-        total_rates = [0] * self.nb_phase
-        
+        # Get intrinsic rates
+        phase_rates = []
         for i, evolution_law in enumerate(self.evolution_laws):
             if evolution_law is not None:
-                # Get phase transitions for this law
-                phase_transitions = [law is not None for law in self.evolution_laws]
-                
-                # Compute rates for this evolution law
-                rates = evolution_law.compute_concentration_rates(
-                    self.c, T, pressure, material, phase_transitions, 
-                    self.species_types, **kwargs
-                )
-                
-                # Add to total rates
-                for j in range(len(rates)):
-                    total_rates[j] += rates[j]
+                rate = evolution_law.compute_single_phase_rate(self.c[i], T, pressure, material, **kwargs)
+                phase_rates.append(rate)
+            else:
+                phase_rates.append(0)
+        
+        # Apply classification weights
+        total_rates = [0] * self.nb_phase
+        for i in range(self.nb_phase):
+            if self.reactifs[i]:# Réactif : peut seulement diminuer (-1 * expression)
+                total_rates[i] = -phase_rates[i]
+            elif self.intermediaires[i]:# Intermédiaire : peut être produit (+1) ET disparaître (-1)
+                production = phase_rates[i-1] if i > 0 else 0
+                consumption = phase_rates[i]
+                total_rates[i] = production - consumption
+            elif self.produits_finaux[i]:# Produit final : peut seulement augmenter (+1 * expression précédente)
+                total_rates[i] = phase_rates[i-1] if i > 0 else 0
         
         return total_rates
     

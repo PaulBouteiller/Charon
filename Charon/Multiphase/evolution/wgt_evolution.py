@@ -45,7 +45,6 @@ References:
   Journal of Applied Physics (specific reference to be added)
 """
 
-from math import tanh, sqrt
 from ufl import tanh as ufl_tanh, sqrt as ufl_sqrt
 from .base_evolution import BaseEvolutionLaw
 
@@ -58,22 +57,14 @@ class WGTEvolution(BaseEvolutionLaw):
     
     Attributes
     ----------
-    SG1 : float
-        Shape function parameter controlling transition sharpness
-    SG2 : float  
-        Shape function parameter controlling transition position
-    TALL : float
-        Ignition temperature [K]
-    TADIM : float
-        Dimensioning temperature [K]
-    KDG : float
-        Diffusion-growth rate constant [s^-1]
-    NDG : float
-        Diffusion-growth temperature exponent
-    KB : float
-        Burn rate constant [s^-1]
-    NB : float
-        Burn temperature exponent
+    SG1 : float Shape function parameter controlling transition sharpness
+    SG2 : float   Shape function parameter controlling transition position
+    TALL : float Ignition temperature [K]
+    TADIM : float Dimensioning temperature [K]
+    KDG : float Diffusion-growth rate constant [s^-1]
+    NDG : float Diffusion-growth temperature exponent
+    KB : float Burn rate constant [s^-1]
+    NB : float Burn temperature exponent
     """
     
     def required_parameters(self):
@@ -91,24 +82,15 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing WGT model parameters:
-            SG1 : float, optional
-                Shape function sharpness parameter (default: 25)
-            SG2 : float, optional  
-                Shape function position parameter (default: 0.92)
-            TALL : float, optional
-                Ignition temperature in K (default: 400)
-            TADIM : float, optional
-                Dimensioning temperature in K (default: 1035)
-            KDG : float, optional
-                Diffusion-growth rate constant in s^-1 (default: 1.6e7)
-            NDG : float, optional
-                Diffusion-growth exponent (default: 2)
-            KB : float, optional
-                Burn rate constant in s^-1 (default: 2.8e5)  
-            NB : float, optional
-                Burn exponent (default: 1)
+        params : dict Dictionary containing WGT model parameters:
+                    SG1 : float, optional Shape function sharpness parameter (default: 25)
+                    SG2 : float, optional Shape function position parameter (default: 0.92)
+                    TALL : float, optional Ignition temperature in K (default: 400)
+                    TADIM : float, optional Dimensioning temperature in K (default: 1035)
+                    KDG : float, optional Diffusion-growth rate constant in s^-1 (default: 1.6e7)
+                    NDG : float, optional Diffusion-growth exponent (default: 2)
+                    KB : float, optional Burn rate constant in s^-1 (default: 2.8e5)  
+                    NB : float, optional Burn exponent (default: 1)
         """
         super().__init__(params)
         
@@ -141,10 +123,8 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        V_c : dolfinx.fem.FunctionSpace
-            Function space for concentration fields (unused)
-        **kwargs : dict
-            Additional setup parameters (unused)
+        V_c : dolfinx.fem.FunctionSpace Function space for concentration fields (unused)
+        **kwargs : dict Additional setup parameters (unused)
         """
         pass  # No auxiliary fields needed for WGT
     
@@ -161,8 +141,7 @@ class WGTEvolution(BaseEvolutionLaw):
             
         Returns
         -------
-        ufl.Expression
-            Shape function value (0 to 1)
+        ufl.Expression Shape function value (0 to 1)
         """
         return 0.5 * (1 - ufl_tanh(self.SG1 * (burn_fraction - self.SG2)))
     
@@ -171,13 +150,11 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T : ufl.Expression or dolfinx.fem.Function
-            Current temperature field
+        T : ufl.Expression or dolfinx.fem.Function Current temperature field
             
         Returns
         -------
-        ufl.Expression  
-            Normalized temperature ratio (T - T_all) / T_adim
+        ufl.Expression   Normalized temperature ratio (T - T_all) / T_adim
         """
         return (T - self.TALL) / self.TADIM
     
@@ -189,15 +166,12 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T : ufl.Expression or dolfinx.fem.Function
-            Temperature field
-        burn_fraction : ufl.Expression or dolfinx.fem.Function
-            Current burn fraction
+        T : ufl.Expression or dolfinx.fem.Function Temperature field
+        burn_fraction : ufl.Expression or dolfinx.fem.Function Current burn fraction
             
         Returns
         -------
-        ufl.Expression
-            Diffusion-growth rate
+        ufl.Expression Diffusion-growth rate
         """
         from ...utils.generic_functions import ppart
         
@@ -212,79 +186,28 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T : ufl.Expression or dolfinx.fem.Function
-            Temperature field  
-        burn_fraction : ufl.Expression or dolfinx.fem.Function
-            Current burn fraction
+        T : ufl.Expression or dolfinx.fem.Function Temperature field  
+        burn_fraction : ufl.Expression or dolfinx.fem.Function Current burn fraction
             
         Returns
         -------
-        ufl.Expression
-            Burn rate
+        ufl.Expression Burn rate
         """
         from ...utils.generic_functions import ppart
         
         r_t = self.temperature_ratio(T)
         return self.KB * ppart(r_t)**self.NB * ufl_sqrt(1 - burn_fraction)
     
-    def compute_concentration_rates(self, concentrations, T, pressure, material,
-                                   phase_transitions, species_types, **kwargs):
-        """Compute WGT concentration rates.
-        
-        The WGT model typically describes binary explosive reactions
-        (unreacted -> reacted) with smooth regime transitions.
-        
-        Parameters
-        ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentration fields [c_unreacted, c_reacted, ...]
-        T : dolfinx.fem.Function
-            Current temperature field
-        pressure : ufl.Expression
-            Current pressure expression (unused for WGT)
-        material : Material
-            Material object (unused for basic WGT)
-        phase_transitions : list of bool
-            Phase transition flags
-        species_types : dict
-            Species classification (unused for WGT)
-        **kwargs : dict
-            Additional parameters
-            
-        Returns
-        -------
-        list of ufl.Expression
-            Concentration rate expressions dc/dt for each phase
-        """
+    def compute_single_phase_rate(self, concentration, T, pressure, material, **kwargs):
+        """Compute WGT rate for single phase."""
         from ...utils.generic_functions import ppart
         
-        nb_phase = len(concentrations)
-        rates = [0] * nb_phase
+        # Shape function and rates
+        sf2 = self.shape_function(concentration)
+        rate_dg = self.diffusion_growth_rate(T, concentration)
+        rate_b = self.burn_rate(T, concentration)
         
-        if nb_phase < 2:
-            return rates
-        
-        # Get burn fraction (typically second concentration field)
-        c_burn = concentrations[1]  # Burned/reacted fraction
-        
-        # Shape function for regime transition
-        sf2 = self.shape_function(c_burn)
-        
-        # Temperature-dependent rates
-        rate_dg = self.diffusion_growth_rate(T, c_burn)
-        rate_b = self.burn_rate(T, c_burn)
-        
-        # Combined rate with smooth transition
-        total_rate = ppart(sf2 * rate_dg + (1 - sf2) * rate_b)
-        
-        # Apply to concentration fields
-        if phase_transitions[0]:  # Unreacted material can react
-            rates[0] = -total_rate  # Reactant decreases
-            
-        if len(concentrations) > 1:  # Reacted material exists
-            rates[1] = total_rate   # Product increases
-            
-        return rates
+        return ppart(sf2 * rate_dg + (1 - sf2) * rate_b)
     
     def update_auxiliary_fields(self, dt, **kwargs):
         """Update auxiliary fields for the next time step.
@@ -349,15 +272,12 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T_reference : float
-            Reference temperature [K]
-        burn_fraction : float, optional
-            Reference burn fraction for estimation (default: 0.1)
+        T_reference : float Reference temperature [K]
+        burn_fraction : float, optional Reference burn fraction for estimation (default: 0.1)
             
         Returns
         -------
-        float
-            Characteristic time [s]
+        float Characteristic time [s]
         """
         if T_reference <= self.TALL:
             return float('inf')  # No reaction below ignition temperature
