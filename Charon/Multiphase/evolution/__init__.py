@@ -51,7 +51,7 @@ from .base_evolution import BaseEvolutionLaw
 from .arrhenius_evolution import ArrheniusEvolution
 from .kjma_evolution import KJMAEvolution
 from .wgt_evolution import WGTEvolution
-from .desbiens_evolution import DesbienasEvolution
+from .desbiens_evolution import DesbiensEvolution
 from .smooth_instantaneous_evolution import SmoothInstantaneousEvolution
 
 __all__ = [
@@ -60,7 +60,7 @@ __all__ = [
     'ArrheniusEvolution',
     'KJMAEvolution', 
     'WGTEvolution',
-    'DesbienasEvolution',
+    'DesbiensEvolution',
     'SmoothInstantaneousEvolution'
 ]
 
@@ -76,21 +76,15 @@ class EvolutionLaw:
         
         Parameters
         ----------
-        concentrations : list of dolfinx.fem.Function
-            Current concentration fields
-        T : dolfinx.fem.Function
-            Current temperature field
-        pressure : ufl.Expression
-            Current pressure expression
-        material : Material
-            Material properties object
-        evolution_law : BaseEvolutionLaw
-            Specific evolution law implementation
+        concentrations : list of dolfinx.fem.Function Current concentration fields
+        T              : dolfinx.fem.Function         Current temperature field
+        pressure       : ufl.Expression               Current pressure expression
+        material       : Material                     Material properties object
+        evolution_law  : BaseEvolutionLaw             Specific evolution law implementation
             
         Returns
         -------
-        list of ufl.Expression
-            Concentration rate expressions dc/dt
+        list of ufl.Expression Concentration rate expressions dc/dt
         """
         # Delegate to the appropriate evolution law
         rates = evolution_law.compute_concentration_rates(

@@ -114,6 +114,8 @@ class Problem:
         self._init_temperature_and_auxiliary()
         
         # Configure explosive if needed
+        if self.multiphase_evolution:
+            self.multiphase.set_concentration_rates(self.T, self.constitutive.p)
         
         # Configure thermal analysis if needed
         self._init_thermal_analysis()
@@ -231,8 +233,8 @@ class Problem:
         if self.multiphase_analysis:
             self.n_mat = len(self.material)
             V_quad = self.quad.quadrature_space(["Scalar"])
-            self.multiphase = Multiphase(self.n_mat, V_quad, dictionnaire['multiphase'])
-            self.multiphase_evolution = self.multiphase.multiphase_evolution
+            self.multiphase = Multiphase(self.material, V_quad, dictionnaire['multiphase'])
+            self.multiphase_evolution = self.multiphase.has_evolution
         else:
             self.n_mat = 1
             self.multiphase = None

@@ -42,7 +42,11 @@ Multiphase : Main class for multiphase material management
 from dolfinx.fem import Function, Expression
 from ufl import conditional
 from ..utils.interpolation import interpolate_multiple
-from .evolution import ArrheniusEvolution, KJMAEvolution, WGTEvolution, DesbienasEvolution, SmoothInstantaneousEvolution
+from .evolution import (ArrheniusEvolution, 
+                        KJMAEvolution, 
+                        WGTEvolution,
+                        DesbiensEvolution, 
+                        SmoothInstantaneousEvolution)
 
 
 class Multiphase:
@@ -55,37 +59,30 @@ class Multiphase:
     
     Attributes
     ----------
-    nb_phase : int
-        Number of phases being modeled
-    c : list of dolfinx.fem.Function
-        Concentration fields for each phase
-    c_old : list of dolfinx.fem.Function
-        Previous time step concentration fields
-    evolution_laws : list of BaseEvolutionLaw
-        Evolution law objects for each phase
-    has_evolution : bool
-        Flag indicating if any phases evolve
-    species_types : dict
-        Classification of species (reactants, intermediates, products, inerts)
+    nb_phase       : int                          Number of phases being modeled
+    c              : list of dolfinx.fem.Function Concentration fields for each phase
+    c_old          : list of dolfinx.fem.Function Previous time step concentration fields
+    evolution_laws : list of BaseEvolutionLaw     Evolution law objects for each phase
+    has_evolution  : bool                         Flag indicating if any phases evolve
+    species_types  : dict                         Classification of species 
+                                                    (reactants, intermediates, products, inerts)
     """
-    
-    def __init__(self, nb_phase, V_quad, multiphase_dictionary):
+    def __init__(self, material, V_quad, multiphase_dictionary):
         """
         Initialize a multiphase object with modular evolution laws.
         
         Parameters
         ----------
-        nb_phase : int
-            Number of phases to model
-        V_quad : dolfinx.fem.FunctionSpace
-            Function space for concentration fields
+        nb_phase : int Number of phases to model
+        V_quad : dolfinx.fem.FunctionSpace Function space for concentration fields
         multiphase_dictionary : dict
             Configuration dictionary containing:
             - 'conditions': list of UFL expressions for initial concentrations
             - 'evolution_laws': list of evolution law configurations (optional)
             - 'chemical_energy_release': configuration for energy release (optional)
         """
-        self.nb_phase = nb_phase
+        self.material = material
+        self.nb_phase = len(material)
         self.V_c = V_quad
         
         # Initialize concentration fields
@@ -95,16 +92,21 @@ class Multiphase:
         # Initialize evolution system if specified
         self.has_evolution = "evolution_laws" in multiphase_dictionary
         if self.has_evolution:
-            self._setup_evolution_system(multiphase_dictionary["evolution_laws"])
+            self.evolution_laws = multiphase_dictionary["evolution_laws"]
             self._setup_species_classification()
-            self._setup_chemical_energy_release(multiphase_dictionary.get("chemical_energy_release", {}))
+            self._setup_evolution_system(multiphase_dictionary["evolution_laws"])
+            # self.dot_c_list = self.compute_concentration_rates()
+            chemical_energy_release_list = multiphase_dictionary.get("chemical_energy_release")
+            self.has_chemical_energy = bool(chemical_energy_release_list)
+            if self.has_chemical_energy:
+                self._setup_chemical_energy_release(chemical_energy_release_list)
         else:
-            self.evolution_laws = [None] * nb_phase
+            self.evolution_laws = [None] * self.nb_phase
             self.species_types = {
-                'reactifs': [False] * nb_phase,
-                'intermediaires': [False] * nb_phase,
-                'produits_finaux': [False] * nb_phase,
-                'inertes': [True] * nb_phase  # All inert if no evolution
+                'reactifs': [False] * self.nb_phase,
+                'intermediaires': [False] * self.nb_phase,
+                'produits_finaux': [False] * self.nb_phase,
+                'inertes': [True] * self.nb_phase  # All inert if no evolution
             }
     
     def _setup_concentration_fields(self):
@@ -136,56 +138,6 @@ class Multiphase:
         for i in range(self.nb_phase):
             self.c_old[i].x.array[:] = self.c[i].x.array[:]
     
-    def _setup_evolution_system(self, evolution_config):
-        """Setup evolution laws for each phase.
-        
-        Parameters
-        ----------
-        evolution_config : list
-            List of evolution law configurations, one per phase
-        """
-        self.evolution_laws = []
-        
-        for i, config in enumerate(evolution_config):
-            if config is None:
-                # No evolution for this phase
-                self.evolution_laws.append(None)
-            else:
-                # Create evolution law based on type
-                evolution_law = self._create_evolution_law(config)
-                self.evolution_laws.append(evolution_law)
-        
-        print(f"Initialized {len([law for law in self.evolution_laws if law is not None])} evolution laws")
-    
-    def _create_evolution_law(self, config):
-        """Factory method to create evolution law objects.
-        
-        Parameters
-        ----------
-        config : dict
-            Evolution law configuration containing 'type' and parameters
-            
-        Returns
-        -------
-        BaseEvolutionLaw
-            Configured evolution law object
-        """
-        evolution_type = config["type"]
-        params = config.get("params", {})
-        
-        if evolution_type == "Arrhenius":
-            return ArrheniusEvolution(params)
-        elif evolution_type == "KJMA":
-            return KJMAEvolution(params)
-        elif evolution_type == "WGT":
-            return WGTEvolution(params)
-        elif evolution_type == "Desbiens":
-            return DesbienasEvolution(params)
-        elif evolution_type == "SmoothInstantaneous":
-            return SmoothInstantaneousEvolution(params)
-        else:
-            raise ValueError(f"Unknown evolution type: {evolution_type}")
-    
     def _setup_species_classification(self):
         """Classify species based on their evolution laws.
         
@@ -203,8 +155,6 @@ class Multiphase:
         self.intermediaires = self.species_types['intermediaires'] 
         self.produits_finaux = self.species_types['produits_finaux']
         self.inertes = self.species_types['inertes']
-        
-        # Log classification
         self._log_species_classification()
     
     def _classify_species(self, phase_transitions):
@@ -278,32 +228,72 @@ class Multiphase:
                 print(f"Species {i+1}: FINAL PRODUCT (produced by {i})")
             elif self.inertes[i]:
                 print(f"Species {i+1}: INERT (never involved in reactions)")
+                
+    def _setup_evolution_system(self, evolution_config):
+        """Setup evolution laws for each phase.
+        
+        Parameters
+        ----------
+        evolution_config : list List of evolution law configurations, one per phase
+        """
+        self.evolution_laws = []
+        for i, config in enumerate(evolution_config):
+            if config is None:
+                # No evolution for this phase
+                self.evolution_laws.append(None)
+            else:
+                # Create evolution law based on type
+                evolution_law = self._create_evolution_law(config)
+                self.evolution_laws.append(evolution_law)
+        
+        print(f"Initialized {len([law for law in self.evolution_laws if law is not None])} evolution laws")
     
-    def _setup_chemical_energy_release(self, energy_config):
+    def _create_evolution_law(self, config):
+        """Factory method to create evolution law objects.
+        
+        Parameters
+        ----------
+        config : dict Evolution law configuration containing 'type' and parameters
+            
+        Returns
+        -------
+        BaseEvolutionLaw Configured evolution law object
+        """
+        evolution_type = config["type"]
+        params = config.get("params", {})
+        
+        if evolution_type == "Arrhenius":
+            return ArrheniusEvolution(params)
+        elif evolution_type == "KJMA":
+            return KJMAEvolution(params)
+        elif evolution_type == "WGT":
+            return WGTEvolution(params)
+        elif evolution_type == "Desbiens":
+            return DesbiensEvolution(params)
+        elif evolution_type == "SmoothInstantaneous":
+            return SmoothInstantaneousEvolution(params)
+        else:
+            raise ValueError(f"Unknown evolution type: {evolution_type}")
+    
+    def _setup_chemical_energy_release(self, chemical_energy_release_list):
         """Setup chemical energy release tracking.
         
         Parameters
         ----------
-        energy_config : dict
-            Configuration for chemical energy release
+        energy_config : dict Configuration for chemical energy release
         """
-        self.has_chemical_energy = bool(energy_config)
         
-        if self.has_chemical_energy:
-            self.volumic_energy_release = energy_config.get("volumic_energy_release", [0] * self.nb_phase)
-            self.Delta_e_vol_chim = 0  # Will be computed during evolution
-            print(f"Chemical energy release enabled: {self.volumic_energy_release}")
-        else:
-            self.volumic_energy_release = [0] * self.nb_phase
-            self.Delta_e_vol_chim = 0
+        self.Delta_e_vol_chim = 0
+        for i, e_vol in enumerate(chemical_energy_release_list):
+            if e_vol!=None:
+                self.Delta_e_vol_chim += (self.c[i] - self.c_old[i]) * e_vol
     
     def setup_evolution_auxiliary_fields(self, **kwargs):
         """Setup auxiliary fields for all evolution laws.
         
         Parameters
         ----------
-        **kwargs : dict
-            Setup parameters (T, rho, pressure, etc.)
+        **kwargs : dict Setup parameters (T, rho, pressure, etc.)
         """
         if not self.has_evolution:
             return
@@ -313,15 +303,15 @@ class Multiphase:
                 evolution_law.setup_auxiliary_fields(self.V_c, **kwargs)
                 print(f"Auxiliary fields setup for phase {i} evolution law")
     
-    def compute_concentration_rates(self, T, pressure, material, **kwargs):
+    def set_concentration_rates(self, T, pressure, **kwargs):
         if not self.has_evolution:
-            return [0] * self.nb_phase
+            return 
         
         # Get intrinsic rates
         phase_rates = []
-        for i, evolution_law in enumerate(self.evolution_laws):
+        for c, evolution_law, material in zip(self.c, self.evolution_laws, self.material):
             if evolution_law is not None:
-                rate = evolution_law.compute_single_phase_rate(self.c[i], T, pressure, material, **kwargs)
+                rate = evolution_law.compute_single_phase_rate(c, T, pressure, material, **kwargs)
                 phase_rates.append(rate)
             else:
                 phase_rates.append(0)
@@ -338,24 +328,8 @@ class Multiphase:
             elif self.produits_finaux[i]:# Produit final : peut seulement augmenter (+1 * expression précédente)
                 total_rates[i] = phase_rates[i-1] if i > 0 else 0
         
-        return total_rates
-    
-    def update_auxiliary_fields(self, dt, **kwargs):
-        """Update auxiliary fields for all evolution laws.
-        
-        Parameters
-        ----------
-        dt : float
-            Time step size
-        **kwargs : dict
-            Update parameters
-        """
-        if not self.has_evolution:
-            return
-        
-        for evolution_law in self.evolution_laws:
-            if evolution_law is not None:
-                evolution_law.update_auxiliary_fields(dt, **kwargs)
+        self.dot_c = total_rates
+                
     def get_auxiliary_fields(self):
         """Get auxiliary fields from all evolution laws.
         

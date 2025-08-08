@@ -29,8 +29,8 @@ from .PlasticSolve.finite_strain_plastic_solver import FiniteStrainPlasticSolver
 from .PlasticSolve.jax_j2_plastic_solver import JAXJ2PlasticSolver
 from .PlasticSolve.jax_gurson_plastic_solver import JAXGursonPlasticSolver
 
-# from .multiphase_solve import MultiphaseSolver
-from .multiphase_solve_clean import MultiphaseSolver
+from .multiphase_solve import MultiphaseSolver
+# from .multiphase_solve_clean import MultiphaseSolver
 
 
 
@@ -91,7 +91,7 @@ class Solve:
         self.setup_export(dictionnaire)
         self.set_iterative_solver_parameters()
         self.set_time_step(**kwargs)
-        self.update_Pth()
+        # self.update_Pth()
         self.update_form_with_stabilization(dictionnaire)
         self.set_solver()
         self.pb.set_time_dependant_BCs(self.load_steps)
@@ -335,10 +335,7 @@ class Solve:
             
         # Multiphase evolution solver
         if self.pb.multiphase_analysis and self.pb.multiphase_evolution:
-            self.multiphase_solver = MultiphaseSolver(
-                self.pb.multiphase, self.dt, self.pb.constitutive.p,
-                self.pb.T, self.pb.material, self.pb.load
-                )
+            self.multiphase_solver = MultiphaseSolver(self.pb.multiphase, self.dt)
 
     def set_time_step(self, **kwargs):
         """
@@ -368,7 +365,7 @@ class Solve:
         energy release rate to the internal volumetric power, affecting
         the thermodynamic state evolution.
         """
-        if self.pb.multiphase_analysis and self.pb.multiphase_evolution:
+        if self.pb.multiphase_analysis and self.pb.multiphase.has_chemical_energy:
             self.pb.pint_vol += self.pb.multiphase.Delta_e_vol_chim / self.dt
          
     def set_static_u_solver(self):

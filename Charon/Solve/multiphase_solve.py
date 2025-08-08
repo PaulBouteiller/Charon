@@ -16,27 +16,20 @@ Created on Wed Apr 12 13:57:33 2023
 
 @author: bouteillerp
 """
-from ..utils.petsc_operations import (dt_update, set_correction, 
-                                 petsc_assign )
-from ufl import exp
+from ..utils.petsc_operations import (dt_update, set_correction, petsc_assign)
 from dolfinx.fem import Function, Expression
-        
-from dolfinx.fem import Function, Expression
-from ..utils.petsc_operations import dt_update, set_correction
-
 
 class MultiphaseSolver:
     """Simplified solver for multiphase evolution systems."""
     
-    def __init__(self, multiphase_object, dt, material):
+    def __init__(self, multiphase_object, dt):
         """Initialize the multiphase solver."""
         self.mult = multiphase_object
         self.dt = dt
-        self.material = material
-        
-        if self.mult.has_evolution:
-            V_c = self.mult.V_c
-            self.dot_c_list = [Function(V_c, name=f"dot_c_{i}") for i in range(self.mult.nb_phase)]
+        self.nb_evol = len(self.mult.dot_c)
+        V_c = self.mult.V_c
+        self.dot_c = [Function(V_c) for _ in range(self.nb_evol)]
+        self.dot_c_expr = [Expression(self.mult.dot_c[i], V_c.element.interpolation_points()) for i in range(self.nb_evol)]
                 
     def solve(self):
         """
@@ -44,15 +37,15 @@ class MultiphaseSolver:
         """
         # Interpolation des expressions
         for i in range(self.nb_evol):
-            self.dot_c_list[i].interpolate(self.dot_c_expression_list[i])
+            self.dot_c[i].interpolate(self.dot_c_expr[i])
         
         # Mise à jour temporelle
         for i in range(self.nb_evol):
-            dt_update(self.c_list[i], self.dot_c_list[i], self.dt)
+            dt_update(self.mult.c[i], self.dot_c[i], self.dt)
         
         # Correction des bornes
         for i in range(self.nb_evol):
-            set_correction(self.c_list[i], self.mult.inf_c, self.mult.max_c)
+            set_correction(self.mult.c[i], self.mult.inf_c, self.mult.max_c)
         
     def two_phase_evolution(self):
         """
@@ -66,13 +59,27 @@ class MultiphaseSolver:
         """
         Mise à jour des concentrations dans un modèle à deux phases.
         """
-        self.c_list[0].interpolate(self.mult.c_expr)
-        self.c_list[1].x.array[:] = 1 - self.c_list[0].x.array
+        self.mult.c[0].interpolate(self.mult.c_expr)
+        self.mult.c[1].x.array[:] = 1 - self.mult.c[0].x.array
 
+    def update_auxiliary_fields(self, dt, **kwargs):
+        """Update auxiliary fields for all evolution laws.
         
+        Parameters
+        ----------
+        dt : float Time step size
+        **kwargs : dict Update parameters
+        """
+        if not self.has_evolution:
+            return
+        
+        for evolution_law in self.evolution_laws:
+            if evolution_law is not None:
+                evolution_law.update_auxiliary_fields(dt, **kwargs)
+      
     def update_c_old(self):
         """
         Mise à jour des concentrations
         """
         for i in range(self.nb_evolution):
-            petsc_assign(self.c_old_list[i], self.c_list[i])
+            petsc_assign(self.mult.c[i], self.mult.c[i])

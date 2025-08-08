@@ -26,20 +26,16 @@ La solution analytique complète est implémentée dans le module Solution_analy
 Auteur: bouteillerp
 """
 
-from Charon import CartesianUD, create_interval, MyConstant, SpatialCoordinate, Solve, Material, MeshManager
-from ufl import conditional
-from dolfinx.fem import Expression
+from Charon import CartesianUD, create_interval, MyConstant, SpatialCoordinate, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pytest
-import time
 from Solution_analytique import compute_sigma_tot
 import sys
-import sys
 sys.path.append("../../")
-from Generic_isotropic_material import Acier, Alu, ratio, rho, E, nu, rho_alu, E_alu, nu_alu
+from Generic_isotropic_material import Acier, Alu, rho, E, nu, rho_alu, E_alu, nu_alu
 
 Mat = [Acier, Alu]
 
