@@ -43,7 +43,7 @@ References:
 - Desbiens, N. (2017). "Modeling of the Jack Rabbit Series of Experiments 
   with a Temperature Based Reactive Burn Model"
 """
-from ufl import tanh as ufl_tanh, ln as ufl_ln, conditional
+from ufl import tanh, ln, conditional
 from .base_evolution import BaseEvolutionLaw
 
 
@@ -71,8 +71,7 @@ class DesbiensEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        list of str
-            List of parameter names required for Desbiens model
+        list of str List of parameter names required for Desbiens model
         """
         return [
             "Tadim", "Tall", "Tc", "T0",
@@ -85,9 +84,8 @@ class DesbiensEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        params : dict
-            Dictionary containing Desbiens model parameters.
-            Can include default LX-17 parameters if not all specified.
+        params : dict Dictionary containing Desbiens model parameters.
+                Can include default LX-17 parameters if not all specified.
         """
         # Default LX-17 parameters from Desbiens (2017) Table 1
         default_params = {
@@ -134,10 +132,8 @@ class DesbiensEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        V_c : dolfinx.fem.FunctionSpace
-            Function space for fields
-        **kwargs : dict
-            May contain 'T_shock' for shock temperature tracking
+        V_c : dolfinx.fem.FunctionSpace Function space for fields
+        **kwargs : dict May contain 'T_shock' for shock temperature tracking
         """
         # Store shock temperature if provided
         self.T_shock = kwargs.get('T_shock', None)
@@ -149,16 +145,14 @@ class DesbiensEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        T_shock : ufl.Expression or dolfinx.fem.Function
-            Shock temperature field
+        T_shock : ufl.Expression or dolfinx.fem.Function Shock temperature field
             
         Returns
         -------
-        ufl.Expression
-            Switching function value (0 to 1)
+        ufl.Expression Switching function value (0 to 1)
         """
         arg = self.W1 * (T_shock / self.Tc - 1.0)
-        return 0.5 * (1.0 - ufl_tanh(arg))
+        return 0.5 * (1.0 - tanh(arg))
     
     def shape_function_SI(self, lambda_burn):
         """Shape function SI(λ) for initiation regime.
@@ -191,7 +185,7 @@ class DesbiensEvolution(BaseEvolutionLaw):
         ufl.Expression Shape function value (0 to 1)
         """
         arg = self.SG1 * (lambda_burn - self.SG2)
-        return 0.5 * (1.0 - ufl_tanh(arg))
+        return 0.5 * (1.0 - tanh(arg))
     
     def rate_initiation(self, T_shock, lambda_burn):
         """Initiation rate rI based on shock temperature.
@@ -229,7 +223,7 @@ class DesbiensEvolution(BaseEvolutionLaw):
         
         # Protection against log(0) - use conditional
         log_term = conditional(lambda_burn < 0.9999,
-                              -ufl_ln(1.0 - lambda_burn),
+                              -ln(1.0 - lambda_burn),
                               0.0)
         
         return self.kIG * (temp_ratio ** self.nIG) * (1.0 - lambda_burn) * (log_term ** (2.0/3.0))

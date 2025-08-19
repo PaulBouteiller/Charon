@@ -52,12 +52,9 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
     
     Attributes
     ----------
-    trigger_variable : str
-        Variable that triggers the transformation ('rho', 'T', 'P')
-    trigger_value : float
-        Critical value for transformation
-    width : float
-        Width of the smooth transition region
+    trigger_variable : str   Variable that triggers the transformation ('rho', 'T', 'P')
+    trigger_value    : float Critical value for transformation
+    width            : float Width of the smooth transition region
     """
     
     def required_parameters(self):
@@ -65,8 +62,7 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        list of str
-            List of parameter names required for smooth instantaneous evolution
+        list of str List of parameter names required for smooth instantaneous evolution
         """
         return ["trigger_variable", "trigger_value", "width"]
     
@@ -97,7 +93,7 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
                            f"Must be one of {valid_triggers}")
         
         # Log parameters
-        print(f"Smooth instantaneous evolution parameters:")
+        print("Smooth instantaneous evolution parameters:")
         print(f"Trigger variable: {self.trigger_variable}")
         print(f"Trigger value: {self.trigger_value}")
         print(f"Transition width: {self.width}")
@@ -109,10 +105,8 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        V_c : dolfinx.fem.FunctionSpace
-            Function space for concentration fields
-        **kwargs : dict
-            Must contain the trigger variable data (e.g., 'rho', 'T', 'P')
+        V_c : dolfinx.fem.FunctionSpace Function space for concentration fields
+        **kwargs : dict Must contain the trigger variable data (e.g., 'rho', 'T', 'P')
         """
         self.V_c = V_c
         
@@ -156,18 +150,12 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         ----------
         concentrations : list of dolfinx.fem.Function
             Current concentration fields (will be overwritten)
-        T : dolfinx.fem.Function
-            Temperature field
-        pressure : ufl.Expression
-            Pressure expression
-        material : Material
-            Material object
-        phase_transitions : list of bool
-            Phase transition flags
-        species_types : dict
-            Species classification
-        **kwargs : dict
-            Additional parameters
+        T : dolfinx.fem.Function Temperature field
+        pressure : ufl.Expression Pressure expression
+        material : Material Material object
+        phase_transitions : list of bool Phase transition flags
+        species_types : dict Species classification
+        **kwargs : dict Additional parameters
             
         Returns
         -------
@@ -196,10 +184,8 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        dt : float
-            Time step size (unused for instantaneous)
-        **kwargs : dict
-            May contain updated trigger variable data
+        dt : float Time step size (unused for instantaneous)
+        **kwargs : dict May contain updated trigger variable data
         """
         # Update trigger variable if provided
         trigger_data = None
@@ -229,8 +215,7 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        dict
-            Dictionary containing transition expression
+        dict Dictionary containing transition expression
         """
         fields = {}
         if hasattr(self, 'transition_expr'):
@@ -244,13 +229,11 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        trigger_value_current : float
-            Current value of the trigger variable
+        trigger_value_current : float Current value of the trigger variable
             
         Returns
         -------
-        tuple
-            (c_phase1, c_phase2) equilibrium concentrations
+        tuple (c_phase1, c_phase2) equilibrium concentrations
         """
         from math import tanh
         
@@ -266,13 +249,11 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        trigger_value_current : float
-            Current value of the trigger variable
+        trigger_value_current : float Current value of the trigger variable
             
         Returns
         -------
-        float
-            Transformation progress (0 = no transformation, 1 = complete)
+        float Transformation progress (0 = no transformation, 1 = complete)
         """
         _, progress = self.get_equilibrium_concentrations(trigger_value_current)
         return progress
@@ -282,8 +263,7 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        tuple
-            (start_value, end_value) for 1% to 99% transformation
+        tuple (start_value, end_value) for 1% to 99% transformation
         """
         from math import atanh
         
@@ -301,15 +281,12 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        trigger_value_current : float
-            Current trigger variable value
-        tolerance : float, optional
-            Tolerance for considering transformation complete (default: 0.01)
+        trigger_value_current : float Current trigger variable value
+        tolerance : float, optional Tolerance for considering transformation complete (default: 0.01)
             
         Returns
         -------
-        bool
-            True if transformation is essentially complete
+        bool True if transformation is essentially complete
         """
         progress = self.get_transformation_progress(trigger_value_current)
         return progress > (1.0 - tolerance)

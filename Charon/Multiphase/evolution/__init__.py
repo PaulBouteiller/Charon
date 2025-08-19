@@ -49,6 +49,7 @@ SmoothInstantaneousEvolution : Instantaneous equilibrium transitions
 
 from .base_evolution import BaseEvolutionLaw
 from .arrhenius_evolution import ArrheniusEvolution
+from .forestfire_evolution import ForestFireEvolution
 from .kjma_evolution import KJMAEvolution
 from .wgt_evolution import WGTEvolution
 from .desbiens_evolution import DesbiensEvolution
@@ -58,6 +59,7 @@ __all__ = [
     'BaseEvolutionLaw',
     'EvolutionLaw',
     'ArrheniusEvolution',
+    'ForestFireEvolution',
     'KJMAEvolution', 
     'WGTEvolution',
     'DesbiensEvolution',

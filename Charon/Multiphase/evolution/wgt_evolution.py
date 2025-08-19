@@ -216,10 +216,8 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Parameters
         ----------
-        dt : float
-            Time step size (unused)
-        **kwargs : dict
-            Additional update parameters (unused)
+        dt : float Time step size (unused)
+        **kwargs : dict Additional update parameters (unused)
         """
         pass  # No auxiliary fields to update
     
@@ -228,8 +226,7 @@ class WGTEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        dict
-            Empty dictionary as no auxiliary fields are used
+        dict Empty dictionary as no auxiliary fields are used
         """
         return {}
     
@@ -243,8 +240,7 @@ class WGTEvolution(BaseEvolutionLaw):
             
         Returns
         -------
-        dolfinx.fem.Function or float
-            Reaction progress (0 = no reaction, 1 = complete reaction)
+        dolfinx.fem.Function or float Reaction progress (0 = no reaction, 1 = complete reaction)
         """
         if len(concentrations) < 2:
             return 0.0
@@ -260,8 +256,7 @@ class WGTEvolution(BaseEvolutionLaw):
             
         Returns
         -------
-        ufl.Expression
-            Regime indicator (1 = diffusion-growth, 0 = burn)
+        ufl.Expression Regime indicator (1 = diffusion-growth, 0 = burn)
         """
         if len(concentrations) < 2:
             return 0.0

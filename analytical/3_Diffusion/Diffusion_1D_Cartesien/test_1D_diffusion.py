@@ -34,7 +34,7 @@ Paramètres matériaux:
 Auteur: bouteillerp
 """
 
-from Charon import CartesianUD, LinearThermal, create_interval, MeshManager, Solve, Material
+from Charon import CartesianUD, LinearThermal, create_interval, MeshManager, Solve
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 from scipy.special import erf

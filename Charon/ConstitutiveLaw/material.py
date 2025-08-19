@@ -61,7 +61,7 @@ class Material:
     kin_pref : float or None Kinetic prefactor (if applicable)
     """
     
-    def __init__(self, rho_0, C_mass, eos_type, dev_type, eos_params, deviator_params, **kwargs):
+    def __init__(self, rho_0, C_mass, eos_type, dev_type, eos_params, deviator_params):
         """Initialize a material with basic properties and constitutive models.
         
         Parameters
@@ -72,7 +72,6 @@ class Material:
         dev_type : str or None Type of deviatoric behavior (e.g., "IsotropicHPP", "NeoHook", None)
         eos_params : dict Parameters for the equation of state model
         deviator_params : dict Parameters for the deviatoric behavior model
-        **kwargs : dict Additional parameters (e.g., activation energy for chemical reactions)
         """
         # Store basic properties
         self.rho_0 = rho_0
@@ -86,10 +85,6 @@ class Material:
         
         # Calculate wave speed
         self.celerity = self.eos.celerity(rho_0)
-        
-        # Store optional parameters
-        self.e_activation = kwargs.get("e_activation", None)
-        self.kin_pref = kwargs.get("kin_pref", None)
         
         # Log material properties
         print(f"Thermal capacity: {self.C_mass}")

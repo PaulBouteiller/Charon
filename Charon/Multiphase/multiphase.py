@@ -43,6 +43,7 @@ from dolfinx.fem import Function, Expression
 from ufl import conditional
 from ..utils.interpolation import interpolate_multiple
 from .evolution import (ArrheniusEvolution, 
+                        ForestFireEvolution,
                         KJMAEvolution, 
                         WGTEvolution,
                         DesbiensEvolution, 
@@ -260,10 +261,11 @@ class Multiphase:
         BaseEvolutionLaw Configured evolution law object
         """
         evolution_type = config["type"]
-        params = config.get("params", {})
-        
+        params = config.get("params", {})        
         if evolution_type == "Arrhenius":
             return ArrheniusEvolution(params)
+        elif evolution_type == "ForestFire":
+            return ForestFireEvolution(params)
         elif evolution_type == "KJMA":
             return KJMAEvolution(params)
         elif evolution_type == "WGT":
@@ -335,8 +337,7 @@ class Multiphase:
         
         Returns
         -------
-        dict
-            Dictionary of auxiliary fields from all evolution laws
+        dict Dictionary of auxiliary fields from all evolution laws
         """
         all_fields = {}
         

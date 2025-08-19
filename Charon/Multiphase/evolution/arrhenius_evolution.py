@@ -42,7 +42,7 @@ ArrheniusEvolution : Arrhenius kinetic evolution law
     Provides standard chemical kinetics framework
 """
 
-from ufl import exp as ufl_exp
+from ufl import exp
 from .base_evolution import BaseEvolutionLaw
 
 
@@ -102,7 +102,7 @@ class ArrheniusEvolution(BaseEvolutionLaw):
     
     def compute_single_phase_rate(self, concentration, T, pressure, material, **kwargs):
         """Compute Arrhenius rate for single phase."""
-        arrhenius_rate = self.kin_pref * ufl_exp(-self.e_activation / (self.R * T))
+        arrhenius_rate = self.kin_pref * exp(-self.e_activation / (self.R * T))
         return arrhenius_rate * concentration
         
     def update_auxiliary_fields(self, dt, **kwargs):

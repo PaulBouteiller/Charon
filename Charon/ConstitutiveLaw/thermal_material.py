@@ -40,10 +40,8 @@ class LinearThermal:
     
     Attributes
     ----------
-    lmbda : float
-        Thermal conductivity coefficient (W/(m·K))
-    type : str
-        Type identifier ("LinearIsotropic")
+    lmbda : float Thermal conductivity coefficient (W/(m·K))
+    type : str Type identifier ("LinearIsotropic")
     """
     def __init__(self, lmbda):
         """Initialize linear thermal material.
