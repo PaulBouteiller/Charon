@@ -377,7 +377,7 @@ Creneau, SmoothCreneau, Chapeau, Rampe, UserDefined
 Toutes ces classes prennent en argument un matériau (ou une liste de matériau dans un cas multiphasique) et un dictionnaire de paramètres. Nous détaillons ici tous les paramètres accessibles.
 \begin{itemize}
 \item Le premier argument consiste à donner l'objet mesh manager précédemment créé,
-\item Le deuxième (Optionnel) contiens les conditions aux limites. A partir des drapeaus défini dans le mesh\_manager l'utilisateur va définir des conditions en limites en déplacement. Pour les conditions aux limites, les composantes disponibles selon le modèle sont:
+\item Le deuxième (Optionnel) contiens les conditions aux limites. A partir des drapeaux défini dans le mesh\_manager l'utilisateur va définir des conditions en limites en déplacement. Pour les conditions aux limites, les composantes disponibles selon le modèle sont:
 \begin{itemize}
 \item Modèles 1D: \keyword{U}
 \item Modèles 2D plan: \keyword{Ux}, \keyword{Uy}
@@ -1168,7 +1168,7 @@ Nous représentons à la \figref{fig:traction_2D_plane_strain_dep} la courbe for
 Nous utilisons ensuite le modèle axi-symétrique complet pour représenter un essai de compression cylindrique avec les bords supérieure et inférieure laissés libres. Le champ de déplacement est alors identique à celui donné à l'\eref{eq:analytical_Ur_1D_cyl} et comporte une composante verticale $u_{z}$ non nulle contrairement au modèle 1D cylindrique. Le champ de déplacement résultant est obtenu avec \eqref{eq:A_B_C_compression_cylindrique} en prenant $C=0$ et est représenté \figref{fig:2D_Cylindric_compression}.
 \begin{figure}[h!]
 \begin{subfigure}[b]{0.49\textwidth}
-\centering \includegraphics[width=0.8\textwidth]{\path/2D_Cylindric_compression}
+%\centering \includegraphics[width=0.8\textwidth]{\path/2D_Cylindric_compression}
 \caption{Essai de compression d'un cylindre}
 \label{fig:2D_Cylindric_compression}
 \end{subfigure}
@@ -1618,7 +1618,7 @@ Les propriétés matérielles et géométriques choisies pour la sphère creuse 
 Comme on peut l'observer, sur la plage complètement plastique, l'accord entre les résultats théoriques et numériques est très proche. Les résultats du modèle proposé montrent une liaison régulière entre les états complètement élastique et complètement plastique. Cela ajoute une certaine crédibilité à la validité du modèle sur toute la plage élasto-plastique. Une observation intéressante qui peut être faite à partir des résultats montrés dans la \figref{fig:comparaison_ilyushin} est que la capacité de résistance à la charge de la structure augmente avec une augmentation du niveau d'écrouissage (c'est-à-dire lorsque $\lambda$ diminue). Pour les trois cas présentés, la non-linéarité due à l'écoulement du matériau commence à une pression de 200 MPa, cependant, l'état complètement plastique se développe à une pression beaucoup plus élevée (approximativement 600 MPa) pour le matériau avec $\lambda = 0,8$ comparé à celui avec $\lambda = 0,95$ pour lequel la pression correspondante est d'environ 450 MPa ; le niveau de déplacement correspondant au début de l'état complètement plastique est le même (environ 1,52 mm) pour tous les cas étudiés.
 
 \begin{figure}[h!]
-\centering \includegraphics[width=0.8\textwidth]{\path/repartition_sigma_1_3}
+%\centering \includegraphics[width=0.8\textwidth]{\path/repartition_sigma_1_3}
 \caption{Variation des contraintes induites avec la distance à différents niveaux de pression interne.}
 \label{fig:repartition_sigma_1_3}
 \end{figure}
@@ -1795,11 +1795,6 @@ Le problème mécanique correctement défini est ensuite donné en argument au s
 \item plastic\_solve actualise l'endommagement plastique.
 \item Le fichier DamageSolve.py contient l'outil de résolution de l'endommagement. 
 \end{itemize}
-\clearpage
-\begin{figure}[h!]\centering\includegraphics[width=0.6\textwidth]{\path/Blocs_CHARON.pdf}
-\caption{Structure du code CHARON}
-\label{fig:Structure_code_CHARON}
-\end{figure}
 
 \subsection{Fichiers annexes}
 Quelques fichiers plus génériques, appelés par un ou plusieurs blocs ci-dessus sont consignés à l’extérieur. Nous donnons par exemple:

@@ -12,12 +12,16 @@
 \newcommand{\cv}{c_{v}}
 \newcommand{\Cm}{C_{\mathrm{m}}}
 \newcommand{\PsiVol}{U}
-
+\newcommand{\vgrad}{\vec{\text{grad}}\,}
+\newcommand{\MatMass}{\mathbb{M}}
+\newcommand{\FLin}{\vec{f}^{\ell}}
+\newcommand{\dlo}{\d\ell_{0}}
+\newcommand{\npart}[1]{<#1>_{-}}
+\newcommand{\Convexe}{\Cc}
+\newcommand{\Gc}{\Gg_{c}}
+\newcommand{\Int}[2]{\int_{#1}^{#2}}
 
 \begin{document}
-
-
-\newcommand{\TU}{\TenUnit}
 \part{Théorie}\label{Part:Theorie}
 \chapter*{Introduction}
 La partie pratique achevée, nous précisons ici brièvement la théorie des modèles implémentés dans le code CHARON. Cette partie ne peut être considérée comme un traité de mécanique complet. Nous renverrons, le cas échéant le lecteur, à des ouvrages de référence dont sont tirées les lois ici utilisées.
@@ -40,7 +44,7 @@ A ce stade, les lois de comportement reliant la contrainte actuelle de Cauchy au
 \widecellh{2.5}{1.5}{$\GT$} & Gradient de la transformation\\\hline
 \widecellh{2.5}{1.5}{$\Dep$} & Champ de déplacement\\\hline
 \widecellh{2.5}{1.5}{$\TD$} & Tenseur taux de déformation\\\hline
-\widecellh{2.5}{1.5}{$\CauchyGG$} & Tenseur de déformation de Cauchy-Green gauche\\\hline
+\widecellh{2.5}{1.5}{$\CGG$} & Tenseur de déformation de Cauchy-Green gauche\\\hline
 \widecellh{2.5}{1.5}{$\DefoHPP$} & Déformation linéarisée\\\hline
 \widecellh{2.5}{1.5}{$\TU$} & Tenseur métrique\\\hline
 \widecellh{2.5}{1.5}{$\DepVirt$} & Champ test (déplacement virtuel)\\\hline
@@ -907,7 +911,7 @@ La loi déviatorique Néo-Hookéenne correspond à un développement au premier 
 \end{equation}
 \begin{Propo}{Comportement déviatorique Néo-Hookéen} Le comportement déviatorique résultant de l'énergie \eqref{eq:postulat_eHelm_NH} est:
 \begin{equation}
-\devia = \frac{\mu}{\J^{\frac{5}{3}}}\dev\CauchyGG
+\devia = \frac{\mu}{\J^{\frac{5}{3}}}\dev\CGG
 \label{eq:loi_deviateur_NH_analytique}
 \end{equation}
 \end{Propo}
@@ -921,7 +925,7 @@ La loi déviatorique de Mooney-Rivlin correspond à un développement au premier
 \label{eq:postulat_eHelm_NH}
 \end{equation}
 \begin{Propo}{Comportement déviatorique de Mooney-Rivlin} Le comportement déviatorique résultant de l'énergie \eqref{eq:postulat_eHelm_NH} est:
-$$\devia=\dfrac{\mu}{\J^{\frac{5}{3}}}\dev\CauchyGG-\dfrac{C_{01}}{\J^\frac{7}{3}}\dev\left(\CauchyGG^{2}-\tr(\CauchyGG)\CauchyGG\right)$$
+$$\devia=\dfrac{\mu}{\J^{\frac{5}{3}}}\dev\CGG-\dfrac{C_{01}}{\J^\frac{7}{3}}\dev\left(\CGG^{2}-\tr(\CGG)\CGG\right)$$
 \end{Propo}
 Cette loi est une correction d'ordre supérieure au modèle Néo-Hookéen généralisé précédemment présenté. 
 
@@ -929,15 +933,15 @@ Si l'on suppose à nouveau que la transformation infinitésimale:
 $$\CGG^{2}-\tr(\CGG)\CGG\approx (\TenUnit+4\DefoHPP) - (3+2\tr\DefoHPP)(\TenUnit+2\DefoHPP) \implique \dev\left(\CGG^{2}-\tr(\CGG)\CGG\right)\approx -2\dev\DefoHPP$$
 De sorte que l'on doit assurer $C_{10}+C_{01}=\mu$ afin d'être cohérent avec la modélisation en petites perturbations.
 
-\newcommand{\TenVMAnis}{\PP}
-\newcommand{\DeltaSC}{\ten{\Delta}\SC}
+%\newcommand{\TenVMAnis}{\PP}
+%\newcommand{\DeltaSC}{\ten{\Delta}\SC}
 \newcommand{\DeltaDefoHPP}{\ten{\Delta}\DefoHPP}
 \newcommand{\DeltaEpsP}{\DeltaDefoHPP^{p}}
-\newcommand{\ConvElas}{C}
-\newcommand{\TenNormale}{\ten{N}}
-\newcommand{\CentreConv}{\ten{X}}
-\newcommand{\HatSigRel}{\hat{\ten{\psi}}_{Rel}}
-\newcommand{\ChalMassUn}{q_{exp}^{m\, (1)}}
+%\newcommand{\ConvElas}{C}
+%\newcommand{\TenNormale}{\ten{N}}
+%\newcommand{\CentreConv}{\ten{X}}
+%\newcommand{\HatSigRel}{\hat{\ten{\psi}}_{Rel}}
+%\newcommand{\ChalMassUn}{q_{exp}^{m\, (1)}}
 \chapter{Plasticité}\label{Chapitre:Plasticité}
 \section*{\emph{Introduction}}
 Soumise à des sollicitations plus importantes, une vaste gamme de métaux exhibe un comportement anélastique caractéristique appelé \emph{plasticité}. Ce comportement traduit macroscopiquement la réorganisation et le mouvement de dislocations à l'échelle du réseau cristallin.\\
@@ -1485,9 +1489,9 @@ $$\Vert\tgrad_{L}\Dep\Vert\ll 1 \et T-T_{0}\ll 1$$
 \end{Hypothese}
 Autrement dit, le mouvement est une quasi-translation et les écarts de température à une valeur de référence sont infinitésimaux.
 \subsubsection{Loi de comportement élastique linéaire}
-La loi de comportement la plus simple relie linéairement la contrainte actuelle de Cauchy $\SC$ à la déformation linéarisée $\DefoHPP$ par l'intermédiaire d'un tenseur d'ordre 4 de \og rigidité \fg{} $\Rigi$. Nous postulons que la relation entre le tenseur des contraintes et la déformation est donnée par (voir \cite{salenccon2005mecanique, forest2015mecanique}:
+La loi de comportement la plus simple relie linéairement la contrainte actuelle de Cauchy $\SC$ à la déformation linéarisée $\DefoHPP$ par l'intermédiaire d'un tenseur d'ordre 4 de \og rigidité \fg{} $\RigiLin$. Nous postulons que la relation entre le tenseur des contraintes et la déformation est donnée par (voir \cite{salenccon2005mecanique, forest2015mecanique}:
 \begin{equation}
-\SC = \Rigi:\DefoHPP-\ten{k} \tau=\Rigi:\GradSym(\Dep)-\ten{k} \tau
+\SC = \RigiLin:\DefoHPP-\ten{k} \tau=\RigiLin:\GradSym(\Dep)-\ten{k} \tau
 \label{eq:elasticité_lineaire_thermo}
 \end{equation}
 $\ten{k}$ désignant ici le tenseur de dilatation thermique, $\tau=T-T_{0}$ l'écart de température.
@@ -1534,12 +1538,12 @@ Le modèle Néo-Hookéen postule une énergie libre massique de la forme suivant
 $$\eHelmMass = U(J) + \dfrac{\mu}{2}\left(\BBarI -3\right)$$
 La fonction $U(J)$ aussi appelée fonction de compressibilité admet dans la littérature de nombreuses expressions dont découle la loi d'état (voir \secref{Section:Loi d'état}). La loi thermo-élastique en grandes transformations suivante est implantée dans le code CHARON (pour les détails de sa dérivation, nous renvoyons le lecteur à \cite{simo2006computational}):
 \begin{equation}
-\SC=\tilde{K}_{0}\TU+\tilde{K}_{1}\dev\CauchyGG \quad \tilde{K}_{0}=\BulkModulus\ln\frac{\J}{1+3\alpha(T-T_{0})}; \quad \tilde{K}_{1}=\frac{\mu_{0}}{\J^{\frac{5}{3}}}
+\SC=\tilde{K}_{0}\TU+\tilde{K}_{1}\dev\CGG \quad \tilde{K}_{0}=\BulkModulus\ln\frac{\J}{1+3\alpha(T-T_{0})}; \quad \tilde{K}_{1}=\frac{\mu_{0}}{\J^{\frac{5}{3}}}
 \label{eq:loi_grand_transfo}
 \end{equation}
 Dans cette égalité:
 \begin{itemize}
-\item $\CauchyGG=\GT\cdot\GT^{\top}$ désigne le tenseur de déformation de Cauchy-Green gauche.
+\item $\CGG=\GT\cdot\GT^{\top}$ désigne le tenseur de déformation de Cauchy-Green gauche.
 \item $\J=\det\GT$ est le jacobien de la transformation et traduit physiquement la \emph{dilatation volumique} d'une particule.
 \item $\alpha$ désigne le coefficient de dilatation volumique 
 \item Les modules de compressibilité $\xi$ et de cisaillement $\mu$ {\it initiaux} sont:
@@ -1548,7 +1552,7 @@ $$\BulkModulus=\frac{E_{0}}{3(1-2\nu_{0})}; \qquad \mu_{0}=\frac{E_{0}}{2(1+\nu_
 La loi de comportement Néo-Hookéenne généralisée présente naturellement une séparation moyenne/déviatorique de la contrainte $\SC = -p\TU+\devia$:
 \begin{align}
 p &= -\BulkModulus\ln\frac{\J}{1+3\alpha(T-T_{0})}\\\label{eq:devia_Neo_Hook}
-\devia &= \frac{\mu_{0}}{\J^{\frac{5}{3}}}\dev\CauchyGG
+\devia &= \frac{\mu_{0}}{\J^{\frac{5}{3}}}\dev\CGG
 \end{align}
 En linéarisant pour des transformations infinitésimales, cette loi se réduit à l'élasticité linéarisée précédemment développée.\\
 
@@ -1565,7 +1569,7 @@ $$T_{n+1}=T_{n}+\dfrac{1}{C_{\tan}(T^{n},\J^{n})}\left(\Delta t\left(\SC:\TD+\PC
 \subsection{Loi thermo-élastique de type Mooney-Rivlin généralisée}
 La loi thermo-élastique en grandes transformations suivante est implantée dans le code CHARON:
 \begin{equation}
-\SC=\tilde{K}_{0}\TU+\tilde{K}_{1}\dev\CauchyGG+\tilde{K}_{2}\dev\left(\CauchyGG^{2}-\tr(\CauchyGG)\CauchyGG\right)
+\SC=\tilde{K}_{0}\TU+\tilde{K}_{1}\dev\CGG+\tilde{K}_{2}\dev\left(\CGG^{2}-\tr(\CGG)\CGG\right)
 \label{eq:loi_grand_transfo_MR}
 \end{equation}
 Expression dans laquelle $\tilde{K}_{0}$ est identique à \eqref{eq:loi_grand_transfo} et les coefficients $\tilde{K}_{1}$ et $\tilde{K}_{2}$ sont:
@@ -1573,7 +1577,7 @@ Expression dans laquelle $\tilde{K}_{0}$ est identique à \eqref{eq:loi_grand_tr
 $$\tilde{K}_{1}=\dfrac{\mu_{0}+\alpha_{0}}{\J^{\frac{5}{3}}} \et \tilde{K}_{2}=-\dfrac{\alpha_{0}}{\J^\frac{7}{3}}$$
 Cette loi est une correction d'ordre supérieure au modèle Néo-Hookéen généralisé précédemment présenté. Le déviateur de la contrainte est plus explicitement:
 \begin{equation}
-\devia=\dfrac{\mu_{0}+\alpha_{0}}{\J^{\frac{5}{3}}}\dev\CauchyGG-\dfrac{\alpha_{0}}{\J^\frac{7}{3}}\dev\left(\CauchyGG^{2}-\tr(\CauchyGG)\CauchyGG\right)
+\devia=\dfrac{\mu_{0}+\alpha_{0}}{\J^{\frac{5}{3}}}\dev\CGG-\dfrac{\alpha_{0}}{\J^\frac{7}{3}}\dev\left(\CGG^{2}-\tr(\CGG)\CGG\right)
 \label{eq:devia_MR}
 \end{equation}
 
@@ -1613,9 +1617,9 @@ Le multiplicateur de Lagrange $\lambda$ assure les conditions de Kuhn-Tucker sta
 Le problèmes élasto-plastique en petites perturbations avec un critère de Von-Mises avec écrouissage cinématique linéaire est régi par le jeu de potentiel et d'équations suivantes:
 \begin{itemize}
 \item Potentiel thermodynamique:
-$$\rho \eHelm(\DefoHPP,\EpsP)=\frac{1}{2}(\DefoHPP-\EpsP):\Rigi:(\DefoHPP-\EpsP)+\frac{1}{2}\EpsP:\TenEcroui:\EpsP$$
+$$\rho \eHelm(\DefoHPP,\EpsP)=\frac{1}{2}(\DefoHPP-\EpsP):\RigiLin:(\DefoHPP-\EpsP)+\frac{1}{2}\EpsP:\TenEcroui:\EpsP$$
 \item Lois de comportement
-$$\SC =\Rigi:(\DefoHPP-\EpsP)$$
+$$\SC =\RigiLin:(\DefoHPP-\EpsP)$$
 \item Force thermodynamique motrice de la plasticité
 $$\FthEpsp=\dev(\SC-\TenEcroui:\EpsP)=\devia-\TenTranslatDom$$
 avec $\TenTranslatDom=\TenEcroui:\EpsP=\frac{2}{3}C\EpsP$, tenseur déviatorique.
@@ -1630,9 +1634,9 @@ $$\begin{aligned}
 Le problèmes élasto-plastique en petites perturbations avec un critère de Von-Mises avec écrouissage isotrope est régi par le jeu de potentiel et d'équations suivantes:
 \begin{itemize}
 \item Potentiel thermodynamique:
-$$\rho \eHelm(\DefoHPP,\EpsP)=\frac{1}{2}(\DefoHPP-\EpsP):\Rigi:(\DefoHPP-\EpsP)+\eHelm_{p}(p)$$
+$$\rho \eHelm(\DefoHPP,\EpsP)=\frac{1}{2}(\DefoHPP-\EpsP):\RigiLin:(\DefoHPP-\EpsP)+\eHelm_{p}(p)$$
 \item Lois de comportement
-$$\SC =\Rigi:(\DefoHPP-\EpsP)$$
+$$\SC =\RigiLin:(\DefoHPP-\EpsP)$$
 \item Force thermodynamique motrice de la plasticité
 $$\begin{aligned}
 \FthEpsp&=\dev(\SC)=\devia\\
@@ -1657,7 +1661,7 @@ On suppose que l'état est connu à l'instant $t_{n}$, noté $\{\DefoHPP_{n},\De
 &\sigma_{ij(n+1)}n_{j}=T_{i(n+1)}^{\mathrm{g}}\sur S_{T_{i}}, i=1, 2, 3\\	
 \end{aligned}\right.\\\label{eq:loi_compo_increm_cin_lin}
 &\left\{\begin{aligned}
-&\SC_{n+1}=\Rigi:(\DefoHPP-\EpsP)\\
+&\SC_{n+1}=\RigiLin:(\DefoHPP-\EpsP)\\
 &\FthEpsp_{n+1}=\devia_{n+1}-\CentreConv_{n+1}\\
 \end{aligned} \right. \avec\CentreConv=H \DefoHPP^{p}=\frac{2}{3}C\EpsP\et \devia=\dev\SC\\\label{eq:Fonction_charge_incre}
 &\FChargeConvexe(\FthEpsp_{n+1})=\FChargeConvexe(\devia_{n+1}-\CentreConv_{n+1})=\sqrt{\frac{3}{2}}\Vert \devia_{n+1}-\CentreConv_{n+1}\Vert-\sigma_{0}\leq0\\\label{eq:Ecoulement_incre}
@@ -1722,7 +1726,7 @@ Ainsi en un point donné, à partir de l'état à l'instant $t_{n}$ suppose conn
 \paragraph{Algorithme 1: Retour radial dans le cas de l'écrouissage cinématique linéaire\\}
 \begin{enumerate}
 \item On effectue une première estimation de l'état en supposant que l'évolution est élastique
-$$\DeltaSC^{\text{elas}}=\Rigi:\DeltaDefoHPP, \quad \SC_{n+1}^{\text{elas}}=\SC_{n}+\Rigi:\DeltaDefoHPP \quad \text{et} \; \devia^{\text{elas}}_{n+1}=\dev\SC^{\text{elas}}_{n+1}.$$
+$$\DeltaSC^{\text{elas}}=\RigiLin:\DeltaDefoHPP, \quad \SC_{n+1}^{\text{elas}}=\SC_{n}+\RigiLin:\DeltaDefoHPP \quad \text{et} \; \devia^{\text{elas}}_{n+1}=\dev\SC^{\text{elas}}_{n+1}.$$
 \item On calcule: $\FthEpsp_{n+1}^{\text{elas}}=\devia_{n+1}^{\text{elas}}-H\DefoHPP_{n}^{p}=\devia_{n}+2\mu\DeltaDefoHPP_{d}-H\DefoHPP^{p}_{n}$
 \begin{center}
 et: $\FChargeConvexe(\FthEpsp_{n+1}^{\text{elas}})=\sqrt{\frac{3}{2}}\Vert\FthEpsp_{n+1}^{\text{elas}}\Vert-\sigma_{0}.$
@@ -1750,7 +1754,7 @@ Nous montrons comment implémenter un problème élasto-plastique avec un critè
 La réponse de la structure est calculée en utilisant un algorithme itératif de prédiction-correction basé sur le retour radial intégré dans une boucle globale de Newton-Raphson pour garantir. En raison de l'expression simple du critère de von Mises, la procédure de retour radial est entièrement analytique (avec un durcissement isotrope linéaire).
 \subsubsection{Comportement élastoplastique}
 Le matériau obéit à une loi élasto-plastique de Von-Mises isotrope avec une limite d'élasticité $\sigY$ et un durcissement isotrope de module $H$. Le comportement élastique est linéaire isotrope :
-$$\SC = \lambda \tr(\DefoHPP-\EpsP)\bI + 2\mu(\DefoHPP-\EpsP) = \Rigi:(\DefoHPP-\EpsP)$$
+$$\SC = \lambda \tr(\DefoHPP-\EpsP)\bI + 2\mu(\DefoHPP-\EpsP) = \RigiLin:(\DefoHPP-\EpsP)$$
 La fonction de charge est donnée par:
 $$\FChargeConvexe(\SC) = \sqrt{\frac{3}{2}\devia:\devia} - \sigY -Hp \leq 0$$
 où $\devia = \dev(\SC)$ est la contrainte déviatorique et $p$ est la déformation plastique équivalente cumulée telle que $\dot{p} = \sqrt{\frac{2}{3}}|\dot{\DefoHPP}^{p}|$. Nous introduisons également la contrainte équivalente de von Mises :
