@@ -10,7 +10,6 @@ from dolfinx.fem import functionspace, Function, Expression
 from ufl import dot, det, sqrt, tr, exp
 from math import pi
 
-
 class JAXGursonPlasticity(Plastic):
     """Gurson-Tvergaard-Needleman model for porous plasticity.
     

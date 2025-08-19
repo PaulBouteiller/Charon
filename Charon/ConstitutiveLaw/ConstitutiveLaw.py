@@ -52,7 +52,7 @@ Helmholtz_energy : Calculate the Helmholtz free energy
 """
 from .eos import EOS
 from .deviator import Deviator
-from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity
+from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity, GTNSimplePlasticity
 from .damage import PhaseFieldDamage, StaticJohnson, DynamicJohnson, InertialJohnson
 
 from ufl import Identity
@@ -130,7 +130,8 @@ class ConstitutiveLaw:
             plastic_mapper = {"HPP_Plasticity" : HPPPlastic, 
                               "Finite_Plasticity" : FiniteStrainPlastic,
                               "J2_JAX" : JAXJ2Plasticity,
-                              "JAX_Gurson" : JAXGursonPlasticity
+                              "JAX_Gurson" : JAXGursonPlasticity,
+                              "HPP_Gurson" : GTNSimplePlasticity
                               }
             plastic_class = plastic_mapper.get(self.plastic_model)
             if plastic_class is None:

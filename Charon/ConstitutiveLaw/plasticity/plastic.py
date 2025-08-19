@@ -37,6 +37,7 @@ from .hpp_plastic import HPPPlastic
 from .finite_strain_plastic import FiniteStrainPlastic
 from .jax_j2_plastic import JAXJ2Plasticity
 from .jax_gurson_plastic import JAXGursonPlasticity
+from .jax_gurson_plastic_hpp import GTNSimplePlasticity
 
 # Export des classes pour compatibilité
 __all__ = [
@@ -44,5 +45,6 @@ __all__ = [
     'HPPPlastic', 
     'FiniteStrainPlastic',
     'JAXJ2Plasticity',
-    'JAXGursonPlasticity'
+    'JAXGursonPlasticity',
+    'GTNSimplePlasticity'
 ]

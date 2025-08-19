@@ -28,6 +28,7 @@ from .PlasticSolve.hpp_plastic_solver import HPPPlasticSolver
 from .PlasticSolve.finite_strain_plastic_solver import FiniteStrainPlasticSolver
 from .PlasticSolve.jax_j2_plastic_solver import JAXJ2PlasticSolver
 from .PlasticSolve.jax_gurson_plastic_solver import JAXGursonPlasticSolver
+from .PlasticSolve.jax_gurson_plastic_solver_hpp import GTNSimpleJAXSolver
 
 from .multiphase_solve import MultiphaseSolver
 # from .multiphase_solve_clean import MultiphaseSolver
@@ -328,7 +329,8 @@ class Solve:
                 "HPP_Plasticity": HPPPlasticSolver,
                 "Finite_Plasticity": FiniteStrainPlasticSolver,
                 "J2_JAX": JAXJ2PlasticSolver,
-                "Gurson_JAX": JAXGursonPlasticSolver
+                "Gurson_JAX": JAXGursonPlasticSolver,
+                "HPP_Gurson": GTNSimpleJAXSolver
             }
             plastic_class = plastic_solver_mapper[self.pb.constitutive.plastic.plastic_model]
             self.plastic_solver = plastic_class(self.pb, self.pb.constitutive.plastic, self.pb.u)
