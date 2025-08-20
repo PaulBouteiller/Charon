@@ -13,12 +13,34 @@
 # limitations under the License.
 
 """
-Module unifié d'intégrateurs temporels basés sur les tableaux de Butcher pour résoudre des équations différentielles ordinaires.
+Unified Temporal Integrators Based on Butcher Tableaux
+======================================================
+
+Module for solving ordinary differential equations using Butcher tableau methods.
+
+This module provides a unified framework for explicit Runge-Kutta methods using
+Butcher tableaux representation, supporting orders 1-4 with various schemes.
+
+Classes
+-------
+ButcherTableau
+    Representation of a Butcher tableau for Runge-Kutta methods
+ButcherIntegrator
+    Temporal integrator based on Butcher tableaux for ODEs
+
+Functions
+---------
+second_order_rk1, second_order_rk2, second_order_rk4
+    Legacy functions for second-order ODEs (maintained for compatibility)
+
+Notes
+-----
+The module supports explicit methods only. Implicit methods require
+different solution strategies not implemented here.
 """
 
 import numpy as np
 from dolfinx.fem import Function
-from petsc4py.PETSc import InsertMode, ScatterMode
 from ..utils.petsc_operations import dt_update, petsc_assign
 from dolfinx.fem.petsc import set_bc
 
@@ -79,8 +101,7 @@ class ButcherTableau:
         
         Returns
         -------
-        bool
-            True si la méthode est explicite, False sinon
+        bool True si la méthode est explicite, False sinon
         """
         if self.a.ndim == 1:
             return True  # Un vecteur a est toujours explicite

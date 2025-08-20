@@ -80,13 +80,12 @@ class ExplicitDisplacementSolver:
         vector.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
         
     def _set_explicit_function(self, residual_form, m_form):
-        """
-        Définition du vecteur de masse, issu de la condensation de la matrice de masse
+        """Define mass vector from mass matrix condensation.
         
         Parameters
         ----------
-        residual_form: Form, résidu = forme linéaire a(u,v)-l(v)
-        m_form : Form, forme bilinéaire de masse.
+        residual_form : Form Residual form: a(u,v) - l(v)
+        m_form : Form Mass matrix bilinear form
         """
         u1 = Function(self.u.function_space)
         u1.x.petsc_vec.set(1.)
@@ -97,7 +96,10 @@ class ExplicitDisplacementSolver:
         self.local_res = form(-residual_form)
         
     def _init_symplectic_methods(self):
-        """Initialise les méthodes symplectiques disponibles."""
+        """Initialize available symplectic methods.
+        
+        Sets up coefficient dictionaries for symplectic integrators of orders 1-5.
+        """
         self.symplectic_methods = {}
         
         # Méthode d'ordre 1

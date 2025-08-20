@@ -65,18 +65,18 @@ except Exception:
     print("JAX or Diffrax has not been loaded therefore Johnson model can not be used")
 
 class DamageSolve:
-    """
-    La classe damage solve implémente les routines pour le calcul des variables
-    d'endommagement (ou de la porosité si l'on utilise le modèle de Johnson)
+    """Base class for damage evolution computations.
+    
+    This class implements routines for calculating damage variables
+    (or porosity when using the Johnson model).
     """
     def __init__(self, Damage_object, dt):
-        """
-        Initialisation du solveur d'endommagement.
+        """Initialize damage solver.
 
         Parameters
         ----------
-        Damage_object : Objet de la classe Damage.
-        dt : Float, pas de temps.
+        Damage_object : Damage Damage model object
+        dt : float Time step size
         """
         self.tol = 1e-2
         self.dam = Damage_object
@@ -163,13 +163,14 @@ class StaticJohnsonSolve(JohnsonSolve):
             petsc_assign(self.dam.d, self.f_proj)
             
     def set_gaussian_regularization(self, dx, kinematic):
-        """
-        Régularisation par une Gaussienne du champ de porosité, équivalent à prendre
-        le champ de porosité localisé en input d'un solver de diffusion.
+        """Apply Gaussian regularization to porosity field.
+        
+        Equivalent to taking the localized porosity field as input to a diffusion solver.
+        
         Parameters
         ----------
-        dx : Measure, mesure d'intégration.
-        kinematic : Objet de la classe kinématic.
+        dx : Measure Integration measure
+        kinematic : Kinematic Kinematic utilities object
         """
         self.dd = TrialFunction(self.dam.V_d_regul)
         self.d_ = TestFunction(self.dam.V_d_regul)
@@ -300,15 +301,14 @@ class PhaseFieldSolve(DamageSolve):
         return evol_dam
         
     def set_damage_problem(self, kinematic, dx):
-        """
-        Définition de la fonctionnelle énergie totale à minimiser ainsi que
-        de ses dérivées. Puis définition du problème non linéaire sous-contraintes
-        à résoudre.
+        """Define total energy functional to minimize and its derivatives.
+        
+        Sets up the nonlinear constrained problem to solve.
 
         Parameters
         ----------
-        kinematic : Objet de la classe kinematic.
-        dx : Measure, mesure d'intégration.
+        kinematic : Kinematic Kinematic utilities object
+        dx : Measure Integration measure
         """
         energy_tot = kinematic.measure(self.dam.energy + self.dam.fracture_energy, dx)
         # first derivative of energy with respect to d
@@ -321,9 +321,11 @@ class PhaseFieldSolve(DamageSolve):
             self.problem = SNESProblem(F_dam, J_dam, self.dam.d, [])     
         
     def set_damage_solver(self):
-        """
-        Initialisation du solveur non linéaire d'optimisation sous-contrainte
-        pour le problème de rupture par champ de phase.
+        """Initialize nonlinear optimization solver for phase-field fracture.
+        
+        Returns
+        -------
+        PETSc.TAO or PETSc.SNES Configured nonlinear solver
         """
 
         tol = self.solver_parameters.get("tol")

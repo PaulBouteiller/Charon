@@ -61,9 +61,7 @@ class ExplicitEnergySolver:
         self.integrator = ButcherIntegrator(lambda: self.dot_T_expr)
         
     def energy_solve(self):
-        """
-        Actualisation explicite du champ de température
-        """
+        """Explicit update of temperature field."""
         order = default_energy_solver_order()
         self.integrator.solve(order, self.T, self.dot_T_expr, self.dot_T_func, self.dt)
         
@@ -91,27 +89,30 @@ class DiffusionSolver:
         self.set_T_solver(T, T_bcs)
         
     def set_transient_thermal_form(self, dt, T, T_, dT, PVol, C_tan, flux_form, kin, dx):
-        """
-        Définition des formes bilinéaires et linéaires pour la résolution
-        du problème variationnel de diffusion      
+        """Define bilinear and linear forms for diffusion problem solution.
 
         Parameters
         ----------
-        dt : Float, pas de temps.
-        T : Function, température actuelle.
-        T_ : TestFunction, Fonction test pour la température.
-        dT : TrialFunction, Fonction test pour la température.
-        PVol : Expression, puissance volumique.
-        C_tan : Expression, capacité thermique massique tangente.
-        flux_form : Form, forme bilinéaire du flux thermique.
-        dx : Measure, mesure d'intégration.
+        dt : float Time step size
+        T : Function Current temperature
+        T_ : TestFunction Temperature test function
+        dT : TrialFunction Temperature trial function
+        PVol : Expression Volumetric power source
+        C_tan : Expression Tangent heat capacity
+        flux_form : Form Heat flux bilinear form
+        kin : Kinematic Kinematic utilities
+        dx : Measure Integration measure
         """
         self.bilinear_therm_form = kin.measure(C_tan * dT * T_ / dt, dx) + flux_form
         self.linear_therm_form = kin.measure((C_tan * T / dt + PVol) * T_,  dx)
 
     def set_T_solver(self, T, T_bcs):
-        """
-        Initialise le solveur pour la résolution du problème variationnel de diffusion
+        """Initialize solver for diffusion variational problem.
+        
+        Parameters
+        ----------
+        T : Function Temperature field
+        T_bcs : list Temperature boundary conditions
         """
         self.problem_T = create_linear_solver(self.bilinear_therm_form, self.linear_therm_form, T, 
                                               bcs=T_bcs, solver_type="hybrid")
