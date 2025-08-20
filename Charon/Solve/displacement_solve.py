@@ -12,12 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Mon Sep 26 17:51:49 2022
+Explicit Displacement Solver
+=============================
 
-@author: bouteillerp
+Explicit time integration solver for structural dynamics using symplectic methods.
 
-Rajouter la référence The accuracy of symplectic integrators de McLachlan pour les intégrateurs
-symplectic
+This module implements explicit displacement solvers for dynamic problems using
+symplectic integrators that preserve energy and momentum.
+
+Classes
+-------
+ExplicitDisplacementSolver
+    Explicit dynamics solver with symplectic time integration
+
+Notes
+-----
+Symplectic methods ensure numerical stability and energy conservation
+for Hamiltonian systems. Methods of orders 1-5 are implemented based
+on optimized coefficients from the literature.
+
+References
+----------
+McLachlan, R.I., Atela, P.: The accuracy of symplectic integrators. 
+Nonlinearity 5, 541 (1992).
 """
 from dolfinx.fem.petsc import assemble_vector, set_bc
 from dolfinx.fem import Function, form
@@ -29,17 +46,16 @@ from ..utils.petsc_operations import petsc_div, dt_update
 
 class ExplicitDisplacementSolver:
     def __init__(self, u, v, dt, m_form, form, bcs):
-        """
-        Initialise le solveur explicit de calcul du déplacement
-
+        """Initialize explicit displacement solver.
+    
         Parameters
         ----------
-        u : Function, champ de déplacement
-        v : Function, champ de vitesse
-        dt : float, pas de temps
-        m_form : Form, forme bilinéaire de masse
-        form : Form, résidu du problème mécanique: a(u,v) - L(v)
-        bcs : DirichletBC, conditions aux limites en déplacement
+        u  : Function  Displacement field
+        v  : Function  Velocity field
+        dt : float     Time step size
+        m_form : Form Mass matrix bilinear form
+        form : Form Residual form: a(u,v) - L(v)
+        bcs : DirichletBC Displacement boundary conditions
         """
         self.u = u
         self.v = v
@@ -154,7 +170,11 @@ class ExplicitDisplacementSolver:
         self.v.x.petsc_vec.ghostUpdate(addv=InsertMode.INSERT, mode=ScatterMode.FORWARD)
 
     def u_solve(self):
-        """Résout le problème de déplacement pour un pas de temps en utilisant le schéma symplectique."""
+        """Solve displacement problem using symplectic time integration.
+        
+        Applies the symplectic method of specified order, alternating between
+        velocity and position updates according to the method coefficients.
+        """
         # Récupérer les coefficients pour l'ordre demandé
         method = self.symplectic_methods[self.order]
         a_coeffs = method["a_coeffs"]

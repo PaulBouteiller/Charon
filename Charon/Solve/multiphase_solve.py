@@ -12,15 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Wed Apr 12 13:57:33 2023
+Multiphase Evolution Solver
+===========================
 
-@author: bouteillerp
+Solver for phase concentration evolution in multiphase materials.
+
+This module handles the temporal evolution of phase concentrations in
+materials undergoing chemical reactions, phase transitions, or other
+multiphase processes.
+
+Classes
+-------
+MultiphaseSolver  
+    Solver for multiphase concentration evolution
 """
 from ..utils.petsc_operations import (dt_update, set_correction, petsc_assign)
 from dolfinx.fem import Function, Expression
 
 class MultiphaseSolver:
-    """Simplified solver for multiphase evolution systems."""
+    """Solver for multiphase evolution systems.
+    
+    Efficiently handles concentration evolution for multiphase materials
+    by minimizing function interpolations and using masked operations.
+    
+    Parameters
+    ----------
+    multiphase_object : Multiphase Multiphase material object containing evolution laws
+    dt : float Time step size
+    """
     
     def __init__(self, multiphase_object, dt):
         """Initialize the multiphase solver."""

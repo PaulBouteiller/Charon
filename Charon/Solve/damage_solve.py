@@ -12,10 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Thu Mar 17 13:32:46 2022
+Damage Evolution Solvers
+========================
 
-@author: bouteillerp
+Solvers for damage evolution in materials under various physical models.
 
+This module implements damage evolution algorithms including:
+- Johnson spall model (static, dynamic, inertial variants)
+- Phase-field fracture 
+- Regularization techniques for damage localization
+
+Classes
+-------
+DamageSolve
+    Base class for damage evolution computations
+JohnsonSolve
+    Base class for Johnson spall model variants
+StaticJohnsonSolve
+    Static Johnson model with quasi-static porosity evolution
+DynamicJohnsonSolve  
+    Dynamic Johnson model with inertial effects on porosity
+InertialJohnsonSolve
+    Full inertial Johnson model for high-speed loading
+PhaseFieldSolve
+    Phase-field fracture using variational approach
+
+Notes
+-----
+Johnson models use JAX for high-performance ODE integration.
+Phase-field uses TAO/SNES optimizers for constrained minimization.
 """
 from ..utils.generic_functions import ppart, over_relaxed_predictor
 from ..utils.petsc_operations import (set_correction, petsc_assign, set_min, petsc_div)
@@ -58,20 +83,15 @@ class DamageSolve:
         self.dt = dt
         
     def inf_damage(self):
-        """
-        Mise à jour de la borne inférieur de l'endommagement au début de chaque
-        nouveau incrément.
-        """
+        """Update lower bound of damage variable at start of new increment."""
         petsc_assign(self.dam.inf_d, self.dam.d)
     
     def damage_evolution(self):
-        """
-        Compare l'endommagement à sa précédente valeur, si la différence est
-        supérieure à une tolérance self.tol, on considère que l'endommagement évolue.
-
+        """Check if damage evolution occurs by comparing with tolerance.
+    
         Returns
         -------
-        evol_dam : Booléen, True si l'endommagement évolue.
+        bool True if damage is evolving (change > tolerance)
         """
         prev_d = self.dam.d.copy()
         self.compute_damage()

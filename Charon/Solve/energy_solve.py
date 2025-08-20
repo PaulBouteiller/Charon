@@ -12,9 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Mon Sep 26 17:56:59 2022
+Energy and Temperature Solvers  
+==============================
 
-@author: bouteillerp
+Solvers for energy balance and heat transfer in thermomechanical problems.
+
+This module provides solvers for temperature evolution under different
+thermal conditions:
+- Explicit adiabatic energy integration
+- Implicit diffusion for heat conduction problems
+
+Classes
+-------
+ExplicitEnergySolver Explicit adiabatic temperature evolution
+DiffusionSolver  Implicit thermal diffusion solver
+
+Notes
+-----
+The explicit solver uses Butcher tableau methods for temporal integration
+while the diffusion solver employs implicit schemes for stability with
+large conductivity values.
 """
 from ..utils.default_parameters import default_energy_solver_order
 from .explicit_butcher import ButcherIntegrator
@@ -24,15 +41,17 @@ from dolfinx.fem import Function, Expression
         
 class ExplicitEnergySolver:
     def __init__(self, dt, T, C_tan, PVol):
-        """
-        Initialise la résolution en énergie explicite adiabatique
-
+        """Explicit solver for adiabatic energy evolution.
+        
+        Solves the energy balance equation under adiabatic conditions using
+        explicit time integration with adaptive order Runge-Kutta methods.
+        
         Parameters
         ----------
-        dt : float, pas de temps
-        T : Function, champ de température actuelle
-        C_tan : float ou Function, capacité thermique volumique tangente
-        PVol : Function, puissance volumique source.
+        dt : float Time step size
+        T : Function  Current temperature field
+        C_tan : float or Function Tangent volumetric heat capacity
+        PVol : Function Volumetric power source term
         """
         self.dt = dt
         self.T = T
@@ -48,25 +67,25 @@ class ExplicitEnergySolver:
         order = default_energy_solver_order()
         self.integrator.solve(order, self.T, self.dot_T_expr, self.dot_T_func, self.dt)
         
-
-        
 class DiffusionSolver:
     def __init__(self, dt, T, T_, dT, PVol, C_tan, flux_form, T_bcs, kinematic, dx):
-        """
-        Initialise le solveur pour la diffusion thermique
-
+        """Implicit solver for thermal diffusion problems.
+        
+        Solves the heat equation with conduction using backward Euler
+        time integration for unconditional stability.
+        
         Parameters
         ----------
-        dt : float, pas de temps
-        T : Function, champ de température actuelle
-        T_ : TestFunction, champ test de température
-        dT : TrialFunction, trial function de la température
-        PVol : Function, puissance volumique source
-        C_tan : float ou Function, capacité thermique volumique tangente
-        flux_form : Form, forme linéaire du flux thermique
-        T_bcs : DirichletBC, condition aux limites de dirichlet pour T
-        kinematic : Objet de la classe kinematic.
-        dx : Mesure d'intégration
+        dt : float Time step size
+        T : Function Current temperature field
+        T_ : TestFunction Temperature test function
+        dT : TrialFunction   Temperature trial function
+        PVol : Function Volumetric heat source
+        C_tan : float or Function Tangent volumetric heat capacity
+        flux_form : Form Heat flux bilinear form
+        T_bcs : DirichletBC Temperature boundary conditions
+        kinematic : Kinematic Kinematic utilities object
+        dx : Measure Integration measure
         """
         self.set_transient_thermal_form(dt, T, T_, dT, PVol, C_tan, flux_form, kinematic, dx)
         self.set_T_solver(T, T_bcs)
