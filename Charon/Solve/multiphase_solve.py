@@ -26,42 +26,47 @@ class MultiphaseSolver:
         """Initialize the multiphase solver."""
         self.mult = multiphase_object
         self.dt = dt
-        self.nb_evol = len(self.mult.dot_c)
+        self.nb_evol = self.mult.nb_phase - self.mult.inertes.count(True)
         V_c = self.mult.V_c
-        self.dot_c = [Function(V_c) for _ in range(self.nb_evol)]
-        self.dot_c_expr = [Expression(self.mult.dot_c[i], V_c.element.interpolation_points()) for i in range(self.nb_evol)]
-                
-    def solve(self):
-        """
-        Actualisation des champs de concentrations et d'eventuels champs auxiliaires
-        """
-        # Interpolation des expressions
+        # Créer seulement les Function/Expression nécessaires selon le masque
+        self.dot_c = []
+        self.dot_c_expr = []
+        self.interpolation_indices = []  # Indices des phases qui nécessitent interpolation  
         for i in range(self.nb_evol):
-            self.dot_c[i].interpolate(self.dot_c_expr[i])
+            mask_value = self.mult.interpolation_mask[i]
+            if mask_value is not None:  # Pas inerte
+                if mask_value or (mask_value is False and self.mult.reactifs[i]):
+                    # True: calcul complet OU False mais réactif (on interpole une fois)
+                    self.dot_c.append(Function(V_c))
+                    self.dot_c_expr.append(Expression(self.mult.dot_c[i], V_c.element.interpolation_points()))
+                    self.interpolation_indices.append(i)
+        self.interpolation_length = len(self.dot_c)
+    
+    def solve(self):
+        """Actualisation optimisée des champs de concentrations."""
+        # Interpolation seulement des expressions nécessaires
+        for idx in range(self.interpolation_length):
+            self.dot_c[idx].interpolate(self.dot_c_expr[idx])
         
         # Mise à jour temporelle
+        dot_c_idx = 0
         for i in range(self.nb_evol):
-            dt_update(self.mult.c[i], self.dot_c[i], self.dt)
+            mask_value = self.mult.interpolation_mask[i]
+            if mask_value is True:  # Calcul complet
+                dt_update(self.mult.c[i], self.dot_c[dot_c_idx], self.dt)
+                dot_c_idx += 1
+            else:  # Couple réactif-produit (mask_value is False)
+                if self.mult.reactifs[i]:
+                    # Mise à jour réactif et produit avec le même dot_c
+                    dt_update(self.mult.c[i], self.dot_c[dot_c_idx], self.dt)
+                    dt_update(self.mult.c[i+1], self.dot_c[dot_c_idx], -self.dt)
+                    dot_c_idx += 1
+                # Si produit, déjà traité avec le réactif
         
         # Correction des bornes
         for i in range(self.nb_evol):
             set_correction(self.mult.c[i], self.mult.inf_c, self.mult.max_c)
         
-    def two_phase_evolution(self):
-        """
-        Mise à jour des concentrations dans un modèle à deux phases.
-        """
-        self.dot_c.interpolate(self.dot_c_expression)
-        dt_update(self.c_list[0], self.dot_c, -self.dt)
-        dt_update(self.c_list[1], self.dot_c, self.dt)
-        
-    def instantaneous_evolution(self):
-        """
-        Mise à jour des concentrations dans un modèle à deux phases.
-        """
-        self.mult.c[0].interpolate(self.mult.c_expr)
-        self.mult.c[1].x.array[:] = 1 - self.mult.c[0].x.array
-
     def update_auxiliary_fields(self, dt, **kwargs):
         """Update auxiliary fields for all evolution laws.
         
@@ -82,4 +87,4 @@ class MultiphaseSolver:
         Mise à jour des concentrations
         """
         for i in range(self.nb_evolution):
-            petsc_assign(self.mult.c[i], self.mult.c[i])
+            petsc_assign(self.mult.c_old[i], self.mult.c[i])

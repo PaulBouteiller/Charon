@@ -86,7 +86,12 @@ class ArrheniusEvolution(BaseEvolutionLaw):
         print(f"Arrhenius kinetic prefactor: {self.kin_pref} s^-1")
         print(f"Activation energy: {self.e_activation} J/mol")
         print(f"Activation temperature: {self.e_activation/self.R:.1f} K")
-        
+    
+    def compute_single_phase_rate(self, concentration, T, pressure, material, **kwargs):
+        """Compute Arrhenius rate for single phase."""
+        arrhenius_rate = self.kin_pref * exp(-self.e_activation / (self.R * T))
+        return arrhenius_rate * concentration
+    
     def setup_auxiliary_fields(self, V_c, **kwargs):
         """Setup auxiliary fields for Arrhenius kinetics.
         
@@ -98,11 +103,6 @@ class ArrheniusEvolution(BaseEvolutionLaw):
         **kwargs : dict Additional setup parameters (unused)
         """
         pass  # No auxiliary fields needed for Arrhenius
-    
-    def compute_single_phase_rate(self, concentration, T, pressure, material, **kwargs):
-        """Compute Arrhenius rate for single phase."""
-        arrhenius_rate = self.kin_pref * exp(-self.e_activation / (self.R * T))
-        return arrhenius_rate * concentration
         
     def update_auxiliary_fields(self, dt, **kwargs):
         """Update auxiliary fields for the next time step.
@@ -121,7 +121,6 @@ class ArrheniusEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        dict
-            Empty dictionary as no auxiliary fields are used
+        dict Empty dictionary as no auxiliary fields are used
         """
         return {}

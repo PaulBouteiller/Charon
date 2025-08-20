@@ -77,10 +77,9 @@ def smooth_shifted_heaviside(x, x_lim, width):
     
     Parameters
     ----------
-    x : float, Expression, or Function
-        Value to evaluate the smooth shifted Heaviside function at
-    x_lim : float Central point of the transition
-    width : float Width over which the function changes from 0.01 to 0.99
+    x     : float, Expression, or Function Value to evaluate the smooth shifted Heaviside function at
+    x_lim : float                          Central point of the transition
+    width : float                          Width over which the function changes from 0.01 to 0.99
     """
     k = 9.19 / width  # Relation derived from 2*ln(99)/k = width
     return 1 / (1 + exp(-k * (x - x_lim)))

@@ -116,6 +116,7 @@ class Problem:
         # Configure explosive if needed
         if self.multiphase_evolution:
             self.multiphase.set_concentration_rates(self.T, self.constitutive.p)
+            self.multiphase.setup_evolution_auxiliary_fields()
         
         # Configure thermal analysis if needed
         self._init_thermal_analysis()

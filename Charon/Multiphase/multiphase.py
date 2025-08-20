@@ -46,8 +46,7 @@ from .evolution import (ArrheniusEvolution,
                         ForestFireEvolution,
                         KJMAEvolution, 
                         WGTEvolution,
-                        DesbiensEvolution, 
-                        SmoothInstantaneousEvolution)
+                        DesbiensEvolution)
 
 
 class Multiphase:
@@ -95,6 +94,7 @@ class Multiphase:
         if self.has_evolution:
             self.evolution_laws = multiphase_dictionary["evolution_laws"]
             self._setup_species_classification()
+            self._create_interpolation_mask()
             self._setup_evolution_system(multiphase_dictionary["evolution_laws"])
             # self.dot_c_list = self.compute_concentration_rates()
             chemical_energy_release_list = multiphase_dictionary.get("chemical_energy_release")
@@ -157,6 +157,19 @@ class Multiphase:
         self.produits_finaux = self.species_types['produits_finaux']
         self.inertes = self.species_types['inertes']
         self._log_species_classification()
+        
+    def _create_interpolation_mask(self):
+        """Créer un masque d'interpolation optimisé."""
+        self.interpolation_mask = []
+        
+        for i in range(self.nb_phase):
+            if self.inertes[i]:
+                self.interpolation_mask.append(None)  # Pas d'évolution
+            elif self.intermediaires[i]:
+                self.interpolation_mask.append(True)  # Calcul complet nécessaire
+            else:  # reactifs ou produits_finaux
+                has_intermediate_next = (i+1 < self.nb_phase and self.intermediaires[i+1]) or (i-1 >0 and self.intermediaires[i-1])
+                self.interpolation_mask.append(has_intermediate_next)
     
     def _classify_species(self, phase_transitions):
         """Classify species according to their roles in reactions.
@@ -272,8 +285,6 @@ class Multiphase:
             return WGTEvolution(params)
         elif evolution_type == "Desbiens":
             return DesbiensEvolution(params)
-        elif evolution_type == "SmoothInstantaneous":
-            return SmoothInstantaneousEvolution(params)
         else:
             raise ValueError(f"Unknown evolution type: {evolution_type}")
     
@@ -324,11 +335,11 @@ class Multiphase:
             if self.reactifs[i]:# Réactif : peut seulement diminuer (-1 * expression)
                 total_rates[i] = -phase_rates[i]
             elif self.intermediaires[i]:# Intermédiaire : peut être produit (+1) ET disparaître (-1)
-                production = phase_rates[i-1] if i > 0 else 0
+                production = phase_rates[i-1]
                 consumption = phase_rates[i]
                 total_rates[i] = production - consumption
             elif self.produits_finaux[i]:# Produit final : peut seulement augmenter (+1 * expression précédente)
-                total_rates[i] = phase_rates[i-1] if i > 0 else 0
+                total_rates[i] = phase_rates[i-1]
         
         self.dot_c = total_rates
                 

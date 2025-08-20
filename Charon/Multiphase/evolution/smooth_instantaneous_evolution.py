@@ -99,46 +99,46 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         print(f"Transition width: {self.width}")
     
     def setup_auxiliary_fields(self, V_c, **kwargs):
-        """Setup auxiliary fields and expressions.
+        pass
+    #     """Setup auxiliary fields and expressions.
         
-        Creates the smooth transition expression based on the trigger variable.
+    #     Creates the smooth transition expression based on the trigger variable.
         
-        Parameters
-        ----------
-        V_c : dolfinx.fem.FunctionSpace Function space for concentration fields
-        **kwargs : dict Must contain the trigger variable data (e.g., 'rho', 'T', 'P')
-        """
-        self.V_c = V_c
+    #     Parameters
+    #     ----------
+    #     V_c : dolfinx.fem.FunctionSpace Function space for concentration fields
+    #     **kwargs : dict Must contain the trigger variable data (e.g., 'rho', 'T', 'P')
+    #     """
+    #     # self.V_c = V_c
         
-        # Get the trigger variable from kwargs
-        trigger_data = None
-        if self.trigger_variable in ['rho', 'density']:
-            trigger_data = kwargs.get('rho') or kwargs.get('density')
-        elif self.trigger_variable in ['T', 'temperature']:
-            trigger_data = kwargs.get('T') or kwargs.get('temperature')  
-        elif self.trigger_variable in ['P', 'pressure']:
-            trigger_data = kwargs.get('P') or kwargs.get('pressure')
+    #     # Get the trigger variable from kwargs
+    #     trigger_data = None
+    #     if self.trigger_variable in ['rho', 'density']:
+    #         trigger_data = kwargs.get('rho') or kwargs.get('density')
+    #     elif self.trigger_variable in ['T', 'temperature']:
+    #         trigger_data = kwargs.get('T') or kwargs.get('temperature')  
+    #     elif self.trigger_variable in ['P', 'pressure']:
+    #         trigger_data = kwargs.get('P') or kwargs.get('pressure')
         
-        if trigger_data is None:
-            raise ValueError(f"Trigger variable '{self.trigger_variable}' not found in setup kwargs")
+    #     if trigger_data is None:
+    #         raise ValueError(f"Trigger variable '{self.trigger_variable}' not found in setup kwargs")
         
-        # Create smooth transition expression
-        from ...utils.generic_functions import smooth_shifted_heaviside
+    #     # Create smooth transition expression
+    #     from ...utils.generic_functions import smooth_shifted_heaviside
         
-        self.transition_expr = smooth_shifted_heaviside(
-            trigger_data, 
-            self.trigger_value, 
-            self.width
-        )
+    #     self.transition_expr = smooth_shifted_heaviside(
+    #         trigger_data, 
+    #         self.trigger_value, 
+    #         self.width
+    #     )
         
-        # Create Expression object for interpolation
-        interp_points = V_c.element.interpolation_points()
-        self.c_expr = Expression(self.transition_expr, interp_points)
+    #     # Create Expression object for interpolation
+    #     interp_points = V_c.element.interpolation_points()
+    #     self.c_expr = Expression(self.transition_expr, interp_points)
         
-        print(f"Smooth transition expression created for {self.trigger_variable}")
+        # print(f"Smooth transition expression created for {self.trigger_variable}")
     
-    def compute_concentration_rates(self, concentrations, T, pressure, material,
-                                   phase_transitions, species_types, **kwargs):
+    def compute_single_phase_rate(self, concentrations, T, pressure, material, **kwargs):
         """Compute concentration rates for smooth instantaneous evolution.
         
         For instantaneous evolution, the rates are typically zero since
@@ -153,8 +153,6 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         T : dolfinx.fem.Function Temperature field
         pressure : ufl.Expression Pressure expression
         material : Material Material object
-        phase_transitions : list of bool Phase transition flags
-        species_types : dict Species classification
         **kwargs : dict Additional parameters
             
         Returns
@@ -162,159 +160,161 @@ class SmoothInstantaneousEvolution(BaseEvolutionLaw):
         list of ufl.Expression
             Concentration rate expressions (typically zero for instantaneous)
         """
-        nb_phase = len(concentrations)
-        rates = [0] * nb_phase
+        pass
+        # nb_phase = len(concentrations)
+        # rates = [0] * nb_phase
         
-        # For instantaneous evolution, rates are zero but concentrations
-        # are set directly to equilibrium values
-        if hasattr(self, 'c_expr') and nb_phase >= 2:
-            # Update concentrations directly to equilibrium values
-            concentrations[1].interpolate(self.c_expr)  # New phase
+        # # For instantaneous evolution, rates are zero but concentrations
+        # # are set directly to equilibrium values
+        # if hasattr(self, 'c_expr') and nb_phase >= 2:
+        #     # Update concentrations directly to equilibrium values
+        #     concentrations[1].interpolate(self.c_expr)  # New phase
             
-            # Conservation: c[0] = 1 - c[1] (for binary system)
-            concentrations[0].x.array[:] = 1.0 - concentrations[1].x.array[:]
+        #     # Conservation: c[0] = 1 - c[1] (for binary system)
+        #     concentrations[0].x.array[:] = 1.0 - concentrations[1].x.array[:]
         
-        return rates
+        # return rates
     
     def update_auxiliary_fields(self, dt, **kwargs):
-        """Update auxiliary fields.
+        pass
+    #     """Update auxiliary fields.
         
-        For smooth instantaneous evolution, concentrations are updated
-        directly rather than through time integration.
+    #     For smooth instantaneous evolution, concentrations are updated
+    #     directly rather than through time integration.
         
-        Parameters
-        ----------
-        dt : float Time step size (unused for instantaneous)
-        **kwargs : dict May contain updated trigger variable data
-        """
-        # Update trigger variable if provided
-        trigger_data = None
-        if self.trigger_variable in ['rho', 'density']:
-            trigger_data = kwargs.get('rho') or kwargs.get('density')
-        elif self.trigger_variable in ['T', 'temperature']:
-            trigger_data = kwargs.get('T') or kwargs.get('temperature')
-        elif self.trigger_variable in ['P', 'pressure']:
-            trigger_data = kwargs.get('P') or kwargs.get('pressure')
+    #     Parameters
+    #     ----------
+    #     dt : float Time step size (unused for instantaneous)
+    #     **kwargs : dict May contain updated trigger variable data
+    #     """
+    #     # Update trigger variable if provided
+    #     trigger_data = None
+    #     if self.trigger_variable in ['rho', 'density']:
+    #         trigger_data = kwargs.get('rho') or kwargs.get('density')
+    #     elif self.trigger_variable in ['T', 'temperature']:
+    #         trigger_data = kwargs.get('T') or kwargs.get('temperature')
+    #     elif self.trigger_variable in ['P', 'pressure']:
+    #         trigger_data = kwargs.get('P') or kwargs.get('pressure')
         
-        if trigger_data is not None and hasattr(self, 'V_c'):
-            # Update the transition expression
-            from ...utils.generic_functions import smooth_shifted_heaviside
+    #     if trigger_data is not None and hasattr(self, 'V_c'):
+    #         # Update the transition expression
+    #         from ...utils.generic_functions import smooth_shifted_heaviside
             
-            self.transition_expr = smooth_shifted_heaviside(
-                trigger_data,
-                self.trigger_value,
-                self.width
-            )
+    #         self.transition_expr = smooth_shifted_heaviside(
+    #             trigger_data,
+    #             self.trigger_value,
+    #             self.width
+    #         )
             
-            # Update Expression object
-            interp_points = self.V_c.element.interpolation_points()
-            self.c_expr = Expression(self.transition_expr, interp_points)
+    #         # Update Expression object
+    #         interp_points = self.V_c.element.interpolation_points()
+    #         self.c_expr = Expression(self.transition_expr, interp_points)
     
-    def get_auxiliary_fields(self):
-        """Return auxiliary fields.
+    # def get_auxiliary_fields(self):
+    #     """Return auxiliary fields.
         
-        Returns
-        -------
-        dict Dictionary containing transition expression
-        """
-        fields = {}
-        if hasattr(self, 'transition_expr'):
-            fields['transition_expr'] = self.transition_expr
-        if hasattr(self, 'c_expr'):
-            fields['c_expr'] = self.c_expr
-        return fields
+    #     Returns
+    #     -------
+    #     dict Dictionary containing transition expression
+    #     """
+    #     fields = {}
+    #     if hasattr(self, 'transition_expr'):
+    #         fields['transition_expr'] = self.transition_expr
+    #     if hasattr(self, 'c_expr'):
+    #         fields['c_expr'] = self.c_expr
+    #     return fields
     
-    def get_equilibrium_concentrations(self, trigger_value_current):
-        """Get equilibrium concentrations for given trigger value.
+    # def get_equilibrium_concentrations(self, trigger_value_current):
+    #     """Get equilibrium concentrations for given trigger value.
         
-        Parameters
-        ----------
-        trigger_value_current : float Current value of the trigger variable
+    #     Parameters
+    #     ----------
+    #     trigger_value_current : float Current value of the trigger variable
             
-        Returns
-        -------
-        tuple (c_phase1, c_phase2) equilibrium concentrations
-        """
-        from math import tanh
+    #     Returns
+    #     -------
+    #     tuple (c_phase1, c_phase2) equilibrium concentrations
+    #     """
+    #     from math import tanh
         
-        # Smooth Heaviside function
-        arg = (trigger_value_current - self.trigger_value) / self.width
-        c_phase2 = 0.5 * (1.0 + tanh(arg))  # New phase concentration
-        c_phase1 = 1.0 - c_phase2           # Original phase concentration
+    #     # Smooth Heaviside function
+    #     arg = (trigger_value_current - self.trigger_value) / self.width
+    #     c_phase2 = 0.5 * (1.0 + tanh(arg))  # New phase concentration
+    #     c_phase1 = 1.0 - c_phase2           # Original phase concentration
         
-        return c_phase1, c_phase2
+    #     return c_phase1, c_phase2
     
-    def get_transformation_progress(self, trigger_value_current):
-        """Get transformation progress (0 to 1).
+    # def get_transformation_progress(self, trigger_value_current):
+    #     """Get transformation progress (0 to 1).
         
-        Parameters
-        ----------
-        trigger_value_current : float Current value of the trigger variable
+    #     Parameters
+    #     ----------
+    #     trigger_value_current : float Current value of the trigger variable
             
-        Returns
-        -------
-        float Transformation progress (0 = no transformation, 1 = complete)
-        """
-        _, progress = self.get_equilibrium_concentrations(trigger_value_current)
-        return progress
+    #     Returns
+    #     -------
+    #     float Transformation progress (0 = no transformation, 1 = complete)
+    #     """
+    #     _, progress = self.get_equilibrium_concentrations(trigger_value_current)
+    #     return progress
     
-    def estimate_transition_range(self):
-        """Estimate the range over which transition occurs.
+    # def estimate_transition_range(self):
+    #     """Estimate the range over which transition occurs.
         
-        Returns
-        -------
-        tuple (start_value, end_value) for 1% to 99% transformation
-        """
-        from math import atanh
+    #     Returns
+    #     -------
+    #     tuple (start_value, end_value) for 1% to 99% transformation
+    #     """
+    #     from math import atanh
         
-        # Values where transformation is 1% and 99% complete
-        # tanh(x) = 0.98 => x = atanh(0.98) ≈ 2.65
-        # tanh(x) = -0.98 => x = atanh(-0.98) ≈ -2.65
+    #     # Values where transformation is 1% and 99% complete
+    #     # tanh(x) = 0.98 => x = atanh(0.98) ≈ 2.65
+    #     # tanh(x) = -0.98 => x = atanh(-0.98) ≈ -2.65
         
-        start_value = self.trigger_value - 2.65 * self.width  # 1% transformation
-        end_value = self.trigger_value + 2.65 * self.width    # 99% transformation
+    #     start_value = self.trigger_value - 2.65 * self.width  # 1% transformation
+    #     end_value = self.trigger_value + 2.65 * self.width    # 99% transformation
         
-        return start_value, end_value
+    #     return start_value, end_value
     
-    def is_transformation_complete(self, trigger_value_current, tolerance=0.01):
-        """Check if transformation is essentially complete.
+    # def is_transformation_complete(self, trigger_value_current, tolerance=0.01):
+    #     """Check if transformation is essentially complete.
         
-        Parameters
-        ----------
-        trigger_value_current : float Current trigger variable value
-        tolerance : float, optional Tolerance for considering transformation complete (default: 0.01)
+    #     Parameters
+    #     ----------
+    #     trigger_value_current : float Current trigger variable value
+    #     tolerance : float, optional Tolerance for considering transformation complete (default: 0.01)
             
-        Returns
-        -------
-        bool True if transformation is essentially complete
-        """
-        progress = self.get_transformation_progress(trigger_value_current)
-        return progress > (1.0 - tolerance)
+    #     Returns
+    #     -------
+    #     bool True if transformation is essentially complete
+    #     """
+    #     progress = self.get_transformation_progress(trigger_value_current)
+    #     return progress > (1.0 - tolerance)
     
-    def update_concentrations_direct(self, concentrations, **kwargs):
-        """Update concentrations directly based on current trigger value.
+    # def update_concentrations_direct(self, concentrations, **kwargs):
+    #     """Update concentrations directly based on current trigger value.
         
-        This method bypasses the rate-based approach and sets concentrations
-        directly to their equilibrium values.
+    #     This method bypasses the rate-based approach and sets concentrations
+    #     directly to their equilibrium values.
         
-        Parameters
-        ----------
-        concentrations : list of dolfinx.fem.Function
-            Concentration fields to update
-        **kwargs : dict
-            Must contain current trigger variable data
-        """
-        if not hasattr(self, 'c_expr'):
-            raise RuntimeError("Auxiliary fields not initialized. Call setup_auxiliary_fields first.")
+    #     Parameters
+    #     ----------
+    #     concentrations : list of dolfinx.fem.Function
+    #         Concentration fields to update
+    #     **kwargs : dict
+    #         Must contain current trigger variable data
+    #     """
+    #     if not hasattr(self, 'c_expr'):
+    #         raise RuntimeError("Auxiliary fields not initialized. Call setup_auxiliary_fields first.")
         
-        if len(concentrations) < 2:
-            return
+    #     if len(concentrations) < 2:
+    #         return
         
-        # Update the expression with current trigger data
-        self.update_auxiliary_fields(0.0, **kwargs)  # dt=0 for instantaneous
+    #     # Update the expression with current trigger data
+    #     self.update_auxiliary_fields(0.0, **kwargs)  # dt=0 for instantaneous
         
-        # Set concentrations directly
-        concentrations[1].interpolate(self.c_expr)  # New phase
+    #     # Set concentrations directly
+    #     concentrations[1].interpolate(self.c_expr)  # New phase
         
-        # Conservation for binary system
-        concentrations[0].x.array[:] = 1.0 - concentrations[1].x.array[:]
+    #     # Conservation for binary system
+    #     concentrations[0].x.array[:] = 1.0 - concentrations[1].x.array[:]
