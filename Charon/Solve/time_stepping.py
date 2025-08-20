@@ -12,9 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Created on Tue Sep 13 10:52:01 2022
+Time Stepping Management
+========================
 
-@author: bouteillerp
+Time discretization and stability analysis for temporal integration schemes.
+
+This module handles time step selection, stability constraints, and load
+step generation for different analysis types.
+
+Classes
+-------
+TimeStepping Time discretization manager with CFL analysis
+
+Notes
+-----
+For explicit dynamics, CFL stability conditions are enforced based on
+wave speeds and element sizes. For static analysis, pseudo-time stepping
+is used for load application.
 """
 from numpy import linspace, concatenate, array
 from ..utils.default_parameters import default_dynamic_parameters
@@ -22,8 +36,14 @@ from mpi4py import MPI
 
 class TimeStepping:
     def __init__(self, analysis, mesh, mat, **kwargs):
-        """
-        Initialise l'objet time stepping
+        """Initialize time stepping object.
+        
+        Parameters
+        ----------
+        analysis : str Analysis type ('explicit_dynamic', 'static', etc.)
+        mesh : Mesh Computational mesh
+        mat : Material or list of Material Material properties
+        **kwargs : dict Additional time stepping parameters
         """
         self.analysis = analysis
         self.set_time_stepping(mesh, mat, **kwargs)
@@ -66,13 +86,12 @@ class TimeStepping:
                 raise ValueError("Unknown time stepping scheme")
 
     def initial_CFL(self, mesh, mat):
-        """
-        Défini le pas de temps minimal respectant la condition CFL
-
+        """Define minimum time step respecting CFL stability condition.
+    
         Parameters
         ----------
-        mesh : Mesh, maillage du domaine.
-        mat : Objet de la classe material, matériau à l'étude.
+        mesh : Mesh Computational mesh  
+        mat : Material or list of Material Material properties defining wave speeds
         """
         celerity = self.celerity(mat)
         tdim = mesh.topology.dim
@@ -87,15 +106,15 @@ class TimeStepping:
         print("Shared critical time step:", self.dt_CFL)
         
     def celerity(self, material):
-        """
-        Retourne la célérité maximale des ondes élastiques
+        """Return maximum elastic wave speed.
+        
         Parameters
         ----------
-        material : Objet ou liste d'objets de la classe material.
+        material : Material or list of Material Material properties
+            
         Returns
         -------
-        Float, célérité maximale des ondes
-
+        float Maximum wave speed
         """
         if isinstance(material, list):
             celerity = [mat.celerity for mat in material]
