@@ -64,8 +64,7 @@ class ArrheniusEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        list of str
-            List of parameter names required for Arrhenius kinetics
+        list of str List of parameter names required for Arrhenius kinetics
         """
         return ["kin_pref", "e_activation"]
     

@@ -74,6 +74,7 @@ class OptimizedCSVExport:
         self.coordinate_data = {}
         self.initialize_export_settings()
         self.initialize_csv_files()
+        self.export_times = []
 
     def csv_name(self, name):
         return self.save_dir+ f"{name}.csv"
@@ -236,10 +237,7 @@ class OptimizedCSVExport:
             return vec_dof_to_exp
 
     def csv_export(self, t):
-        # def export_with_interpolation(field_name, subfield_name):
-        #     getattr(self.export, field_name).interpolate(getattr(self.export, field_name+"expr"))
-        #     self.export_field(t, field_name, getattr(self.export, field_name), getattr(self, field_name+"_dte"))
-            
+        self.export_times.append(t)
         if not self.dico_csv:
             return
         if self.csv_export_U:
@@ -354,6 +352,12 @@ class OptimizedCSVExport:
 
     def close_files(self):
         if COMM_WORLD.Get_rank() == 0:
+            times_file = self.csv_name("export_times")
+            with open(times_file, 'w', newline='') as f:
+                csv_writer = writer(f)
+                csv_writer.writerow(["Time"])
+                for t in self.export_times:
+                    csv_writer.writerow([f"{t:.6e}"])
             for handler in self.file_handlers.values():
                 handler.close()
             self.post_process_all_files()

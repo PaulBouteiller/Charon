@@ -16,13 +16,13 @@
 \setcounter{chapter}{-1}
 \chapter{Introduction}\label{Chapitre:Introduction}
 \section*{Introduction générale}
-Cette note présente la modélisation de chocs à l'aide du code CHARON (\textbf{C}ode \textbf{H}ydrodynamique \textbf{A}nélastique en explicite \textbf{R}apide avec d\textbf{O}lfi\textbf{N}). Cet outil est actuellement activement développé au Laboratoire de Détonique et de Dynamique des Matériaux au CEA-DAM. Le code CHARON est une librairie, écrite en langage Python, basée sur le logiciel libre FEniCS, pour résoudre les équations de la mécanique par la méthode des éléments finis. La notice se scinde en deux parties indépendantes.
+Cette note présente la modélisation de chocs à l'aide du code CHARON (\textbf{C}ode \textbf{H}ydrodynamique \textbf{A}nélastique en explicite \textbf{R}apide avec d\textbf{O}lfi\textbf{N}). Le code CHARON est une librairie, écrite en langage Python, basée sur le logiciel libre FEniCSx, pour résoudre les équations de la mécanique par la méthode des éléments finis. La notice se scinde en deux parties indépendantes.
 \begin{itemize}[label=$\star$]
 \item La première \partref{Part:Pratique} est \emph{pratique}. Elle présente, au travers d'exemples à complexité croissante, l'utilisation du code CHARON. 
 \begin{itemize}
 \item Un premier \chapref{Chapitre:Exemples concrets} concerne les utilisateurs souhaitant utiliser le code sans nécessairement implémenter leurs propres lois. La structure générique des fichiers utilisateurs est montrée, le code CHARON est alors une simple boite noire.
-\item Un deuxième \chapref{Chapitre:Solutions analytiques} présente quelques solutions analytique à laquelle CHARON peut être comparé. Les résultats de ce chapitre sont également utile à tout développement de nouveaux code.
-\item Un troisième \chapref{Chapitre:Comparaison autres codes} compare cette fois les sorties de CHARON à des solutions de références calculées avec d'autres codes de Calcul.
+\item Un deuxième \chapref{Chapitre:Solutions analytiques} présente quelques solutions analytique à laquelle CHARON peut être comparé. Les résultats de ce chapitre sont également utiles à tout développement de nouveaux codes.
+\item Un troisième \chapref{Chapitre:Comparaison autres codes} compare cette fois les sorties de CHARON à des solutions de références calculées avec d'autres codes de calcul.
 \item Un quatrième \chapref{Chapitre:Structure du code CHARON} clos la partie pratique en mentionnant la structure générale du code CHARON ainsi que les personnalisations accessibles. Il donne quelques indications aux développeurs souhaitant implémenter leurs propres modèles.
 \end{itemize}
 \item La seconde \partref{Part:Theorie} est \emph{théorique}. Les modèles mécanique, de comportement ainsi que les choix numériques y sont consignés. Les algorithmes spécifiques de résolution sont également mentionnés.
@@ -32,33 +32,21 @@ Cette note présente la modélisation de chocs à l'aide du code CHARON (\textbf
 \end{figure}
 \clearpage
 \section{Installation de la librairie FEniCS}\label{Section:Installation de la librairie FEniCS CHARON}
-Le code CHARON nécessite la librairie FEniCSx\footnote{\url{https://fenicsproject.org/documentation/}} laquelle peut s'installer de plusieurs façon (voir \url{https://github.com/FEniCS/dolfinx}). Nous recommandons l'une des installations suivantes:
+Le code CHARON nécessite la librairie FEniCSx\footnote{\url{https://fenicsproject.org/documentation/}} laquelle peut s'installer de plusieurs façon\footnote{voir \url{https://github.com/FEniCS/dolfinx}}. Nous recommandons l'une des installations suivantes:
 \begin{itemize}
-\item Via le ppa \subsecref{Subsection:ppa}, qui permet l'installation du code \og en dur \fg{} sur toute la machine 
-\item Via le gestionnaire Anaconda \subsecref{Subsection:Conda}, qui permet un meilleur cloisonnement des différents paquets et l'installation de quelques adds-on intéressante. Notez que certaines extension de FEniCSx ne sont facilement accessible que par conda (voir la \secref{Section:Installations annexes}
-\item Via Spack ou Docker, cette solution est a privilégier sur les calculateurs car elle isole FEniCSx du reste des composants de l'ordinateur.
+\item Sur Ubuntu, via le ppa \subsecref{Subsection:ppa}, qui permet l'installation du code \og en dur \fg{} sur toute la machine.
+\item Via le gestionnaire Anaconda\footnote{\url{https://anaconda.org/}} \subsecref{Subsection:Conda}, qui permet un meilleur cloisonnement des différents paquets et l'installation de quelques adds-on intéressante. Notez que certaines extension de FEniCSx ne sont facilement accessible que par conda (voir la \secref{Section:Installations annexes}).
+\item Via Spack ou Docker, cette solution est a privilégier sur les calculateurs  et permet en outre de bénéficier des version de développement de FEniCSx.
 \end{itemize}
-Si l'installation a lieu depuis le CEA-DAM protégé par le proxy. Il peut être utile d'insérer les lignes suivantes pour spécifier l'adresse du proxy.
+Si l'installation a lieu depuis la DIF, il peut être nécessaire d'insérer les lignes suivantes pour spécifier l'adresse du proxy :
 \begin{equation}
-\begin{tabular}{l}
-\text{export http\_proxy=http://proxy.dam.intra.cea.fr:3128}\\
-\text{export https\_proxy=https://proxy.dam.intra.cea.fr:3128}
-\end{tabular}
+\begin{aligned}
+&\verb|export http_proxy=http://proxy.dam.intra.cea.fr:3128|\\
+&\verb|export https_proxy=https://proxy.dam.intra.cea.fr:3128|
+\end{aligned}
 \label{export_proxy}
 \end{equation}
-Avec le mot clé -E après une commande sudo, l'opération s'effectuera au travers du proxy ci-dessus.
-\subsection{Installation via ppa}\label{Subsection:ppa}
-Dans un terminal, après avoir exporté le proxy avec \eqref{export_proxy} appliquer successivement les commandes:
-\begin{verbatim}
-export http_proxy=http://proxy.dam.intra.cea.fr:3128
-export https_proxy=https://proxy.dam.intra.cea.fr:3128
-sudo -E apt install software-properties-common
-sudo -E add-apt-repository ppa:fenics-packages/fenics
-sudo -E apt update
-sudo -E apt upgrade
-sudo -E apt install fenicsx
-\end{verbatim}
-Ces lignes de codes permettent à un utilisateur se trouvant sur le site du CEA-DAM de spécifier l'adresse du proxy puis d'installer la librairie FEniCS.\\
+Avec le mot clé \texttt{-E} après une commande \texttt{sudo}, l'opération s'effectuera au travers du proxy ci-dessus.
 \subsection{Installation via Conda}\label{Subsection:Conda}
 Après avoir exporté le proxy avec \eqref{export_proxy}, télécharger l'Anaconda installer:
 \begin{verbatim}
@@ -68,7 +56,7 @@ Puis lancer l'installer avec
 \begin{verbatim}
 bash Anaconda3-2024.02-1-Linux-x86\_64.sh
 \end{verbatim}
-\begin{Rem}{Attention ne pas faire sudo ici sinon l'installation se fera sur le root}\end{Rem}
+\begin{Rem}{Attention ne pas faire \texttt{sudo} ici sinon l'installation se fera sur le root.}\end{Rem}
 Initialiser Anaconda
 \begin{verbatim}
 ~anaconda3/bin/conda init
@@ -77,17 +65,21 @@ Appliquer les changements:
 \begin{verbatim}
 source ~/.bashrc
 \end{verbatim}
-Vérifier la bonne installation d'Anaconda en demandant la version:
+Vérifier la bonne installation de Conda en demandant la version:
 \begin{verbatim}
 conda --version
 \end{verbatim}
-Conda est maintenant normalement installé sur la machine, ensuite il est nécessaire de télécharger le package fenicsx via le proxy. Pour cela:
+Conda est maintenant normalement installé sur la machine, ensuite il est nécessaire de télécharger le package FEniCSx via le proxy. Pour cela:
 \begin{verbatim}
 conda config --set proxy_servers.http http://proxy.dam.intra.cea.fr:3128
 conda config --set proxy_servers.https https://proxy.dam.intra.cea.fr:3128
 conda create -n fenicsx-env
 conda activate fenicsx-env
-conda install -c conda-forge fenics-dolfinx mpich pyvista
+conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx  
+\end{verbatim}
+Nous conseillons ensuite d'installer dans l'environnement fenicsx-env les packages suivants:
+\begin{verbatim}
+pip install pyvista4dolfinx pytest 
 \end{verbatim}
 S'il y a un problème de proxy lors de la création de l'environnement il peut être utile de re-spécifier en dur l'adresse du proxy via :
 \begin{verbatim}
@@ -95,19 +87,29 @@ conda create -n fenicsx-env --proxy http://proxy.dam.intra.cea.fr:3128
 \end{verbatim}
 Puis pour lancer un calcul ultérieurement il faut activer l'environnement en tapant :
 \begin{verbatim}
-conda activate fenicsx-env.
+conda activate fenicsx-env
 \end{verbatim}
 Pour vérifier quels sont les packages installer dans l'environnement virtuel créé par Anaconda il faut taper:
-\subsection{Vérification}
-Puis, vérifier la bonne installation en ouvrant une commande Python et en insérant:
+\subsection{Installation via ppa}\label{Subsection:ppa}
+Dans un terminal, après avoir exporté le proxy avec \eqref{export_proxy} appliquer successivement les commandes:
 \begin{verbatim}
-from dolfinx import *
+sudo -E apt install software-properties-common
+sudo -E add-apt-repository ppa:fenics-packages/fenics
+sudo -E apt update
+sudo -E apt upgrade
+sudo -E apt install fenicsx
 \end{verbatim}
-\begin{Rem}{Pour stabiliser une mauvaise installation, il est parfois nécessaire d’insérer en plus la ligne de commande ;
-%\begin{verbatim}
-%sudo -E apt --fix-broken install
-%\end{verbatim}
-}\end{Rem}
+Ces lignes de codes permettent à un utilisateur se trouvant sur le site du CEA-DAM de spécifier l'adresse du proxy puis d'installer la librairie FEniCS.
+
+Afin de pouvoir profiter de toutes les options de Charon nous recommendons également l'installation des librairires suivantes:
+\begin{verbatim}
+sudo -E apt install python3-pip
+sudo -E apt install spyder
+sudo -E apt install paraview
+sudo -E pip3 install --upgrade gmsh
+sudo - E pip3 install jax jaxlib
+sudo - E pip3 install diffrax
+\end{verbatim}
 \subsection{Problème lors de l'installation}
 Si certains packages ont été incorrectement installés où sont présent en doublon (par exemple petsc4py qui aurait été installé préalablement via pip), nous conseillons de désinstaller les potentiels conflits (par exemple pip uninstall petsc4py) puis sudo apt autoremove fenicsx (et pas seulement remove qui n'enlèverait pas les dépendances).
 \subsection{Désinstallation de FEniCSx}
@@ -128,11 +130,10 @@ Il est toutefois recommandé d'installer le package CHARON afin de le rendre vis
 \item Aller dans le dossier CHARON
 \item Si vous souhaitez réaliser du développement sur le code source, exécuter la commande:
 \begin{equation}
-\text{\blue{sudo} pip3 install -\,-editable .}
+\verb|sudo pip3 install --editable .|
 \label{installation_avec_modifs}
 \end{equation}
-Cette commande va utiliser pip3 pour installer CHARON comme un package classique et le rendre accessible où que se trouve votre fichier test.
-La commande -\,-editable spécifie que les modifications du code CHARON seront prises en compte lors de l'appel du package. Il est parfois nécessaire de fermer la console pour prendre en compte les ajustements.
+Cette commande va utiliser \texttt{pip3} pour installer CHARON comme un package classique et le rendre accessible où que se trouve votre fichier test. La commande \verb|--editable| spécifie que les modifications du code CHARON seront prises en compte lors de l'appel du package. Il est parfois nécessaire de fermer la console pour prendre en compte les ajustements.
 \item Si vous ne souhaitez pas faire une quelconque modification sur CHARON, plutôt que d'installer le code en mode \og editable \fg{} avec la commande \eqref{installation_avec_modifs}, taper plutôt
 \begin{verbatim}
 sudo pip3 install .
@@ -143,13 +144,11 @@ Et les modifications du code CHARON en local ne seront pas prises en compte lors
 pip3 show Charon
 \end{verbatim}
 \end{enumerate}
-\begin{Rem}{
 Si l'utilisateur utilise Ubuntu 24.04 Noble Numbat sur lequel les installations globales ont été rendues plus sécurisées, il faut plutôt lancer les lignes de commandes suivantes:
-%\begin{verbatim}
-%sudo pip3 install --editable . --break-system-package
-%\end{verbatim}
+\begin{verbatim}
+sudo pip3 install --editable . --break-system-packages
+\end{verbatim}
 afin de forcer l'installation du paquet.
-}\end{Rem}
 \subsection{Installation de CHARON via Conda}
 Pour installer CHARON, aller simplement dans charonx-main et taper:
 \begin{verbatim}
@@ -182,33 +181,7 @@ Il pourra vous être demandé d'installer un package supplémentaire dans conda 
 conda install spyder-kernels=2.5
 \end{verbatim}
 Puis dans la console spyder vous pouvez voir éventuellement si des packages extérieurs à l'environnement sont utilisable par exemple via:
-\section{Installations annexes}\label{Section:Installations annexes}
-\begin{itemize}
-\item Pour les utilisateurs n'ayant pas pip3, le gestionnaire de paquet le plus intuitif associé à Python.
-\begin{verbatim}
-sudo -E apt install python3-pip
-\end{verbatim}
-\item Un éditeur de fichier python est recommandé pour l'utilisation du code CHARON. L’éditeur Spyder peut être installé avec la ligne de commande suivante:
-\begin{verbatim}
-sudo -E apt install spyder
-\end{verbatim}
-\item Nativement, l'export des résultats du code CHARON s'effectue via des fichiers .csv, XDMF, ou VTX, visualisable avec le logiciel Paraview dont l'installation s'effectue avec:
-\begin{verbatim}
-sudo -E apt install paraview
-\end{verbatim}
-\item L'édition et la manipulation de maillage plus avancées peuvent se faire par l'intermédiaire du mailleur gmsh.
-\begin{verbatim}
-sudo -E pip3 install --upgrade gmsh
-\end{verbatim}
-\item La librairie JAX est nécessaire pour certaines lois de comportement élasto-plastique complexes. Elle peut être installée via:
-\begin{verbatim}
-sudo - E pip install jax jaxlib --break-system-packages
-\end{verbatim}
-\item La librairie Diffrax (résolution d'EDO) est nécessaire pour les lois endommageables. Elle peut être installée via:
-\begin{verbatim}
-sudo - E pip install diffrax --break-system-packages
-\end{verbatim}
-\end{itemize}
+
 \section*{Point de départ}
 Bien que non obligatoire, une connaissance sommaire de FEniCSx et de sa syntaxe constitue un gain de temps appréciable pour la prise en main de CHARON.
 \begin{itemize}[label=$\star$]
@@ -303,7 +276,7 @@ Sans entrer dans les détails un script d'entrée de Charon comporte 4 grandes �
 \paragraph{Import du package} Un script débute nécessairement par l'importation du package Charon réalisé avec les ligne suivante:
 
 \begin{figure}[h!]
-\lstinputlisting[language=python,firstline=1, lastline=3]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+%\lstinputlisting[language=python,firstline=1, lastline=3]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 
 Si les commandes d'installation du \chapref{Chapitre:Introduction} introductif ont été respectées, Charon est un package Python visible quel que soit l'emplacement du fichier d'entrée.
@@ -316,7 +289,7 @@ Si l'utilisateur défini plusieurs matériau et les stocke dans une liste Charon
 Pour l'instant, nous renseignons les paramètres \emph{élastiques} nécessaires à la création du matériau d'étude.
 
 \begin{figure}[h!]
-\lstinputlisting[language=python,firstline=4, lastline=15]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+%\lstinputlisting[language=python,firstline=4, lastline=15]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 Définir un matériau nécessite 6 paramètres:
 \begin{enumerate}
@@ -345,7 +318,7 @@ Une loi d'état de type \keyword{IsotropicHPP} nécessite la donnée d'un module
 \item L'utilisation d'un maillage abstrait, depuis la version Charon offre la possibilité de définir le problème posé sur un maillage abstrait afin d’accélérer le processus de remaillage pendant la simulation de dynamique explicite.
 \end{itemize}
 \begin{figure}[h!]
-\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+%\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 EN plus du maillage le constructeur MeshManager attend un dictionnaire permettant de marquer les frontières. Deux possibilités s'offrent à l'utilisateur:
 \begin{itemize}
@@ -358,7 +331,7 @@ Ici, la barre à l'étude sera de longueur $L=1\milli\metre$, discrétisé avec 
 \paragraph{Définition des conditions aux limites} Les conditions aux limites sont définies via un dictionnaire. Nous créons d'abord le chargement:
  et se verra appliquer un déplacement $U_{max}=1 \times 10^{-3}\milli\metre$ à son extrémité.
 \begin{figure}[h!]
-\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+%\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 
 La classe \purple{MyConstant} permet de créer des conditions aux limites simples. Les types disponibles sont:

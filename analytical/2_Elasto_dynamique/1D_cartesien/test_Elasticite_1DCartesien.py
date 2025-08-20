@@ -88,9 +88,7 @@ tps2 = time.perf_counter()
 print("temps d'execution", tps2 - tps1)
 
 df = read_csv("Test_elasticite-results/sig.csv")
-import re
-temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
-                  for col in df.columns if "t=" in col])
+temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)
 resultat = [df[colonne].to_numpy() for colonne in df.columns]
 pas_espace = np.linspace(0, Longueur, len(resultat[-1]))
 t_output = temps[1:]

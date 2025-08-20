@@ -71,8 +71,7 @@ class KJMAEvolution(BaseEvolutionLaw):
         
         Returns
         -------
-        list of str
-            List of parameter names required for KJMA kinetics
+        list of str List of parameter names required for KJMA kinetics
         """
         return ["melt_param", "gamma_param", "alpha_param", "tau_param"]
     
@@ -212,8 +211,7 @@ class KJMAEvolution(BaseEvolutionLaw):
             
         Returns
         -------
-        list of ufl.Expression
-            Concentration rate expressions
+        list of ufl.Expression Concentration rate expressions
         """
         nb_phase = len(concentrations)
         rates = [0] * nb_phase
