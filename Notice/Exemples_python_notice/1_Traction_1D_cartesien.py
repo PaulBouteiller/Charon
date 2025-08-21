@@ -21,9 +21,10 @@ mesh_manager = MeshManager(mesh, dico_mesh)
 
 ###### Chargement ######
 Umax=1e-3   
-dico_chargement = {"type" : "rampe", "amplitude" : Umax}
+dico_chargement = {"type" : "rampe", "pente" : Umax}
 
-dico_problem = {"mesh_manager" : mesh_manager,
+dico_problem = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
                      {"component": "U", "tag": 2, "value": dico_chargement}
@@ -32,7 +33,7 @@ dico_problem = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
 
-pb = CartesianUD(Acier, dico_problem)
+pb = CartesianUD(dico_problem)
 
 def query_output(problem, t):
     pass

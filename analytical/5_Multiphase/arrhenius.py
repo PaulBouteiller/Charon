@@ -36,7 +36,7 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 # Paramètres physiques
 x = SpatialCoordinate(mesh)
-temperature = 1
+temperature = 1.
 R = 8.314
 e_activation_a = R * temperature
 e_activation_b = 2 * R * temperature
@@ -56,10 +56,11 @@ pas_de_temps = 1e-3
 print("=== Simulation une étape: 0 -> 1 ===")
 
 two_phase_dictionnary = {
+    "material" : [dummy_mat, dummy_mat],
     "mesh_manager": mesh_manager,
     "boundary_conditions": [{"component": "U", "tag": 1}, {"component": "U", "tag": 2}],
     "multiphase": {
-        "conditions": [x[0]<=x[0], x[0]<x[0]],
+        "conditions": [x[0]>=x[0], x[0]<x[0]],
         "evolution_laws": [
             {"type": "Arrhenius", "params": {"kin_pref": kinetic_prefactor_a, "e_activation": e_activation_a}}, 
             None
@@ -67,13 +68,14 @@ two_phase_dictionnary = {
     },
 }
 
-one_stage_arrhenius = CartesianUD([dummy_mat, dummy_mat], two_phase_dictionnary)
-one_stage_arrhenius.T.x.array[:] = np.array([temperature])
+one_stage_arrhenius = CartesianUD(two_phase_dictionnary)
 
 one_stage_dictionnaire_solve = {
     "Prefix": "one_stage_arrhenius",
     "csv_output": {"c": True},
-    "output": {"c": True}
+    "output": {"c": True},
+    "initial_conditions" : {"T" : temperature}
+    
 }
 
 solve_instance = Solve(one_stage_arrhenius, one_stage_dictionnaire_solve, 
@@ -105,6 +107,7 @@ plt.legend()
 print("=== Simulation deux étapes: 0 -> 1 -> 2 ===")
 
 three_phase_dictionnary = {
+    "material" : [dummy_mat, dummy_mat, dummy_mat],
     "mesh_manager": mesh_manager,
     "boundary_conditions": [
         {"component": "U", "tag": 1},
@@ -120,13 +123,14 @@ three_phase_dictionnary = {
     },
 }
 
-two_stage_arrhenius = CartesianUD([dummy_mat, dummy_mat, dummy_mat], three_phase_dictionnary)
+two_stage_arrhenius = CartesianUD(three_phase_dictionnary)
 two_stage_arrhenius.T.x.array[:] = np.array([temperature])
 
 two_stage_dictionnaire_solve = {
     "Prefix": "two_stage_arrhenius",
     "csv_output": {"c": True},
-    "output": {"c": True}
+    "output": {"c": True},
+    "initial_conditions" : {"T" : temperature}
 }
 
 solve_instance = Solve(two_stage_arrhenius, two_stage_dictionnaire_solve, 

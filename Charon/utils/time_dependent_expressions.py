@@ -100,7 +100,7 @@ class MyConstant:
         >>> creneau = MyConstant.from_dict(mesh, {"type": "creneau", "amplitude": 2.0, "t_crit": 0.5})
         """
         constant_type = constant_dict["type"].lower()
-        amplitude = constant_dict["amplitude"]
+
         
         # Map user-friendly names to MyConstant Type names
         type_mapping = {
@@ -118,13 +118,16 @@ class MyConstant:
         
         # Handle different parameter requirements for each type
         if constant_type == "rampe":
-            return cls(mesh, amplitude, Type=myconst_type)
+            pente = constant_dict["pente"]
+            return cls(mesh, pente, Type=myconst_type)
         
         elif constant_type in ["creneau", "chapeau"]:
+            amplitude = constant_dict["amplitude"]
             t_crit = constant_dict["t_crit"]
             return cls(mesh, t_crit, amplitude, Type=myconst_type)
         
         elif constant_type == "smooth_creneau":
+            amplitude = constant_dict["amplitude"]
             t_load = constant_dict["t_load"]
             t_plateau = constant_dict["t_plateau"]
             return cls(mesh, t_load, t_plateau, amplitude, Type=myconst_type)

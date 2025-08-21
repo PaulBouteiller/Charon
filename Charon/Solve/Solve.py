@@ -44,6 +44,9 @@ from ..Export.export_result import ExportResults
 from dolfinx.nls.petsc import NewtonSolver
 from dolfinx.fem import petsc, Expression
 from tqdm import tqdm
+from ufl.classes import Conditional, LE, GE, LT, GT, EQ
+from ufl import conditional
+# from ufl.classes import Conditional
 
 
 class Solve:
@@ -103,11 +106,29 @@ class Solve:
         self._create_output()
         
     def _set_initial_conditions(self, dictionnaire):
+        def set_field(field, value, V):
+            if isinstance(value, Conditional):
+                expr = Expression(value, V.element.interpolation_points())
+                field.interpolate(expr)
+            elif isinstance(value, float):
+                field.x.array[:] = value
+            else:
+                raise ValueError("Unknown setting type")
+                
+        def set_concentration_field(field, value, V):
+            if isinstance(value, (LE, GE, GT, LT, EQ)):
+                condition = conditional(value, 1, 0)
+                set_field(field, condition, V)
+                expr = Expression(value, V.element.interpolation_points())
+                field.interpolate(expr)
+            elif isinstance(value, float):
+                field.x.array[:] = value
+            else:
+                raise ValueError("Unknown setting type")
+            
         ci_dictionnaire = dictionnaire.get("initial_conditions", {})
         if "T" in ci_dictionnaire:
-            T_ufl_condition = ci_dictionnaire["T"]
-            T_expr = Expression(T_ufl_condition, self.pb.V_T.element.interpolation_points())
-            self.pb.T.interpolate(T_expr)
+            set_field(self.pb.T, ci_dictionnaire["T"], self.pb.V_T)
         else:
             T0 = 293.15      
             self.pb.T0.x.petsc_vec.set(T0)

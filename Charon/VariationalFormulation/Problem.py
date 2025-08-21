@@ -54,7 +54,7 @@ class Problem:
     This class is one of the main elements of the CharonX code. It defines
     the problem formulation by calling the selected mechanical models.
     """
-    def __init__(self, material, simulation_dic):
+    def __init__(self, simulation_dic):
         """
         Initialize the problem.
         
@@ -77,7 +77,7 @@ class Problem:
         self._init_analysis_type(simulation_dic)
         
         # Initialize material
-        self.material = material
+        self.material = simulation_dic["material"]
         
         self._init_mpi()
         

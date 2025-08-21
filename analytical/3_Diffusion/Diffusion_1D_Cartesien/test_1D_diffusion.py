@@ -74,12 +74,13 @@ mesh = create_interval(COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_dro
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [bord_gauche, bord_droit]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "Thermal_material" : AcierTherm, 
                 "analysis" : "Pure_diffusion"
                 }
     
-pb = CartesianUD(Acier, dictionnaire)
+pb = CartesianUD(dictionnaire)
 x = SpatialCoordinate(mesh)
 ufl_condition = conditional(And(lt(x[0], point_droit), gt(x[0], point_gauche)), TChaud, Tfroid)
 dictionnaire_solve = {"Prefix" : "Diffusion_1D", "csv_output" : {"T" : True}, "initial_conditions" : {"T" : ufl_condition}}

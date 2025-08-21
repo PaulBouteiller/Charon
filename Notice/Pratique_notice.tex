@@ -4,6 +4,16 @@
 \usepackage{2_Commandes_gen}
 \usepackage{2_Commandes_meca}
 
+\usepackage{tcolorbox}
+
+\newenvironment{Encadre}[1]{
+\par\medskip
+\begin{tcolorbox}[colback=gray!10, colframe=lightgray, boxrule=1pt, arc=2pt]
+\textbf{#1}
+\end{tcolorbox}
+\par\medskip
+}{}
+
 \pagestyle{plain}
 \def\path{./fig}
 \usepackage{natbib}
@@ -259,7 +269,8 @@ Sans entrer dans les détails un script d'entrée de Charon comporte 4 grandes �
 Si les commandes d'installation du \chapref{Chapitre:Introduction} introductif ont été respectées, Charon est un package Python visible quel que soit l'emplacement du fichier d'entrée.
 
 Tous les packages additionnels, par exemple \texttt{pandas} pour la lecture des résultats exportés au format \texttt{.csv}. ou \texttt{matplotlib} pour la visualisation des résultats doivent également être chargés ici.
-\paragraph{Définition du modèle de comportement élastique} Après l'import des packages nécessaires, nous définissons le matériau qui est à l'étude lors de la simulation. 
+\subsection{Définition du modèle de comportement déviatorique élastique et de l'équation d'état} 
+Après l'import des packages nécessaires, nous définissons le matériau qui est à l'étude lors de la simulation. 
 
 Si l'utilisateur défini plusieurs matériaux et les stocke dans une liste, Charon comprendra qu'il s'agit d'une simulation multiphasique et des paramètres supplémentaires seront requis par l'analyse (comme la distribution spatiale des différents matériaux ou leurs capacités à évoluer de l'un vers l'autre). Toutes ces considérations sont reportées à l'exemple EXEMPLEREF.
 
@@ -288,7 +299,11 @@ Dans l'exemple ci-dessus, nous avons renseigné un module de Young $E=210 \times
 
 Une loi d'état de type \keyword{IsotropicHPP} nécessite la donnée d'un module d'Young $E$, d'un coefficient de Poisson $\nu$ et d'un coefficient d'expansion thermique $\alpha$.
 
-\paragraph{Paramètres géométriques, création du maillage et gestion des frontières} Pour construire notre maillage plusieurs options s'offrent à l'utilisateur. 
+\begin{Encadre}{
+Nous renvoyons le lecteur au template \texttt{material\_template.py} pour qu'il puisse se renseigner sur l'ensemble des matériaux possibles ainsi que les paramètres attendus.
+}\end{Encadre}
+\subsection{Définition du MeshManager, création du maillage et gestion des frontières} 
+Pour construire notre maillage plusieurs options s'offrent à l'utilisateur. 
 \begin{itemize}
 \item Utiliser les fonctions de création de maillage propre à FEniCSx, auquel cas nous conseillons à l'utilisateur d'aller voir la page associée\footnote{\url{https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.mesh.html}}. Cette option permet la création de maillages simples: segment, rectangle ou pavé droit.
 \item Utiliser un mailleur externe interfaçable avec FEniCSx par exemple gmsh\footnote{\url{https://gmsh.info/}}. De nombreux exemples sont disponibles avec une recherche internet.
@@ -297,25 +312,19 @@ Une loi d'état de type \keyword{IsotropicHPP} nécessite la donnée d'un module
 \begin{figure}[h!]
 \lstinputlisting[language=python,firstline=15, lastline=20]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
-EN plus du maillage le constructeur MeshManager attend un dictionnaire permettant de marquer les frontières. Deux possibilités s'offrent à l'utilisateur:
+En plus du maillage, le constructeur de la classe \purple{MeshManager} attend un dictionnaire permettant d'associer des numéros aux frontières. Deux possibilités s'offrent à l'utilisateur:
 \begin{itemize}
-\item De marquer les frontières grâce aux outils internes de Charon, auquel cas il faudra placer trois mots clés : \keyword{tags}, \keyword{coordinate}, \keyword{position}. Ce constructeur est simple. Dans l'exemple ci-dessous il affecte le drapeau $1$ à tous les points du maillage tel que $x=0$ et le drapeau 2 à tous les points du maillage tels que $x=\text{Longueur}$.
+\item De marquer les frontières grâce aux outils internes de Charon, auquel cas il faudra placer trois mots clés : \keyword{tags}, \keyword{coordinate}, \keyword{position}. Dans l'exemple ci-dessous, il affecte le drapeau $1$ à tous les points du maillage tel que $x=0$ et le drapeau 2 à tous les points du maillage tels que $x=L$.
 \item Si le maillage a été généré par gmsh, il est possible de lui donner directement les facets\_tags, autrement dit les zones marqués dans gmsh. Cette option est illustrée dans l'exemple EXEMPLEREF
 \end{itemize}
-Ici, la barre à l'étude sera de longueur $L=1\milli\metre$, discrétisé avec deux éléments et ses extrémités seront marqués avec les drapeaux 1 et 2.
+Ici, la barre à l'étude sera de longueur $L=1\milli\metre$, discrétisé avec deux éléments. Ses extrémités, définies par $x$ proche de 0 et $x$ proche de $L$, seront marquées avec les drapeaux 1 et 2 respectivement.
 
+\begin{Encadre}{
+Nous renvoyons le lecteur au template \texttt{mesh\_manager\_template.py} pour qu'il puisse se renseigner sur l'ensemble des options possibles pour la définition du maillage et le marquage des frontières.
+}\end{Encadre}
 
-\paragraph{Définition des conditions aux limites} Nous souhaitons appliquer un déplacement $U_{max}=1 \times 10^{-3}\milli\metre$ à l'extrémité droite de la bare. Pour cela, nous définissant un objet de la classe \purple{MyConstant}
-\begin{figure}[h!]
-\lstinputlisting[language=python,firstline=23, lastline=24]{Exemples_python_notice/1_Traction_1D_cartesien.py}
-\end{figure}
-
-La classe \purple{MyConstant} permet de créer des conditions aux limites simples. Les types disponibles sont:
-\begin{center}
-\keyword{Creneau}, \keyword{SmoothCreneau}, \keyword{Chapeau}, \keyword{Rampe}, \keyword{UserDefined}
-\end{center}
-et les paramètres nécessaires 
-\paragraph{Dictionnaire du problème} Un problème mécanique est une instance d'une des classes suivantes :
+\subsection{Définition du problème} 
+Un problème mécanique est une instance d'une des classes suivantes :
 \begin{itemize}
 \item \purple{CartesianUD}, modèle 1D cartésien,
 \item \purple{CylindricalUD}, modèle 1D cylindrique,
@@ -324,79 +333,29 @@ et les paramètres nécessaires
 \item \purple{Axisymmetric}, modèle 2D axisymétrique,
 \item \purple{Tridimensional}, modèle 3D complet.
 \end{itemize}
-Toutes ces classes prennent en argument un matériau (ou une liste de matériau dans un cas multiphasique) et un dictionnaire de paramètres. Nous détaillons ici tous les paramètres accessibles.
+Toutes ces classes prennent en argument un unique dictionnaire de paramètres lequel doit obligatoirement contenir les entrées :
 \begin{itemize}
-\item Le premier argument consiste à donner l'objet mesh manager précédemment créé,
-\item Le deuxième (Optionnel) contiens les conditions aux limites. A partir des drapeaux défini dans le mesh\_manager l'utilisateur va définir des conditions en limites en déplacement. Pour les conditions aux limites, les composantes disponibles selon le modèle sont:
+\item \keyword{material} contenant le ou les matériaux précédemment créés,
+\item \keyword{mesh\_manager} contenant le mesh manager. 
+\end{itemize}
+\begin{Encadre}{
+Tous les autres paramètres sont optionnels et sont décrits en détails dans le \texttt{problem\_template.py}.
+}\end{Encadre}
+Nous allons toutefois décrire les principaux mots clés fréquemment rencontrés.
 \begin{itemize}
-\item Modèles 1D: \keyword{U}
-\item Modèles 2D plan: \keyword{Ux}, \keyword{Uy}
-\item Modèles 2D axisymétrique: \keyword{Ur}, \keyword{Uz}
-\item Modèles 3D: \keyword{Ux}, \keyword{Uy}, \keyword{Uz}
+\item \keyword{boundary\_conditions} permet de définir les conditions aux limites \emph{cinématiques} c'est à dire en déplacement (et a fortiori en vitesse). Associé à ce mot clé, il est nécessaire de donner une liste de conditions aux limites avec:
+\begin{enumerate}
+\item \keyword{component} qui désigne la composante du champ de déplacement affectée par la condition aux limites,
+\item \keyword{tag} permettant de savoir quelle frontière sera concernée par cette condition,
+\item \keyword{value} (optionnel, par défaut $u=0$) la valeur aux limites. 
+\end{enumerate}
+\item \keyword{loading} défini les conditions aux limites en efforts avec une syntaxe similaire à celle de cinématique (composante concernée, tag de la fontière et valeur).
+\item \keyword{analysis}, le type d'analyse (statique ou dynamique explicite) par défaut dynamique explicite,
+\item \keyword{isotherm} si l'évolution de température n'a pas d'importance pour la simulation (par défaut l'évolution est anisotherme adiabatique).
+\item \keyword{plasticite} permettant de définir le modèle élasto-plastique,
+\item \keyword{damage} permettant de définir la loi d'endommagement,
+\item \keyword{multiphase} permettant de définir une évolution à plusieurs composantes. Il faudra alors préciser dans ce cas la distribution spatiale des différents matériaux les éventuelles lois de transiotion entre chacun et les éventuelles énergies libérées par ces transitions.
 \end{itemize}
-\item Le type d'analyse
-\end{itemize}
-
-\begin{figure}[h!]
-\begin{lstlisting}[language=python]
-# Configuration du problème
-dictionnaire = {
-   "mesh_manager": mesh_manager,
-   "boundary_conditions": [
-       {"component": "U", "tag": 1},                          # Blocage à gauche
-       {"component": "U", "tag": 2, "value": chargement}      # Déplacement imposé à droite
-   ],
-   "analysis": "static",    # Type d'analyse
-   "isotherm": True        # Calcul isotherme
-}
-\end{lstlisting}
-\end{figure}
-
-Les options pour le type d'analyse sont:
-\begin{itemize}
-\item \keyword{static}: analyse statique
-\item \keyword{explicit\_dynamic}: analyse dynamique explicite (défaut)
-\item \keyword{Pure\_diffusion}: diffusion thermique pure
-\end{itemize}
-
-
-\paragraph{Définition du modèle géométrique} La variable de modèle doit prendre ses valeurs parmi les mots clés suivants:
-
-
-
-Il est absolument nécessaire que le maillage fourni soit cohérent avec le modèle. Ici, nous retenons un modèle simple 1D cartésien.
-
-\paragraph{Résolution du problème}
-
-\begin{figure}[h!]
-\begin{lstlisting}[language=python]
-# Création du problème
-pb = CartesianUD(Acier, dictionnaire)
-
-# Configuration de la résolution et des sorties
-dictionnaire_solve = {
-   "Prefix": "Traction_1D",
-   "output": {"U": True},
-   "csv_output": {"U": ["Boundary", 2]}
-}
-
-solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
-solve_instance.solve()
-\end{lstlisting}
-\end{figure}
-
-Les options de sortie disponibles sont:
-\begin{itemize}
-\item \keyword{U}: champ de déplacement
-\item \keyword{v}: champ de vitesse
-\item \keyword{Sig}: champ des contraintes
-\item \keyword{Pressure}: champ de pression
-\item \keyword{T}: champ de température
-\item \keyword{deviateur}: déviateur des contraintes
-\end{itemize}
-
-\clearpage
-
 \section{Compression dynamique d'une sphère creuse}\label{Section:Compression dynamique d'une sphère creuse}
 
 \paragraph{Paramètres du problème} Pour cet exemple dynamique, nous étudions une sphère creuse soumise à une pression externe:

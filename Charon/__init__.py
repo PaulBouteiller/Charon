@@ -16,5 +16,5 @@ from .VariationalFormulation.tridimensional import Tridimensional
 
 
 from .Solve.Solve import Solve
-from .Mesh.Gmsh_mesh import *
+from .Mesh.gmsh_mesh import *
 print("Loading CharonX base on dolfinx version " + __version__)

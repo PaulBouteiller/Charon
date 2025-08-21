@@ -44,6 +44,9 @@ References:
 - Kolmogorov, A.N. (1937). "A statistical theory for the recrystallization of metals."
 - Johnson, W.A., Mehl, R.F. (1939). "Reaction kinetics in processes of nucleation and growth."
 - Avrami, M. (1939). "Kinetics of phase change I: General theory."
+
+
+L'implémentation pratique est fondé sur: Coupling solidification kinetics with phase-behavior computations in hydrodynamic simulations of high-pressure, dynamic-compression processes'
 """
 
 from math import pi, exp

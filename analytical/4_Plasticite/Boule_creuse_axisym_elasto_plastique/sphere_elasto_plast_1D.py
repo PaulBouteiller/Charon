@@ -53,7 +53,7 @@ Re = 600
 Ri = 300.0
 
 ###### Plasticity dictionnaire ######
-plasticity_model = "Finite_Plasticity"
+plasticity_model = "HPP_Plasticity"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
@@ -83,14 +83,15 @@ npas = 20000
 compteur = 100
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "loading_conditions": [{"type": "surfacique", "component" : "F", "tag": 1, "value" : p_applied}],
                 "analysis" : "static",
                 "plasticity" : plasticity_dic,
                 "isotherm" : True
                 }
     
-pb = SphericalUD(Acier, dictionnaire)
+pb = SphericalUD( dictionnaire)
 
 ###### Paramètre de la résolution ######
 dictionnaire_solve = {
