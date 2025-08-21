@@ -48,27 +48,22 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 }
 
 pb = CartesianUD(Acier, dictionnaire)
-pb.eps_list = [0]
-pb.F_list = [0]
-pb.Force = pb.set_F(2, "x")
-
-def query_output(problem, t):
-    problem.eps_list.append(Umax / Longueur * t)
-    problem.F_list.append(problem.get_F(problem.Force))
     
 dictionnaire_solve = {
     "Prefix" : "Traction_1D",
-    "output" : {"U" : True}
+    "output" : {"U" : True},
+    "csv_output" : {"reaction_force" : {"flag" : 2, "component" : "x"}}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
-solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
 
-#%%Validation et tracé du résultat      
-solution_analytique = np.array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
-eps_list_percent = [100 * eps for eps in pb.eps_list]
-numerical_results = np.array(pb.F_list)
+#%%Validation et tracé du résultat  
+temps = np.loadtxt("Traction_1D-results/export_times.csv",  delimiter=',', skiprows=1)
+numerical_results = np.loadtxt("Traction_1D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+eps_list = [Umax / Longueur * t for t in temps]    
+solution_analytique = np.array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in eps_list])
+eps_list_percent = [100 * eps for eps in eps_list]
 
 # On calcule la différence entre les deux courbes
 len_vec = len(solution_analytique)

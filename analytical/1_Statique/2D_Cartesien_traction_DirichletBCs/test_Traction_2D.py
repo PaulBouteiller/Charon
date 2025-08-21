@@ -26,7 +26,7 @@ Date de création: 11 Mars 2022
 """
 from Charon import CellType, create_rectangle, MeshManager, PlaneStrain, Solve
 from mpi4py.MPI import COMM_WORLD
-import numpy as np
+from numpy import array, loadtxt
 import matplotlib.pyplot as plt
 import pytest
 import sys
@@ -37,8 +37,8 @@ from Generic_isotropic_material import Acier, E, nu
 Largeur = 0.5
 Longueur = 1
 
-###### Chargement ######
-Umax = 0.002
+###### Maillage ######
+
 
 mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
 
@@ -48,6 +48,7 @@ dictionnaire_mesh = {"tags": [1, 2, 3],
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 ###### Paramètre du problème ######
+Umax = 0.002
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
@@ -59,26 +60,20 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 }
 
 pb = PlaneStrain(Acier, dictionnaire)
-pb.eps_list = []
-pb.F_list = []
-pb.Force = pb.set_F(3, "x")
+dico_solve = {"Prefix" : "Traction_2D", "csv_output" : {"reaction_force" : {"flag" : 3, "component" : "x"}}}
 
-def query_output(problem, t):
-    problem.eps_list.append(Umax / Longueur * t)
-    problem.F_list.append(problem.get_F(problem.Force))
-    
-dictionnaire_solve = {}
-
-solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
-solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
+solve_instance = Solve(pb, dico_solve, compteur=1, npas=20)
 solve_instance.solve()
+#%%
+temps = loadtxt("Traction_2D-results/export_times.csv",  delimiter=',', skiprows=1)
+numerical_results = loadtxt("Traction_2D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+eps_list = [Umax / Longueur * t for t in temps]    
 
 def force_elast(eps):
     return E * eps * Largeur /(1 - nu**2)
 
-solution_analytique = np.array([force_elast(eps) for eps in pb.eps_list])
-eps_list_percent = [100 * eps for eps in pb.eps_list]
-numerical_results = np.array(pb.F_list)
+solution_analytique = array([force_elast(eps) for eps in eps_list])
+eps_list_percent = [100 * eps for eps in eps_list]
 # On calcule la différence entre les deux courbes
 len_vec = len(solution_analytique)
 diff_tot = solution_analytique - numerical_results
@@ -87,10 +82,10 @@ integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solut
 print("La difference est de", integrale_discrete)
 # assert integrale_discrete < 0.01, "Static 1D traction fail"
 if __name__ == "__main__": 
-    plt.scatter(eps_list_percent, pb.F_list, marker = "x", color = "blue", label="CHARON")
+    plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
     plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
     plt.xlim(0, 1.1 * eps_list_percent[-1])
-    plt.ylim(0, 1.1 * pb.F_list[-1])
+    plt.ylim(0, 1.1 * numerical_results[-1])
     plt.xlabel(r"Déformation(%)", size = 18)
     plt.ylabel(r"Force (N)", size = 18)
     plt.legend()

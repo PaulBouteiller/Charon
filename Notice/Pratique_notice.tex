@@ -305,16 +305,16 @@ EN plus du maillage le constructeur MeshManager attend un dictionnaire permettan
 Ici, la barre à l'étude sera de longueur $L=1\milli\metre$, discrétisé avec deux éléments et ses extrémités seront marqués avec les drapeaux 1 et 2.
 
 
-\paragraph{Définition des conditions aux limites} Les conditions aux limites sont définies via un dictionnaire. Nous créons d'abord le chargement:
- et se verra appliquer un déplacement $U_{max}=1 \times 10^{-3}\milli\metre$ à son extrémité.
+\paragraph{Définition des conditions aux limites} Nous souhaitons appliquer un déplacement $U_{max}=1 \times 10^{-3}\milli\metre$ à l'extrémité droite de la bare. Pour cela, nous définissant un objet de la classe \purple{MyConstant}
 \begin{figure}[h!]
-\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+\lstinputlisting[language=python,firstline=23, lastline=24]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 
 La classe \purple{MyConstant} permet de créer des conditions aux limites simples. Les types disponibles sont:
 \begin{center}
-Creneau, SmoothCreneau, Chapeau, Rampe, UserDefined
+\keyword{Creneau}, \keyword{SmoothCreneau}, \keyword{Chapeau}, \keyword{Rampe}, \keyword{UserDefined}
 \end{center}
+et les paramètres nécessaires 
 \paragraph{Dictionnaire du problème} Un problème mécanique est une instance d'une des classes suivantes :
 \begin{itemize}
 \item \purple{CartesianUD}, modèle 1D cartésien,

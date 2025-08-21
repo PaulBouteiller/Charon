@@ -41,7 +41,6 @@ import matplotlib.pyplot as plt
 from scipy.special import erf
 import numpy as np
 from ufl import conditional, SpatialCoordinate, And, lt, gt
-from dolfinx.fem import Expression, Function
 import sys
 sys.path.append("../../")
 from Generic_isotropic_material import Acier, rho, C
@@ -83,14 +82,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
 pb = CartesianUD(Acier, dictionnaire)
 x = SpatialCoordinate(mesh)
 ufl_condition = conditional(And(lt(x[0], point_droit), gt(x[0], point_gauche)), TChaud, Tfroid)
-T_expr = Expression(ufl_condition, pb.V_T.element.interpolation_points())
-pb.T0 = Function(pb.V_T)
-pb.T0.interpolate(T_expr)
-pb.T.interpolate(T_expr)
-pb.bcs_T = []
-
-dictionnaire_solve = {}
-dictionnaire_solve = {"Prefix" : "Diffusion_1D", "csv_output" : {"T" : True}}
+dictionnaire_solve = {"Prefix" : "Diffusion_1D", "csv_output" : {"T" : True}, "initial_conditions" : {"T" : ufl_condition}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 

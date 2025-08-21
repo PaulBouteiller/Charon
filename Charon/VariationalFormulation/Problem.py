@@ -34,23 +34,18 @@ from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 
 from ..utils.interpolation import create_function_from_expression
-from ..utils.time_dependent_expressions import MyConstant  # Import si nécessaire
+from ..utils.time_dependent_expressions import MyConstant
 
 from ..Multiphase.multiphase import Multiphase
 from ..Kinematic import Kinematic
 
-
-from mpi4py import MPI
+from mpi4py.MPI import COMM_WORLD
 from basix.ufl import element
 from dolfinx.fem.petsc import set_bc
 from petsc4py.PETSc import ScalarType
 
-from dolfinx.fem import (functionspace, locate_dofs_topological, dirichletbc, 
-                         form, assemble_scalar, Constant, Function, Expression)
-
-
-from ufl import (action, inner, TestFunction, TrialFunction, 
-                 SpatialCoordinate, FunctionSpace, Coefficient)
+from dolfinx.fem import (functionspace, Constant, Function, Expression)
+from ufl import (inner, TestFunction, TrialFunction, SpatialCoordinate, FunctionSpace, Coefficient)
         
 class Problem:
     """
@@ -112,7 +107,7 @@ class Problem:
         self._init_constitutive_law()
         
         # Initialize temperature and auxiliary fields
-        self._init_temperature_and_auxiliary()
+        self._set_auxiliary_field()
         
         # Configure explosive if needed
         if self.multiphase_evolution:
@@ -142,7 +137,7 @@ class Problem:
         Sets up the MPI environment and determines whether the computation
         is running in parallel or serial mode.
         """
-        if MPI.COMM_WORLD.Get_size() > 1:
+        if COMM_WORLD.Get_size() > 1:
             print("Parallel computation")
             self.mpi_bool = True
         else:
@@ -275,16 +270,6 @@ class Problem:
             self.name, self.kinematic, self.quad,
             self.relative_rho_field_init_list)
     
-    def _init_temperature_and_auxiliary(self):
-        """
-        Initialize temperature and auxiliary fields.
-        
-        Sets up the initial temperature and creates auxiliary fields derived
-        from the primary variables.
-        """
-        self.set_initial_temperature()
-        self.set_auxiliary_field()
-    
     def _init_thermal_analysis(self):
         """
         Initialize thermal analysis if needed.
@@ -387,6 +372,7 @@ class Problem:
         self.u = self.create_function(self.mesh_manager)(self.V)
         self.v = self.create_function(self.mesh_manager)(self.V)
         self.T = self.create_function(self.mesh_manager)(self.V_T)
+        self.T0 = self.create_function(self.mesh_manager)(self.V_T)
         
     def set_form(self):
         """
@@ -430,7 +416,7 @@ class Problem:
         """
         return self.kinematic.measure(self.rho_0_field_init * inner(du, u_), self.dx_l)
         
-    def set_auxiliary_field(self):
+    def _set_auxiliary_field(self):
         """
         Initialize auxiliary fields derived from primary variables.
         
@@ -504,18 +490,6 @@ class Problem:
             sigma *= self.constitutive.damage.g_d
         return sigma
     
-    def set_initial_temperature(self):
-        """
-        Initialize temperature for the study.
-        
-        For materials following Mie-Gruneisen EOS, the T field may
-        represent internal energy rather than temperature.
-        """
-        T0 = 293.15
-        self.T0 = self.create_function(self.mesh_manager)(self.V_T)
-        self.T0.x.petsc_vec.set(T0)
-        self.T.x.petsc_vec.set(T0)
-
     def flux_bilinear_form(self):
         """
         Define the bilinear form for thermal flux.
@@ -567,71 +541,3 @@ class Problem:
         t : float Current time
         """
         set_bc(self.u.x.petsc_vec, self.bcs.bcs)
-    
-    def set_gen_F(self, boundary_flag, value):
-        """
-        Define the resultant force on a given surface.
-        
-        Computes the reaction force by testing the residual with a
-        carefully chosen test function.
-        
-        Parameters
-        ----------
-        boundary_flag : int Flag of the boundary where the resultant is to be recovered
-        value : ScalarType Value to impose for the test function
-            
-        Returns
-        -------
-        ufl.form.Form Linear form representing the action of the residual on the test function
-            
-        Notes
-        -----
-        This follows the approach described in:
-        https://comet-fenics.readthedocs.io/en/latest/demo/tips_and_tricks/computing_reactions.html
-        """
-        v_reac = Function(self.V)
-        dof_loc = locate_dofs_topological(self.V, self.facet_tag.dim, self.facet_tag.find(boundary_flag))
-        set_bc(v_reac.x.petsc_vec, [dirichletbc(value, dof_loc, self.V)])
-        return form(action(self.form, v_reac))
-    
-    def set_F(self, boundary_flag, coordinate):
-        """
-        Initialize the resultant force along a coordinate.
-        
-        Parameters
-        ----------
-        boundary_flag : int Flag of the boundary where the resultant is to be recovered
-        coordinate : str Coordinate for which to recover the reaction ("x", "y", "z", "r")
-            
-        Returns
-        -------
-        ufl.form.Form  Linear form representing the reaction force
-        """
-        if self.dim == 1:
-            return self.set_gen_F(boundary_flag, ScalarType(1.))
-        elif self.dim == 2:
-            if coordinate == "r" or coordinate =="x":
-                return self.set_gen_F(boundary_flag, ScalarType((1., 0)))
-            elif coordinate == "y" or coordinate =="z":
-                return self.set_gen_F(boundary_flag, ScalarType((0, 1.)))
-        elif self.dim == 3:
-            if coordinate == "x":
-                return self.set_gen_F(boundary_flag, ScalarType((1., 0, 0)))
-            elif coordinate == "y" :
-                return self.set_gen_F(boundary_flag, ScalarType((0, 1., 0)))
-            elif coordinate == "z" :
-                return self.set_gen_F(boundary_flag, ScalarType((0, 0, 1.)))
-    
-    def get_F(self, form):
-        """
-        Export the reaction associated with a Dirichlet boundary condition.
-        
-        Parameters
-        ----------
-        form : ufl.form.Form Linear form representing the reaction force
-            
-        Returns
-        -------
-        float Integral of the linear form over the boundary
-        """
-        return assemble_scalar(form)

@@ -88,11 +88,11 @@ tps2 = time.perf_counter()
 print("temps d'execution", tps2 - tps1)
 
 df = read_csv("Test_elasticite-results/sig.csv")
-temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)[1:]
+temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)
 resultat = [df[colonne].to_numpy() for colonne in df.columns]
 pas_espace = np.linspace(0, Longueur, len(resultat[-1]))
 for i, t in enumerate(temps):
-    plt.plot(resultat[0], resultat[i + 2], linestyle = "--")
+    plt.plot(resultat[0], resultat[i + 1], linestyle = "--")
     analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
     plt.plot(pas_espace, analytics)
 plt.xlim(0, Longueur)

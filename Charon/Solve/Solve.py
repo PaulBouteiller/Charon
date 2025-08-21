@@ -42,7 +42,7 @@ from ..utils.default_parameters import default_Newton_displacement_solver_parame
 from ..Export.export_result import ExportResults
 
 from dolfinx.nls.petsc import NewtonSolver
-from dolfinx.fem import petsc
+from dolfinx.fem import petsc, Expression
 from tqdm import tqdm
 
 
@@ -87,10 +87,12 @@ class Solve:
         5. Sets up optimized solution routines
         """
         self.pb = problem
+        self._set_initial_conditions(dictionnaire)
         self.t = 0        
         self.setup_export(dictionnaire)
         self.set_iterative_solver_parameters()
         self.set_time_step(**kwargs)
+
         # self.update_Pth()
         self.update_form_with_stabilization(dictionnaire)
         self.set_solver()
@@ -99,6 +101,17 @@ class Solve:
         self._create_time_and_bcs_update()
         self._create_problem_solve()
         self._create_output()
+        
+    def _set_initial_conditions(self, dictionnaire):
+        ci_dictionnaire = dictionnaire.get("initial_conditions", {})
+        if "T" in ci_dictionnaire:
+            T_ufl_condition = ci_dictionnaire["T"]
+            T_expr = Expression(T_ufl_condition, self.pb.V_T.element.interpolation_points())
+            self.pb.T.interpolate(T_expr)
+        else:
+            T0 = 293.15      
+            self.pb.T0.x.petsc_vec.set(T0)
+            self.pb.T.x.petsc_vec.set(T0)
         
     def update_form_with_stabilization(self, dictionnaire):
         """
@@ -260,8 +273,8 @@ class Solve:
             dictionnaire.get("output", {}),
             dictionnaire.get("csv_output", {})
         )
-        self.export.export_results(0)   
-        self.export.csv.csv_export(0)
+        # self.export.export_results(0)   
+        # self.export.csv.csv_export(0)
         
     def set_solver(self):
         """
@@ -295,7 +308,7 @@ class Solve:
                     self.dt, self.pb.T, self.pb.T_, self.pb.dT,
                     self.pb.pint_vol, self.pb.therm.C_tan,
                     self.pb.bilinear_flux_form,
-                    self.pb.bcs_T, self.pb.kinematic, self.pb.dx
+                    self.pb.bcs.T_bcs, self.pb.kinematic, self.pb.dx
                 )
         
         # Static displacement solver    

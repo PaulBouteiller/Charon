@@ -38,10 +38,7 @@ from Generic_isotropic_material import Acier
 Largeur = 0.5
 Longueur = 1
 
-###### Chargement ######
-f_surf = 1e3
-Npas = 20
-
+###### Maillage ######
 mesh = create_rectangle(COMM_WORLD, [(0, 0), (Longueur, Largeur)], [20, 20], CellType.quadrilateral)
 
 dictionnaire_mesh = {"tags": [1, 2, 3],
@@ -49,6 +46,9 @@ dictionnaire_mesh = {"tags": [1, 2, 3],
                      "positions": [0, 0, Longueur]
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+###### Paramètre du problème ######
+f_surf = 1e3
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
@@ -62,25 +62,21 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 }
     
 pb = PlaneStrain(Acier, dictionnaire)
-pb.sig_list = []
-pb.Force = pb.set_F(1, "x")
 
-def query_output(problem, t):
-    problem.sig_list.append(-problem.get_F(problem.Force)/Largeur)
-
-dictionnaire_solve = {}
-solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
-solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
+dico_solve = {"Prefix" : "Traction_2D", "csv_output" : {"reaction_force" : {"flag" : 1, "component" : "x"}}}
+solve_instance = Solve(pb, dico_solve, compteur=1, npas=20)
 solve_instance.solve()
 
-virtual_t = np.linspace(0, 1, Npas)
-force_elast_list = np.linspace(0, f_surf, len(virtual_t))
+temps = np.loadtxt("Traction_2D-results/export_times.csv",  delimiter=',', skiprows=1)
+reaction_force = np.loadtxt("Traction_2D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+sig_list = -reaction_force/Largeur
+force_elast_list = np.linspace(0, f_surf, len(temps))
 
 if __name__ == "__main__": 
-    plt.scatter(virtual_t, pb.sig_list, marker = "x", color = "blue", label="CHARON")
-    plt.plot(virtual_t, force_elast_list, linestyle = "--", color = "red", label = "Analytical")
-    plt.xlim(0, 1.1 * virtual_t[-1])
-    plt.ylim(0, 1.1 * pb.sig_list[-1])
+    plt.scatter(temps, sig_list, marker = "x", color = "blue", label="CHARON")
+    plt.plot(temps, force_elast_list, linestyle = "--", color = "red", label = "Analytical")
+    plt.xlim(0, 1.1 * temps[-1])
+    plt.ylim(0, 1.1 * sig_list[-1])
     plt.xlabel(r"Temps virtuel", size = 18)
     plt.ylabel(r"Contrainte (MPa)", size = 18)
     plt.legend()

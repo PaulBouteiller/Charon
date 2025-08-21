@@ -84,6 +84,7 @@ class BoundaryConditions:
         self.bcs_axi = []
         self.bcs_axi_homog = []
         self.my_constant_list = []
+        self.T_bcs = []
         
         # Setup component mapping if dimension provided
         if dim is not None:

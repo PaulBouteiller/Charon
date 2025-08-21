@@ -25,6 +25,12 @@ from csv import writer, reader, field_size_limit
 from numpy import ndarray, array, char
 from os import remove, rename
 
+
+from dolfinx.fem import Function, dirichletbc, form, assemble_scalar
+from petsc4py.PETSc import ScalarType
+from dolfinx.fem.petsc import set_bc
+from ufl import action
+
 class OptimizedCSVExport:
     FIELD_COMPONENTS = {
         "CartesianUD": {
@@ -92,6 +98,7 @@ class OptimizedCSVExport:
         self.setup_deviatoric_stress_export()
         self.setup_concentration_export()
         self.setup_free_surface_export()
+        self.setup_reaction_force_export()
         
     def setup_simple_field(self, field_name, space):
         if field_name in self.dico_csv:
@@ -202,6 +209,69 @@ class OptimizedCSVExport:
             self.free_surf_v = []
         else:
             self.csv_FreeSurf_1D = False
+            
+    def setup_reaction_force_export(self):
+        def set_gen_F(boundary_flag, value):
+            """
+            Define the resultant force on a given surface.
+            
+            Computes the reaction force by testing the residual with a
+            carefully chosen test function.
+            
+            Parameters
+            ----------
+            boundary_flag : int Flag of the boundary where the resultant is to be recovered
+            value : ScalarType Value to impose for the test function
+                
+            Returns
+            -------
+            ufl.form.Form Linear form representing the action of the residual on the test function
+                
+            Notes
+            -----
+            This follows the approach described in:
+            https://comet-fenics.readthedocs.io/en/latest/demo/tips_and_tricks/computing_reactions.html
+            """
+            v_reac = Function(self.pb.V)
+            dof_loc = locate_dofs_topological(self.pb.V, self.pb.facet_tag.dim, self.pb.facet_tag.find(boundary_flag))
+            set_bc(v_reac.x.petsc_vec, [dirichletbc(value, dof_loc, self.pb.V)])
+            return form(action(self.pb.form, v_reac))
+        
+        def set_F(boundary_flag, coordinate):
+            """
+            Initialize the resultant force along a coordinate.
+            
+            Parameters
+            ----------
+            boundary_flag : int Flag of the boundary where the resultant is to be recovered
+            coordinate : str Coordinate for which to recover the reaction ("x", "y", "z", "r")
+                
+            Returns
+            -------
+            ufl.form.Form  Linear form representing the reaction force
+            """
+            if self.pb.dim == 1:
+                return set_gen_F(boundary_flag, ScalarType(1.))
+            elif self.pb.dim == 2:
+                if coordinate == "r" or coordinate =="x":
+                    return set_gen_F(boundary_flag, ScalarType((1., 0)))
+                elif coordinate == "y" or coordinate =="z":
+                    return set_gen_F(boundary_flag, ScalarType((0, 1.)))
+            elif self.pb.dim == 3:
+                if coordinate == "x":
+                    return set_gen_F(boundary_flag, ScalarType((1., 0, 0)))
+                elif coordinate == "y" :
+                    return set_gen_F(boundary_flag, ScalarType((0, 1., 0)))
+                elif coordinate == "z" :
+                    return set_gen_F(boundary_flag, ScalarType((0, 0, 1.)))
+        if "reaction_force" in self.dico_csv:
+            flag = self.dico_csv["reaction_force"]["flag"]
+            component = self.dico_csv["reaction_force"]["component"]
+            self.reaction_form = set_F(flag, component)
+            self.csv_reaction_force = True
+            self.reaction_force = []
+        else:
+            self.csv_reaction_force = False            
 
     def initialize_csv_files(self):
         if COMM_WORLD.Get_rank() == 0:
@@ -275,7 +345,14 @@ class OptimizedCSVExport:
             for i, c_field in enumerate(self.pb.multiphase.c):
                 self.export_field(t, f"Concentration{i}", c_field, self.c_dte)
         if self.csv_FreeSurf_1D:
-            self.export_free_surface(t)
+            if COMM_WORLD.Get_rank() == 0:
+                self.time.append(t)
+                self.free_surf_v.append(self.pb.v.x.array[self.free_surf_dof][0])
+                row = [t, self.free_surf_v[-1]]
+                self.csv_writers["FreeSurf_1D"].writerow(row)
+                self.file_handlers["FreeSurf_1D"].flush()
+        if self.csv_reaction_force:
+            self.reaction_force.append(assemble_scalar(self.reaction_form))
             
     def export_field(self, t, field_name, field, dofs_to_export, subfield_name = None):
         if isinstance(subfield_name, list):
@@ -341,25 +418,22 @@ class OptimizedCSVExport:
             # Écrire les données en tant que chaîne unique
             self.csv_writers[field_name].writerow([','.join(formatted_data)])
             self.file_handlers[field_name].flush()
-
-    def export_free_surface(self, t):
-        if COMM_WORLD.Get_rank() == 0:
-            self.time.append(t)
-            self.free_surf_v.append(self.pb.v.x.array[self.free_surf_dof][0])
-            row = [t, self.free_surf_v[-1]]
-            self.csv_writers["FreeSurf_1D"].writerow(row)
-            self.file_handlers["FreeSurf_1D"].flush()
+            
+    def write_list(self, header, value_list, file_name):
+        with open(file_name, 'w', newline='') as f:
+            csv_writer = writer(f)
+            csv_writer.writerow([header])
+            for t in value_list:
+                csv_writer.writerow([f"{t:.6e}"])
+        for handler in self.file_handlers.values():
+            handler.close()
+        
 
     def close_files(self):
         if COMM_WORLD.Get_rank() == 0:
-            times_file = self.csv_name("export_times")
-            with open(times_file, 'w', newline='') as f:
-                csv_writer = writer(f)
-                csv_writer.writerow(["Time"])
-                for t in self.export_times:
-                    csv_writer.writerow([f"{t:.6e}"])
-            for handler in self.file_handlers.values():
-                handler.close()
+            self.write_list("Time", self.export_times, self.csv_name("export_times"))
+            if self.csv_reaction_force:
+                self.write_list("Reaction force", self.reaction_force, self.csv_name("reaction_force"))                
             self.post_process_all_files()
 
     def post_process_all_files(self):
@@ -381,6 +455,9 @@ class OptimizedCSVExport:
             elif field_name == "s":
                 self.post_process_csv(field_name, subfield_name = self.s_name_list)
             elif field_name == "FreeSurf_1D":
+                pass
+            elif field_name == "reaction_force":
+                a=1
                 pass
             else:
                 raise ValueError(f"{field_name} can not be post process")

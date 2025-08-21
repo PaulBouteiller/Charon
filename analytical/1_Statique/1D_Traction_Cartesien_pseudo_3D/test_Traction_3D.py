@@ -24,7 +24,7 @@ Date de création: 11 Mars 2022
 """
 from Charon import create_box, Tridimensional, Solve, MeshManager
 from mpi4py import MPI
-import numpy as np
+from numpy import array, loadtxt
 import matplotlib.pyplot as plt
 import pytest
 import sys
@@ -36,10 +36,9 @@ from Generic_isotropic_material import Acier, kappa, mu, eos_type, devia_type
 Longueur, Largeur, hauteur = 0.5, 2., 2.
 Nx, Ny, Nz = 10, 10, 10
 
-eps = 0.01
-Umax = eps * hauteur
-mesh = create_box(MPI.COMM_WORLD, [np.array([0, 0, 0]), 
-                                   np.array([Longueur, Largeur, hauteur])],
+###### Maillage ######
+mesh = create_box(MPI.COMM_WORLD, [array([0, 0, 0]), 
+                                   array([Longueur, Largeur, hauteur])],
                                   [Nx, Ny, Nz])
 dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
                      "coordinate": ["x", "x", "y", "y", "z", "z"], 
@@ -47,8 +46,9 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-
-###### Paramètre du problème ######
+#%% Définition du problème
+eps = 0.01
+Umax = eps * hauteur
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
@@ -63,23 +63,20 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 }
     
 pb = Tridimensional(Acier, dictionnaire)
-pb.eps_list = [0]
-pb.F_list = [0]
-pb.Force = pb.set_F(6, "z")
 
-def query_output(problem, t):
-    problem.eps_list.append(eps * t)
-    problem.F_list.append(2 * problem.get_F(problem.Force))
-    
-dictionnaire_solve = {}
-
-solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
-solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
+#%% Résolution
+dico_solve = {"Prefix" : "Traction_3D", "csv_output" : {"reaction_force" : {"flag" : 6, "component" : "z"}}}
+solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.solve()
 
-solution_analytique = np.array([2 * sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in pb.eps_list])
-eps_list_percent = [100 * eps for eps in pb.eps_list]
-numerical_results = np.array(pb.F_list)
+#%% Validation et tracé du résultat
+temps = loadtxt("Traction_3D-results/export_times.csv",  delimiter=',', skiprows=1)
+half_reaction = loadtxt("Traction_3D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+eps_list = [eps * t for t in temps]    
+
+solution_analytique = array([2 * sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in eps_list])
+eps_list_percent = [100 * eps for eps in eps_list]
+numerical_results = array(2*half_reaction)
 # On calcule la différence entre les deux courbes
 len_vec = len(solution_analytique)
 diff_tot = solution_analytique - numerical_results
@@ -88,10 +85,10 @@ integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solut
 print("La difference est de", integrale_discrete)
 assert integrale_discrete < 0.001, "Static 1D traction fail"
 if __name__ == "__main__": 
-    plt.scatter(eps_list_percent, pb.F_list, marker = "x", color = "blue", label="CHARON")
+    plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
     plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
     plt.xlim(0, 1.1 * eps_list_percent[-1])
-    plt.ylim(0, 1.1 * pb.F_list[-1])
+    plt.ylim(0, 1.1 * numerical_results[-1])
     plt.xlabel(r"Déformation(%)", size = 18)
     plt.ylabel(r"Force (N)", size = 18)
     plt.legend()

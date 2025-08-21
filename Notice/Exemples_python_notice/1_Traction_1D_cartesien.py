@@ -21,9 +21,7 @@ mesh_manager = MeshManager(mesh, dico_mesh)
 
 ###### Chargement ######
 Umax=1e-3   
-# chargement = MyConstant(mesh, Umax, Type = "Rampe")
-
-dico_chargement = {"type" : "rampe", "amplitude" : Umax}#Exemple de ce que je voudrais plutôt
+dico_chargement = {"type" : "rampe", "amplitude" : Umax}
 
 dico_problem = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
@@ -35,15 +33,11 @@ dico_problem = {"mesh_manager" : mesh_manager,
                 }
 
 pb = CartesianUD(Acier, dico_problem)
-pb.eps_list = [0]
-pb.F_list = [0]
-pb.Force = pb.set_F(2, "x")
 
 def query_output(problem, t):
-    problem.eps_list.append(Umax / L * t)
-    problem.F_list.append(problem.get_F(problem.Force))
+    pass
     
-dico_solve = {"Prefix" : "Traction_1D", "output" : {"U" : True}}
+dico_solve = {"Prefix" : "Traction_1D", "output" : {"U" : True}, "csv_output" : {"reaction_force" : {"flag" : 2, "component" : "x"}}}
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
