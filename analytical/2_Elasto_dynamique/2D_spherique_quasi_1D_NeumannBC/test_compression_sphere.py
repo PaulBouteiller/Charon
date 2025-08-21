@@ -14,7 +14,7 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from Charon import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
+from Charon import (Solve, CylindricalUD, create_1D_mesh, 
                      Axisymmetric, axi_sphere, MeshManager)
 from pandas import read_csv
 import matplotlib.pyplot as plt
@@ -46,10 +46,10 @@ Nr = 100
 mesh1D = create_1D_mesh(Rint, Rext, Nr)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Rint, Rext]}
 mesh_manager1D = MeshManager(mesh1D, dictionnaire_mesh)
-chargement1D = MyConstant(mesh1D, T_unload, -Pext, Type = "Creneau")
+chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
 dictionnaire1D = {"mesh_manager" : mesh_manager1D,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement1D}
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
                     ],
                 "isotherm" : True
                 }
@@ -69,22 +69,19 @@ mesh2D, _, facets = axi_sphere(Rint, Rext, 20, 80, tol_dyn = 1e-3)
 
 dictionnaire_mesh = {"facet_tag": facets}
 mesh_manager2D = MeshManager(mesh2D, dictionnaire_mesh)
-
-chargement2D = MyConstant(mesh2D, T_unload, magnitude, Type = "Creneau")
 dictionnaire2D = {"mesh_manager" : mesh_manager2D,
                 "boundary_conditions": 
                     [{"component": "Uz", "tag": 1},
                      {"component": "Ur", "tag": 2}
                      ],
-                "loading_conditions": 
-                    [{"type": "surfacique", "component" : "pressure", "tag": 3, "value" : Pext}],
+                "loading_conditions": [{"type": "surfacique", "component" : "pressure", "tag": 3, "value" : chargement}],
                 "isotherm" : True
                 }
 pb2D = Axisymmetric(Acier, dictionnaire2D)
 
 dictionnaire2D_solve = {
     "Prefix" : "Sphere_axi",
-    "csv_output" : {"U" : ["Boundary", 1], "Sig" : True}
+    "csv_output" : {"U" : ["Boundary", 1]}
     }
 solve_instance = Solve(pb2D, dictionnaire2D_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()

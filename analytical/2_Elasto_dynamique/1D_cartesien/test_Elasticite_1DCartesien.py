@@ -27,7 +27,7 @@ La solution analytique pour une onde progressive est de la forme:
 où f et g représentent respectivement les ondes se propageant vers la droite et vers la gauche.
 """
 
-from Charon import create_interval, MyConstant, CartesianUD, Solve, MeshManager
+from Charon import create_interval, CartesianUD, Solve, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
@@ -67,7 +67,7 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 T_unload = largeur_creneau/wave_speed
-chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": [{"component": "U", "tag": 2}],
                 "loading_conditions": [{"type": "surfacique", "component" : "F", "tag": 1, "value" : chargement}],
@@ -78,7 +78,7 @@ pb = CartesianUD(material, dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",
-    "csv_output" : {"J" : True}
+    "csv_output" : {"sig" : True}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
@@ -88,11 +88,10 @@ tps2 = time.perf_counter()
 print("temps d'execution", tps2 - tps1)
 
 df = read_csv("Test_elasticite-results/sig.csv")
-temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)
+temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)[1:]
 resultat = [df[colonne].to_numpy() for colonne in df.columns]
 pas_espace = np.linspace(0, Longueur, len(resultat[-1]))
-t_output = temps[1:]
-for i, t in enumerate(t_output):
+for i, t in enumerate(temps):
     plt.plot(resultat[0], resultat[i + 2], linestyle = "--")
     analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
     plt.plot(pas_espace, analytics)

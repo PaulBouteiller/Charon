@@ -3,7 +3,7 @@ Test de validation pour l'élasticité 1D en coordonnées cylindriques
 
 Ce script implémente et exécute un test de validation pour les équations
 d'élasticité linéaire en 1D dans un système de coordonnées cylindriques.
-Il compare la solution numérique obtenue avec CharonX à la solution analytique.
+Il compare la solution numérique obtenue avec Charon à la solution analytique.
 
 Cas test:
 ---------
@@ -23,7 +23,7 @@ La solution analytique est implémentée dans le module Solution_analytique_cyli
 Auteur: bouteillerp
 """
 
-from Charon import Solve, CylindricalUD, MyConstant, create_interval, MeshManager
+from Charon import Solve, CylindricalUD, create_interval, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
@@ -54,10 +54,9 @@ mesh = create_interval(COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [R_int, R_ext]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-chargement = MyConstant(mesh, Tfin, magnitude, Type = "Creneau")
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : magnitude}
                     ],
                 "isotherm" : True
                 }
@@ -72,7 +71,7 @@ dictionnaire_solve = {
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 
-df = read_csv("Onde_cylindrique-results/Sig.csv")
+df = read_csv("Onde_cylindrique-results/sig.csv")
 plt.plot(df['r'], df.iloc[:, -2], 
         linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
 

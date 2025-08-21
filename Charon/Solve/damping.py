@@ -168,4 +168,4 @@ class Damping:
         
         # Contract tensors and integrate
         inner_prod = self.kinematic.contract_double(invFTop_compact, grad_u_)
-        self.damping_form = pseudo_pressure * inner_prod * self.dx
+        self.damping_form = self.kinematic.measure(pseudo_pressure * inner_prod, self.dx)

@@ -36,7 +36,7 @@ la cohérence de l'équation d'état.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import Material, create_box, MyConstant, Tridimensional, Solve, MeshManager
+from Charon import Material, create_box, Tridimensional, Solve, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import time
 import matplotlib.pyplot as plt
@@ -102,7 +102,7 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 eps = 0.01
 Umax = eps * hauteur
-chargement = MyConstant(mesh, Umax, Type = "Rampe")
+chargement = {"type" : "rampe", "amplitude" : Umax}
 
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 

@@ -22,7 +22,7 @@ longitudinale, permettant ainsi une comparaison avec la solution analytique 1D.
 Auteur: bouteillerp
 """
 
-from Charon import Solve, MyConstant, create_rectangle, PlaneStrain, CellType, MeshManager
+from Charon import Solve, create_rectangle, PlaneStrain, CellType, MeshManager
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
@@ -63,8 +63,9 @@ dictionnaire_mesh = {"tags": [1, 2, 3],
                      "positions": [0, 0, Largeur]
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
 T_unload = largeur_creneau/wave_speed
-chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
 
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
@@ -74,26 +75,23 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True,
                 "damping" : {"damping" : True, 
                              "linear_coeff" : 0.1,
-                             "quad_coeff" : 0.01,
+                             "quad_coeff" : 0.1,
                              "correction" : True
                              }
                 }
 
 pb = PlaneStrain(Acier, dictionnaire)
 
-dictionnaire_solve = {"Prefix" : "Test_elasticite", "csv_output" : {"Sig" : True}}
+dictionnaire_solve = {"Prefix" : "Test_elasticite", "csv_output" : {"sig" : True}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 
-df = read_csv("Test_elasticite-results/Sig.csv")
-import re
-temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
-                  for col in df.columns if "t=" in col])
+df = read_csv("Test_elasticite-results/sig.csv")
+temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)[1:]
 resultat = [df[colonne].to_numpy() for colonne in df.columns]
 sigma_xx = [resultat[3 * i + 2] for i in range((len(resultat)-2)//3)]
 pas_espace = np.linspace(0, Longueur, len(sigma_xx[0]))
-t_output = temps[3::3]
-for j, t in enumerate(t_output):
+for j, t in enumerate(temps):
     plt.plot(resultat[0], sigma_xx[j+1], linestyle = "--")
     analytics = cartesian1D_progressive_wave(-magnitude, -largeur_creneau, 0, wave_speed, pas_espace, t)
     plt.plot(pas_espace, analytics)

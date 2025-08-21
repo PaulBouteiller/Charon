@@ -3,7 +3,7 @@ Test de validation pour l'élasticité 1D en coordonnées sphériques
 
 Ce script implémente et exécute un test de validation pour les équations
 d'élasticité linéaire en 1D dans un système de coordonnées sphériques.
-Il compare la solution numérique obtenue avec CharonX à la solution analytique.
+Il compare la solution numérique obtenue avec Charon à la solution analytique.
 
 Cas test:
 ---------
@@ -23,7 +23,7 @@ La solution analytique est implémentée dans le module Solution_analytique_sphe
 Auteur: bouteillerp
 """
 
-from Charon import Solve, SphericalUD, MyConstant, create_interval, MeshManager
+from Charon import Solve, SphericalUD, create_interval, MeshManager
 from pandas import read_csv
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
@@ -44,8 +44,7 @@ Tfin = 3e-4
 print("le temps de fin de simulation est", Tfin )
 pas_de_temps = Tfin / 10000
 largeur_creneau = e
-magnitude = 1e4
-T_unload = Tfin
+magnitude = 1e2
 
 sortie = 2500
 pas_de_temps_sortie = sortie * pas_de_temps
@@ -56,10 +55,9 @@ mesh = create_interval(COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [R_int, R_ext]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : magnitude}
                     ],
                 "isotherm" : True
                 }
@@ -68,14 +66,14 @@ pb = SphericalUD(Acier, dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Onde_spherique",
-    "csv_output" : {"Sig" : True}
+    "csv_output" : {"sig" : True}
     }
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
                
 
-df = read_csv("Onde_spherique-results/Sig.csv")
+df = read_csv("Onde_spherique-results/sig.csv")
 plt.plot(df['r'], df.iloc[:, -3], 
         linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
 

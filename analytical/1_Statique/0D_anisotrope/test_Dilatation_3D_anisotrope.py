@@ -75,18 +75,18 @@ def user_defined_displacement(problem, t):
 
 dictionnaire_solve = {
     "Prefix" : "Compression_spherique_0D",
-    "csv_output" : {"Pressure" : True, "deviateur" : True}
+    "csv_output" : {"p" : True, "s" : True}
     }
 
-solve_instance = Solve(pb, compteur=1, TFin = 1, scheme = "fixed", dt = 1/N_pas)
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, TFin = 1, scheme = "fixed", dt = 1/N_pas)
 solve_instance.user_defined_displacement = user_defined_displacement #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
     
-p = read_csv("Compression_spherique_1D-results/Pressure.csv")
+p = read_csv("Compression_spherique_0D-results/p.csv")
 pressure = [p[colonne].to_numpy() for colonne in p.columns]
 pressure = [pressure[3:]]
 
-s = read_csv("Compression_spherique_1D-results/deviateur.csv")
+s = read_csv("Compression_spherique_0D-results/s.csv")
 deviateur = [s[colonne].to_numpy() for colonne in s.columns]
 deviateur = [s.item() for s in deviateur[3:]]
 n = len(deviateur) // 9

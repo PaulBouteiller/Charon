@@ -24,7 +24,7 @@ relative est inférieure à 1%.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import create_box, MyConstant, Tridimensional, Solve, MeshManager
+from Charon import create_box, Tridimensional, Solve, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,15 +49,13 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-chargement = MyConstant(mesh, Umax, Type = "Rampe")
-
 ###### Paramètre du problème ######
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},
                      {"component": "Uz", "tag": 3},
-                     {"component": "Uz", "tag": 4, "value": chargement},
+                     {"component": "Uz", "tag": 4, "value": {"type" : "rampe", "amplitude" : Umax}},
                     ],
                 "analysis" : "static",
                 "isotherm" : True

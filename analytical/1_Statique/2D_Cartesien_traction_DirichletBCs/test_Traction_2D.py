@@ -24,7 +24,7 @@ Une assertion vérifie que l'erreur relative est inférieure à 1%.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import CellType, create_rectangle, MeshManager, MyConstant, PlaneStrain, Solve
+from Charon import CellType, create_rectangle, MeshManager, PlaneStrain, Solve
 from mpi4py.MPI import COMM_WORLD
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,14 +47,12 @@ dictionnaire_mesh = {"tags": [1, 2, 3],
                      "positions": [0, 0, Longueur]
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
-chargement = MyConstant(mesh, Umax, Type = "Rampe")
-
 ###### Paramètre du problème ######
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},
-                     {"component": "Ux", "tag": 3, "value": chargement}
+                     {"component": "Ux", "tag": 3, "value": {"type" : "rampe", "amplitude" : Umax}}
                     ],
                 "analysis" : "static",
                 "isotherm" : True

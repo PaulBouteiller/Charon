@@ -26,7 +26,8 @@ La solution analytique complète est implémentée dans le module Solution_analy
 Auteur: bouteillerp
 """
 
-from Charon import CartesianUD, create_interval, MyConstant, SpatialCoordinate, Solve, MeshManager
+from Charon import CartesianUD, create_interval, Solve, MeshManager
+from ufl import SpatialCoordinate
 from pandas import read_csv
 import numpy as np
 from mpi4py.MPI import COMM_WORLD
@@ -60,7 +61,7 @@ n_sortie = int(Tfin/pas_de_temps_sortie)
 
 Nx = 2000
 mesh = create_interval(COMM_WORLD, Nx, [np.array(bord_gauche), np.array(bord_droit)])
-chargement = MyConstant(mesh, T_unload, magnitude, Type = "Creneau")
+chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, L]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 

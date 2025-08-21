@@ -124,6 +124,13 @@ class Deformations:
         return dot(F_3d.T, F_3d)
     
     def reduced_det(self, tensor):
-        """Compute determinant for 1D reduced tensors."""
+        """Compute determinant for tensors."""
         if self._is_1d:
             return tensor[0, 0] * tensor[1, 1] * tensor[2, 2]
+        elif self.name == "PlaneStrain":
+            return tensor[0, 0] * tensor[1, 1] - tensor[0, 1] * tensor[1, 0]
+        elif self.name == "Axisymmetric":
+            return tensor[1, 1] * (tensor[0, 0] * tensor[2, 2] - tensor[0, 2] * tensor[2, 0])
+        else:
+            return det(tensor)
+            

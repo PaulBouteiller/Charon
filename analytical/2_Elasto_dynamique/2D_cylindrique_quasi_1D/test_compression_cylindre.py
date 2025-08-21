@@ -16,9 +16,10 @@ Cas test:
 Auteur: bouteillerp
 Créé le: Fri Mar 11 09:36:05 2022
 """
-from Charon import (Solve, CylindricalUD, MyConstant, create_1D_mesh, 
+from Charon import (Solve, CylindricalUD, create_1D_mesh, 
                      create_rectangle, Axisymmetric, MeshManager)
 from pandas import read_csv
+from numpy import loadtxt
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import sys
@@ -56,10 +57,10 @@ mesh1D = create_1D_mesh(Rint, Rext, Nr)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Rint, Rext]}
 mesh_manager = MeshManager(mesh1D, dictionnaire_mesh)
 
-chargement1D = MyConstant(mesh1D, T_unload, magnitude, Type = "Creneau")
+chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
 dictionnaire1D = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement1D}
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
                     ],
                 "isotherm" : True
                 }
@@ -67,7 +68,7 @@ dictionnaire1D = {"mesh_manager" : mesh_manager,
 pb1D = CylindricalUD(Acier, dictionnaire1D)
 dictionnaire1D_solve = {
     "Prefix" : "Cylindre",
-    "csv_output" : {"U" : True, "Sig" : True}
+    "csv_output" : {"U" : True}
     }
 solve_instance = Solve(pb1D, dictionnaire1D_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
@@ -81,10 +82,9 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      }
 mesh_manager = MeshManager(mesh2D, dictionnaire_mesh)
 
-chargement2D = MyConstant(mesh2D, T_unload, magnitude, Type = "Creneau")
 dictionnaire2D = {"mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : chargement2D}
+                    [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : chargement}
                     ],
                 "boundary_conditions": 
                     [{"component": "Uz", "tag": 3},
@@ -96,7 +96,7 @@ pb2D = Axisymmetric(Acier, dictionnaire2D)
 
 dictionnaire2D_solve = {
     "Prefix" : "Cylindre_axi",
-    "csv_output" : {"U" : ["Boundary", 3], "Sig" : True}
+    "csv_output" : {"U" : ["Boundary", 3]}
     }
 solve_instance = Solve(pb2D, dictionnaire2D_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
@@ -113,9 +113,12 @@ resultat_1D = [df_2[colonne].to_numpy() for colonne in df_2.columns]
 ur_1D = [resultat_1D[i + 2] for i in range((len(resultat_1D)-2))]
 print("longueur cyl", len(ur_1D))
 
+temps = loadtxt("Cylindre_axi-results/export_times.csv", delimiter=',', skiprows=1)
+
 for j in range(length):
-    plt.plot(resultat_axi[0], ur_axi[j], linestyle = "--")
-    plt.scatter(resultat_1D[0], ur_1D[j], marker = "x")
+    plt.plot(resultat_axi[0], ur_axi[j], linestyle = "--", label = f"Cylindrical t={temps[j+1]}s")
+    plt.scatter(resultat_1D[0], ur_1D[j], marker = "x", label = f"Axisymmetric t={temps[j+1]}s")
     plt.xlim(Rint, Rext)
     plt.xlabel(r"$r$", size = 18)
     plt.ylabel(r"Déplacement radial", size = 18)
+    plt.legend()

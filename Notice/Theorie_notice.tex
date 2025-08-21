@@ -20,6 +20,7 @@
 \newcommand{\Convexe}{\Cc}
 \newcommand{\Gc}{\Gg_{c}}
 \newcommand{\Int}[2]{\int_{#1}^{#2}}
+\newcommand{\FthEpsp}{\ten{A}}
 
 \begin{document}
 \part{Théorie}\label{Part:Theorie}
@@ -421,6 +422,7 @@ $$\GT^{-1}=\dfrac{1}{\left(1+\partial_{r}u_{r}\right)\left(1+\partial_{z}u_{z}\r
 0 & \frac{\left(1+\partial_{r}u_{r}\right)\left(1+\partial_{z}u_{z}\right)-\partial_{z}u_{r}\partial_{r}u_{z}}{1+\frac{u_{r}}{r}} & 0\\
 -\partial_{r}u_{z} & 0 & 1+\partial_{r}u_{r}
 \end{pmatrix}$$
+\begin{Rem}{\blue{Tout ces résultats peuvent se redémontrer cailement en permutant l'ordre des vecteurs de bases pour obtenir $\er,\ez,\etheta$ et dans cette base le tenseur a une forme par bloc beaucoup plus simple.}}\end{Rem}
 \subsubsection{Forme faible dans le cadre axisymétrique}
 La formulation faible 3D devient alors:
 $$-\int_{\Configuration_{0}}\{\vec{\sigma}_{L}\}:\{\vec{\nabla}\DepVirt\}r\dr\dz+\int_{\dNOm_{0}}\FSurf\cdot\DepVirt\Vert\GT^{-\top}\cdot\NormaleInit\Vert\det\GT\dlo=\int_{\Configuration_{0}}\rho_{0}\dfrac{\partial^{2}\Dep}{\partial t^{2}}\cdot\DepVirt r\dr\dz$$

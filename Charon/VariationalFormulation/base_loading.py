@@ -23,7 +23,7 @@ across all problem dimensions (1D, 2D, 3D) and coordinate systems.
 from dolfinx.fem import Constant
 from petsc4py.PETSc import ScalarType
 from ufl import FacetNormal, inner, dot
-from ..utils.MyExpression import MyConstant, Tabulated_BCs
+from ..utils.time_dependent_expressions import MyConstant
 
 
 class Loading:   
@@ -80,7 +80,7 @@ class Loading:
         
         Parameters
         ----------
-        value : ScalarType, Expression, MyConstant, or Tabulated_BCs Load value
+        value : ScalarType, Expression, MyConstant, Load value
         dx : ufl.Measure Integration measure (dx for body forces, ds for surface)
         component_name : str, optional Component name ('Fx', 'Fy', etc.)
         """
@@ -100,8 +100,8 @@ class Loading:
             else: 
                 load_term = inner(value.Expression.constant, u_component)
             self.my_constant_list.append(value.Expression)
-        elif isinstance(value, Tabulated_BCs):
-            return  # Handle separately if needed
+        # elif isinstance(value, Tabulated_BCs):
+        #     return  # Handle separately if needed
         else:
             assert value != 0.
             load_term = inner(value, u_component)

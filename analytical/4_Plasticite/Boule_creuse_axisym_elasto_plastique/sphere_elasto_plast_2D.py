@@ -58,7 +58,7 @@ Re = 600
 Ri = 300.0
 
 ###### Plasticity dictionnaire ######
-plasticity_model = "Finite_Plasticity"
+plasticity_model = "J2_JAX"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
@@ -83,12 +83,8 @@ dictionnaire_mesh = {"facet_tag": facets}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 dictionnaire = {"mesh_manager" : mesh_manager,
-                "boundary_conditions": 
-                    [{"component": "Uz", "tag": 1},
-                     {"component": "Ur", "tag": 2}
-                     ],
-                "loading_conditions": 
-                    [{"type": "surfacique", "component" : "pressure", "tag": 4, "value" : p_applied}],
+                "boundary_conditions": [{"component": "Uz", "tag": 1}, {"component": "Ur", "tag": 2}],
+                "loading_conditions": [{"type": "surfacique", "component" : "pressure", "tag": 4, "value" : p_applied}],
                 "analysis" : "static",
                 "plasticity" : plasticity_dic,
                 "isotherm" : True

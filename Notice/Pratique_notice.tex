@@ -20,7 +20,7 @@ Cette note présente la modélisation de chocs à l'aide du code CHARON (\textbf
 \begin{itemize}[label=$\star$]
 \item La première \partref{Part:Pratique} est \emph{pratique}. Elle présente, au travers d'exemples à complexité croissante, l'utilisation du code CHARON. 
 \begin{itemize}
-\item Un premier \chapref{Chapitre:Exemples concrets} concerne les utilisateurs souhaitant utiliser le code sans nécessairement implémenter leurs propres lois. La structure générique des fichiers utilisateurs est montrée, le code CHARON est alors une simple boite noire.
+\item Un premier \chapref{Chapitre:Exemples concrets} concerne les utilisateurs souhaitant utiliser le code sans nécessairement implémenter leurs propres lois. La structure générique des fichiers d'entrée est montrée, le code CHARON est alors une simple boite noire.
 \item Un deuxième \chapref{Chapitre:Solutions analytiques} présente quelques solutions analytique à laquelle CHARON peut être comparé. Les résultats de ce chapitre sont également utiles à tout développement de nouveaux codes.
 \item Un troisième \chapref{Chapitre:Comparaison autres codes} compare cette fois les sorties de CHARON à des solutions de références calculées avec d'autres codes de calcul.
 \item Un quatrième \chapref{Chapitre:Structure du code CHARON} clos la partie pratique en mentionnant la structure générale du code CHARON ainsi que les personnalisations accessibles. Il donne quelques indications aux développeurs souhaitant implémenter leurs propres modèles.
@@ -32,11 +32,11 @@ Cette note présente la modélisation de chocs à l'aide du code CHARON (\textbf
 \end{figure}
 \clearpage
 \section{Installation de la librairie FEniCS}\label{Section:Installation de la librairie FEniCS CHARON}
-Le code CHARON nécessite la librairie FEniCSx\footnote{\url{https://fenicsproject.org/documentation/}} laquelle peut s'installer de plusieurs façon\footnote{voir \url{https://github.com/FEniCS/dolfinx}}. Nous recommandons l'une des installations suivantes:
+Le code CHARON nécessite la librairie FEniCSx\footnote{\url{https://fenicsproject.org/documentation/}} laquelle peut s'installer de plusieurs façons\footnote{voir \url{https://github.com/FEniCS/dolfinx}}. Nous recommandons l'une des installations suivantes:
 \begin{itemize}
+\item Via le gestionnaire Anaconda\footnote{\url{https://anaconda.org/}} \subsecref{Subsection:Conda}, qui permet un meilleur cloisonnement par l'utilisation d'environnements virtuels. Notez que certaines extensions de FEniCSx ne sont facilement accessible que par conda, d'autres, au contraire, sont impossibles.
 \item Sur Ubuntu, via le ppa \subsecref{Subsection:ppa}, qui permet l'installation du code \og en dur \fg{} sur toute la machine.
-\item Via le gestionnaire Anaconda\footnote{\url{https://anaconda.org/}} \subsecref{Subsection:Conda}, qui permet un meilleur cloisonnement des différents paquets et l'installation de quelques adds-on intéressante. Notez que certaines extension de FEniCSx ne sont facilement accessible que par conda (voir la \secref{Section:Installations annexes}).
-\item Via Spack ou Docker, cette solution est a privilégier sur les calculateurs  et permet en outre de bénéficier des version de développement de FEniCSx.
+\item Via Spack ou Docker, cette solution est à privilégier sur les calculateurs  et permet en outre de bénéficier des version de développement de FEniCSx.
 \end{itemize}
 Si l'installation a lieu depuis la DIF, il peut être nécessaire d'insérer les lignes suivantes pour spécifier l'adresse du proxy :
 \begin{equation}
@@ -75,11 +75,7 @@ conda config --set proxy_servers.http http://proxy.dam.intra.cea.fr:3128
 conda config --set proxy_servers.https https://proxy.dam.intra.cea.fr:3128
 conda create -n fenicsx-env
 conda activate fenicsx-env
-conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx  
-\end{verbatim}
-Nous conseillons ensuite d'installer dans l'environnement fenicsx-env les packages suivants:
-\begin{verbatim}
-pip install pyvista4dolfinx pytest 
+conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx pyvista4dolfinx pytest 
 \end{verbatim}
 S'il y a un problème de proxy lors de la création de l'environnement il peut être utile de re-spécifier en dur l'adresse du proxy via :
 \begin{verbatim}
@@ -122,12 +118,8 @@ sudo rm -rf /usr/lib/python3/dist-packages/ufl/__pycache__
 sudo apt install fenicsx
 \end{verbatim}
 \section{Installation du code CHARON}
-\subsection{Utilisation de CHARON sans installation}
-Une fois la librairie FEniCSx installée, il est possible d'utiliser CHARON en copiant le code source du code dans un dossier nommé par exemple Code\_CHARON puis en lançant un fichier de calcul en plaçant et en plaçant les cas test à l’extérieur du dossier CHARON, mais dans le dossier Code\_CHARON.\\
-\subsection{Installation globale du code}
-Il est toutefois recommandé d'installer le package CHARON afin de le rendre visible dans tout le système. Pour cela, vérifier que le fichier setup.py se trouve dans le dossier Code\_CHARON, puis, dans un terminale de commande:
+Après avoir naviguer jusque dans le dossier Charon, vérifier que le fichier \texttt{setup.py} s'y trouve, puis, dans un terminale de commande:
 \begin{enumerate}
-\item Aller dans le dossier CHARON
 \item Si vous souhaitez réaliser du développement sur le code source, exécuter la commande:
 \begin{equation}
 \verb|sudo pip3 install --editable .|
@@ -159,7 +151,7 @@ Par rapport à la commande \eqref{installation_avec_modifs} notons les différen
 \item Pas besoin d'utiliser \texttt{sudo} car l'installation s'effectue dans un environnement Conda, pas au niveau système.
 \item Utiliser simplement pip au lieu de pip3. Dans un environnement Conda, pip pointera automatiquement vers la version de Python de cet environnement.
 \end{itemize}
-Comme précédemment, l'option \texttt{--editable} (ou -e) installera le package en mode développement, ce qui signifie que les modifications que vous apporterez au code source seront immédiatement reflétées sans avoir besoin de réinstaller le package.
+Comme précédemment, l'option \verb|--editable| (ou \texttt{-e}) installera le package en mode développement, ce qui signifie que les modifications que vous apporterez au code source seront immédiatement reflétées sans avoir besoin de réinstaller le package.
 \subsection{Utilisation d'un environnement virtuel avec CONDA}
 Le problème majeur rencontré précédemment avec conda était l'impossibilité d'utiliser un editeur de texte tel que spyder à moins de l'installer directement dans l'environnement virtuel conda. Il est pourtant possible de le faire en utilisant l’interpréteur python qui se trouve à l'intérieur de l'environnement. Pour cela :
 \begin{center}
@@ -212,18 +204,6 @@ Bien que non obligatoire, une connaissance sommaire de FEniCSx et de sa syntaxe 
 \begin{center}
 \url{https://jsdokken.com/src/tutorial_gmsh.html}
 \end{center}
-\item Pour les utilisateurs souhaitant en savoir plus sur la parallélisation dans DolfinX:
-\begin{center}
-\url{https://scientificcomputing.github.io/mpi-tutorial/notebooks/dolfinx_MPI_tutorial.html}
-\end{center}
-\item Pour les utilisateurs intéressés par la mécanique des fluides, nous conseillons la lecture et l'emploi du package Oasicx basé sur FEniCSx:
-\begin{center}
-\url{https://github.com/ComputationalPhysiology/oasisx/tree/main}
-\end{center}
-\item Pour les utilisateurs intéressés par le lifting dans FEniCSx nous renvoyons à:
-\begin{center}
-\url{https://jsdokken.com/FEniCS23-tutorial/src/lifting.html}
-\end{center}
 \end{itemize}
 \section*{Feuille de route}
 Le code CHARON est en cours de développement et ambitionne progressivement à incorporer les avancées suivantes:
@@ -236,10 +216,6 @@ Le code CHARON est en cours de développement et ambitionne progressivement à i
 \item Ajout des external Operator
 \begin{center}
 \url{https://orbilu.uni.lu/handle/10993/60511}
-\end{center}
-et de Jax:
-\begin{center}
-\url{https://github.com/google/jax}
 \end{center}
 \end{itemize}
 \part{Pratique}\label{Part:Pratique}
@@ -262,7 +238,8 @@ Sans entrer dans les détails un script d'entrée de Charon comporte 4 grandes �
 \begin{enumerate}
 \item La définition du matériau au travers de la classe Material. C'est ici que l'utilisateur précisera le comportement déviatorique ainsi que l'équation d'état du matériau.
 \item La définition du maillage avec l'appel de la classe MeshManager. L'utilisateur spécifiera les éventuelles marqueurs délimitant les conditions aux limites.
-\item Le problème de manière général
+\item La création d'une instance de la classe Problem qui générera toutes les équations de la mécanique à résoudre notamment la formulation variationnelle et la loi de comportement.
+\item La création d'un solver prenant en argument le problème précédemment défini.
 \end{enumerate}
 \clearpage
 \section{Traction élastique quasi-statique d'un barreau 1D}\label{Section:Traction élastique quasi-statique d'un barreau 1D}
@@ -276,20 +253,20 @@ Sans entrer dans les détails un script d'entrée de Charon comporte 4 grandes �
 \paragraph{Import du package} Un script débute nécessairement par l'importation du package Charon réalisé avec les ligne suivante:
 
 \begin{figure}[h!]
-%\lstinputlisting[language=python,firstline=1, lastline=3]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+\lstinputlisting[language=python,firstline=1, lastline=1]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 
 Si les commandes d'installation du \chapref{Chapitre:Introduction} introductif ont été respectées, Charon est un package Python visible quel que soit l'emplacement du fichier d'entrée.
 
-Tous les packages additionnels, par exemple \texttt{pandas} pour la lecture des résultats exportés au format \texttt{.csv}. ou matplotlib pour la visualisation des résultats doivent également être chargés ici.
-\paragraph{Définition du modèle de comportement élastique} Après l'import des packages nécessaires nous conseillons à l'utilisateur de définir le(s) matériau(x) qui est ou seront à l'étude lors de la simulation. 
+Tous les packages additionnels, par exemple \texttt{pandas} pour la lecture des résultats exportés au format \texttt{.csv}. ou \texttt{matplotlib} pour la visualisation des résultats doivent également être chargés ici.
+\paragraph{Définition du modèle de comportement élastique} Après l'import des packages nécessaires, nous définissons le matériau qui est à l'étude lors de la simulation. 
 
-Si l'utilisateur défini plusieurs matériau et les stocke dans une liste Charon comprendra qu'il s'agit d'une simulation multiphasique et des paramètres supplémentaires seront requis par l'analyse (comme la distribution spatiale des différents matériaux ou leurs capacités à 'évoluer de l'un vers l'autre. Toutes ces considérations sont reportées à l'exemple EXEMPLEREF.
+Si l'utilisateur défini plusieurs matériaux et les stocke dans une liste, Charon comprendra qu'il s'agit d'une simulation multiphasique et des paramètres supplémentaires seront requis par l'analyse (comme la distribution spatiale des différents matériaux ou leurs capacités à évoluer de l'un vers l'autre). Toutes ces considérations sont reportées à l'exemple EXEMPLEREF.
 
 Pour l'instant, nous renseignons les paramètres \emph{élastiques} nécessaires à la création du matériau d'étude.
 
 \begin{figure}[h!]
-%\lstinputlisting[language=python,firstline=4, lastline=15]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+\lstinputlisting[language=python,firstline=2, lastline=13]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 Définir un matériau nécessite 6 paramètres:
 \begin{enumerate}
@@ -304,21 +281,21 @@ Nous conseillons à l'utilisateur à se reporter à la partie théorie pour voir
 \begin{center}
 \keyword{IsotropicHPP}, \keyword{NeoHook}, \keyword{MooneyRivlin}, \orange{None}
 \end{center}
-\item Un dictionnaire donnant les paramètres requis pour l'équation d'état. Il est crucial de noter que chaque équation d'état attend un nombre de paramètres fixés. Nous conseillons donc à l'utilisateur d'aller voir dans le code correspondant les paramètres requis.
-\item Enfin, de même un dictionnaire donnant les paramètres requis à la définition de notre équation d'état.
+\item Un dictionnaire donnant les paramètres requis pour l'équation d'état. Il est crucial de noter que chaque équation d'état attend un nombre de paramètres fixés. Nous conseillons donc à l'utilisateur d'aller voir dans le code correspondant les paramètres requis. Si les paramètres ne sont pas correctement renseignés Charon renverra un message d'erreur indiquant les paramètres manquant.
+\item Enfin, de même un dictionnaire précisant les paramètres requis à la définition de la loi déviatorique.
 \end{enumerate}
-Dans l'exemple ci-dessus, nous avons renseigné un module de Young $E=210 \times 10^3 \mega\pascal$, un coefficient de Poisson $\nu=0.3$, une masse volumique $\rho = 7.8 \times 10^{-3} \ton.\milli\metre^{-3}$, et une capacité thermique massique $C=500 \milli\metre^{2}.\second^{-2}.\kelvin^{-1}$. Ces ordres de grandeur correspondent à un acier standard METTRE REF.
+Dans l'exemple ci-dessus, nous avons renseigné un module de Young $E=210 \times 10^3 \mega\pascal$, un coefficient de Poisson $\nu=0.3$, une masse volumique $\rho = 7.8 \times 10^{-3} \ton.\milli\metre^{-3}$, et une capacité thermique massique $C=500 \milli\metre^{2}.\second^{-2}.\kelvin^{-1}$. Ces ordres de grandeur correspondent à un acier standard METTRE REF Rajouter ref Salencon thermoélasticité.
 
 Une loi d'état de type \keyword{IsotropicHPP} nécessite la donnée d'un module d'Young $E$, d'un coefficient de Poisson $\nu$ et d'un coefficient d'expansion thermique $\alpha$.
 
 \paragraph{Paramètres géométriques, création du maillage et gestion des frontières} Pour construire notre maillage plusieurs options s'offrent à l'utilisateur. 
 \begin{itemize}
-\item Utiliser les fonctions de création de maillage propre à fenicsx, auquel cas nous conseillons à l'utilisateur d'aller voir la page associée\footnote{\url{https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.mesh.html}}. Cette option permet la création de maillages simples: segment, rectangle ou pavé droit.
-\item Utiliser un mailleur externe interfaçable avec fenicsx par exemple gmsh\footnote{•}. De nombreux exemples sont disponibles avec une recherche internet.
+\item Utiliser les fonctions de création de maillage propre à FEniCSx, auquel cas nous conseillons à l'utilisateur d'aller voir la page associée\footnote{\url{https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.mesh.html}}. Cette option permet la création de maillages simples: segment, rectangle ou pavé droit.
+\item Utiliser un mailleur externe interfaçable avec FEniCSx par exemple gmsh\footnote{\url{https://gmsh.info/}}. De nombreux exemples sont disponibles avec une recherche internet.
 \item L'utilisation d'un maillage abstrait, depuis la version Charon offre la possibilité de définir le problème posé sur un maillage abstrait afin d’accélérer le processus de remaillage pendant la simulation de dynamique explicite.
 \end{itemize}
 \begin{figure}[h!]
-%\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+\lstinputlisting[language=python,firstline=15, lastline=20]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 EN plus du maillage le constructeur MeshManager attend un dictionnaire permettant de marquer les frontières. Deux possibilités s'offrent à l'utilisateur:
 \begin{itemize}
@@ -331,7 +308,7 @@ Ici, la barre à l'étude sera de longueur $L=1\milli\metre$, discrétisé avec 
 \paragraph{Définition des conditions aux limites} Les conditions aux limites sont définies via un dictionnaire. Nous créons d'abord le chargement:
  et se verra appliquer un déplacement $U_{max}=1 \times 10^{-3}\milli\metre$ à son extrémité.
 \begin{figure}[h!]
-%\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
+\lstinputlisting[language=python,firstline=17, lastline=22]{Exemples_python_notice/1_Traction_1D_cartesien.py}
 \end{figure}
 
 La classe \purple{MyConstant} permet de créer des conditions aux limites simples. Les types disponibles sont:

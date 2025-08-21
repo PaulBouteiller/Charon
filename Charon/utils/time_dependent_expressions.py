@@ -74,6 +74,71 @@ class MyConstant:
             self.Expression = self.UserDefined(mesh, *args)
         else: 
             raise ValueError("Wrong definition")
+    
+    @classmethod
+    def from_dict(cls, mesh, constant_dict):
+        """
+        Create a MyConstant object from a dictionary specification.
+        
+        Parameters
+        ----------
+        mesh : dolfinx.mesh.Mesh
+            Computational mesh
+        constant_dict : dict
+            Dictionary with keys:
+            - 'type' : str, type of constant ('rampe', 'creneau', 'chapeau', etc.)
+            - 'amplitude' : float, amplitude value
+            - Additional parameters based on type
+        
+        Returns
+        -------
+        MyConstant object
+        
+        Examples
+        --------
+        >>> rampe = MyConstant.from_dict(mesh, {"type": "rampe", "amplitude": 1.0})
+        >>> creneau = MyConstant.from_dict(mesh, {"type": "creneau", "amplitude": 2.0, "t_crit": 0.5})
+        """
+        constant_type = constant_dict["type"].lower()
+        amplitude = constant_dict["amplitude"]
+        
+        # Map user-friendly names to MyConstant Type names
+        type_mapping = {
+            "rampe": "Rampe",
+            "creneau": "Creneau", 
+            "chapeau": "Chapeau",
+            "smooth_creneau": "SmoothCreneau",
+            "user_defined": "UserDefined"
+        }
+        
+        if constant_type not in type_mapping:
+            raise ValueError(f"Unknown constant type: {constant_type}")
+        
+        myconst_type = type_mapping[constant_type]
+        
+        # Handle different parameter requirements for each type
+        if constant_type == "rampe":
+            return cls(mesh, amplitude, Type=myconst_type)
+        
+        elif constant_type in ["creneau", "chapeau"]:
+            t_crit = constant_dict["t_crit"]
+            return cls(mesh, t_crit, amplitude, Type=myconst_type)
+        
+        elif constant_type == "smooth_creneau":
+            t_load = constant_dict["t_load"]
+            t_plateau = constant_dict["t_plateau"]
+            return cls(mesh, t_load, t_plateau, amplitude, Type=myconst_type)
+        
+        elif constant_type == "user_defined":
+            value_array = constant_dict["value_array"]
+            speed_array = constant_dict["speed_array"]
+            if speed_array:
+                return cls(mesh, value_array, speed_array, Type=myconst_type)
+            else:
+                return cls(mesh, value_array, Type=myconst_type)
+        
+        else:
+            raise ValueError(f"Unsupported constant type: {constant_type}")
         
     class Creneau:  
         """
@@ -266,75 +331,3 @@ class MyConstant:
             load_steps : array Array of time points
             """
             pass
-        
-class MyConstantExpression(MyConstant):
-    """
-    Extension of MyConstant that also stores a function.
-    
-    Parameters
-    ----------
-    function : dolfinx.fem.Function Function to be associated with the expression
-    mesh : dolfinx.mesh.Mesh Computational mesh
-    *args : tuple Additional arguments for the specific expression type
-    **kwargs : dict Keyword arguments, including "Type" to specify the expression type
-    """
-    def __init__(self, function, mesh, *args, **kwargs):
-        self.function = function
-        MyConstant.__init__(mesh, *args, **kwargs)
-        
-class Tabulated_BCs:
-    """
-    Tabulated boundary conditions.
-    
-    This class creates boundary conditions from tabulated values or
-    standard functions.
-    
-    Parameters
-    ----------
-    mesh : dolfinx.mesh.Mesh Computational mesh
-    *args : tuple Additional arguments for the specific expression type
-    **kwargs : dict Keyword arguments, including "Type" to specify the expression type
-    """
-    def __init__(self, mesh, *args, **kwargs):
-        if kwargs.get("Type") == "Creneau":
-            self.Expression = self.Creneau(mesh, *args)
-        elif kwargs.get("Type") == "Rampe":
-            self.Expression = self.Rampe(mesh, *args)
-        elif kwargs.get("Type") == "UserDefined":
-            self.Expression = self.UserDefined(mesh, *args)
-        
-    class Creneau:  
-        """
-        Step function (rectangular pulse) for tabulated BCs.
-        
-        Creates a step function with amplitude "amplitude" starting at t=0 
-        and ending at t=t_crit.
-        """
-        def __init__(self, mesh, t_crit, amplitude):
-            """
-            Initialize a step function.
-
-            Parameters
-            ----------
-            mesh : dolfinx.mesh.Mesh Computational mesh
-            t_crit : float End time of the step
-            amplitude : float Amplitude of the step
-            """
-            self.t_crit = t_crit 
-            self.amplitude = amplitude
-            self.constant = Constant(mesh, amplitude)
-            
-        def set_time_dependant_array(self, load_steps):
-            """
-            Precompute values for all time steps.
-            
-            Parameters
-            ----------
-            load_steps : array Array of time points
-            """
-            self.value_array = []
-            for i in range(len(load_steps)):
-                if load_steps[i] <= self.t_crit:
-                    self.value_array.append(self.amplitude)
-                else:
-                    self.value_array.append(0)

@@ -34,6 +34,7 @@ from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 
 from ..utils.interpolation import create_function_from_expression
+from ..utils.time_dependent_expressions import MyConstant  # Import si nécessaire
 
 from ..Multiphase.multiphase import Multiphase
 from ..Kinematic import Kinematic
@@ -314,6 +315,13 @@ class Problem:
             value = loading["value"]
             component = loading["component"]
             
+            if isinstance(value, dict):
+                # value = self._create_constant_from_dict(value_config)
+                value = MyConstant.from_dict(self.mesh, value)
+            else:
+                # Scalar value
+                value = value
+            
             if loading_type == "surfacique":
                 load_value = value * self.load if self.analysis == "static" else value
                 getattr(self.loading, f"add_{component}")(load_value, self.ds(tag))
@@ -321,13 +329,13 @@ class Problem:
                 getattr(self.loading, f"add_{component}")(value, self.dx)
             else:
                 raise ValueError(f"Unknown loading type: {loading_type}") 
-    
+
     def _init_boundary_conditions(self, simulation_dic):
         """
-        Initialize boundary conditions.
+        Initialize boundary conditions with automatic MyConstant creation.
         
-        Creates a BoundaryConditions object and sets up the specific
-        boundary conditions for the problem.
+        Creates a BoundaryConditions object and sets up boundary conditions,
+        automatically creating MyConstant objects from dictionary specifications.
         """
         self.bcs = self.boundary_conditions_class()(self.V, self.facet_tag, self.name)
         
@@ -335,13 +343,20 @@ class Problem:
         for bc_config in boundary_conditions_config:
             component = bc_config["component"]
             tag = bc_config["tag"]
-            value = bc_config.get("value", ScalarType(0))
+            value_config = bc_config.get("value", ScalarType(0))
+            
+            if isinstance(value_config, dict):
+                # value = self._create_constant_from_dict(value_config)
+                value = MyConstant.from_dict(self.mesh, value_config)
+            else:
+                # Scalar value
+                value = value_config
             
             if hasattr(self.bcs, f"add_{component}"):
                 getattr(self.bcs, f"add_{component}")(region=tag, value=value)
             else:
                 raise ValueError(f"Unknown boundary condition component: {component}")
-        
+            
     def set_function_space(self):
         """
         Initialize function spaces.
@@ -509,8 +524,8 @@ class Problem:
         """
         self.dT = TrialFunction(self.V_T)
         self.T_ = TestFunction(self.V_T)
-        j = self.therm.thermal_constitutive_law(self.mat_th, self.kinematic.grad_scal(self.dT), self.constitutive.p)
-        self.bilinear_flux_form = self.kinematic.measure(self.kinematic.contract_scalar_gradients(j, self.kinematic.grad_scal(self.T_)), self.dx)
+        j = self.therm.thermal_constitutive_law(self.mat_th, self.kinematic.grad_scalar_compact(self.dT), self.constitutive.p)
+        self.bilinear_flux_form = self.kinematic.measure(self.kinematic.contract_scalar_gradients(j, self.kinematic.grad_scalar_compact(self.T_)), self.dx)
         
     def set_time_dependant_BCs(self, load_steps):
         """

@@ -84,9 +84,7 @@ compteur = 100
 
 ###### Paramètre du problème ######
 dictionnaire = {"mesh_manager" : mesh_manager,
-                "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 1, "value" : p_applied}
-                    ],
+                "loading_conditions": [{"type": "surfacique", "component" : "F", "tag": 1, "value" : p_applied}],
                 "analysis" : "static",
                 "plasticity" : plasticity_dic,
                 "isotherm" : True

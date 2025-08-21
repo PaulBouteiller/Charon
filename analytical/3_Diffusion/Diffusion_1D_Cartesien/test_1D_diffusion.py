@@ -36,6 +36,7 @@ Auteur: bouteillerp
 
 from Charon import CartesianUD, LinearThermal, create_interval, MeshManager, Solve
 from mpi4py.MPI import COMM_WORLD
+from pandas import read_csv
 import matplotlib.pyplot as plt
 from scipy.special import erf
 import numpy as np
@@ -88,15 +89,9 @@ pb.T0.interpolate(T_expr)
 pb.T.interpolate(T_expr)
 pb.bcs_T = []
 
-pb.T_vector = [pb.T.x.array]
-pb.T_max = [800]
-def query_output(problem, t):
-    problem.T_vector.append(np.array(problem.T.x.array))
-    problem.T_max.append(np.max(problem.T_vector[-1]))
-
 dictionnaire_solve = {}
-solve_instance = Solve(pb, {}, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
-solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
+dictionnaire_solve = {"Prefix" : "Diffusion_1D", "csv_output" : {"T" : True}}
+solve_instance = Solve(pb, dictionnaire_solve, compteur = sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 
 def analytical_f(x,t):
@@ -106,28 +101,33 @@ def analytical_f(x,t):
 
 def analytical_T(x,t, Tf, Tc):
     return (Tc-Tf) * analytical_f(x,t) + Tf
-len_vec = len(pb.T_vector[0])
-t_list = np.linspace(1e-12, Tfin, n_sortie+1)
+
+df = read_csv("Diffusion_1D-results/T.csv")
+temps = np.loadtxt("Diffusion_1D-results/export_times.csv",  delimiter=',', skiprows=1)
+resultat = [df[colonne].to_numpy() for colonne in df.columns]
+
+len_vec = len(resultat[0])
 pas_espace = np.linspace(bord_gauche, bord_droit, len_vec)
-compteur = 0
-for i, t in enumerate(t_list):
-    list_T_erf =[analytical_T(x, t, Tfroid, TChaud) for x in pas_espace]
-    diff_tot = list_T_erf - pb.T_vector[i]
+
+sortie_label = True
+for i, t in enumerate(temps):
+    list_T_erf = [analytical_T(x, t, Tfroid, TChaud) for x in pas_espace]
+    diff_tot = list_T_erf - resultat[i+1]
     int_discret = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(list_T_erf[j]) for j in range(len_vec))
     print("La difference est de", int_discret)
     # assert int_discret < 0.002, "1D cartesian diffusion fails"
     # print("1D cartesian diffusion succeed")
     if __name__ == "__main__": 
-        if compteur == 0:
+        if sortie_label:
             label_analytical = "Analytique"
             label_CHARON = "CHARON"
+            sortie_label = False
         else:
             label_analytical = None
             label_CHARON = None
         plt.plot(pas_espace, list_T_erf, linestyle = "-", color = "red", label = label_analytical)
-        plt.plot(pas_espace, pb.T_vector[i], linestyle = "--", color = "blue", label=label_CHARON)
+        plt.plot(pas_espace, resultat[i+1], linestyle = "--", color = "blue", label=label_CHARON)
         print("cette sortie correspond au temps", (t))
-    compteur+=1
 plt.xlim(bord_gauche/4, bord_droit/4)
 plt.ylim(Tfroid, TChaud*1.02)
 plt.xlabel(r"$x$", size = 18)

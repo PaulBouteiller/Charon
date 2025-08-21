@@ -31,7 +31,6 @@ from .PlasticSolve.jax_gurson_plastic_solver import JAXGursonPlasticSolver
 from .PlasticSolve.jax_gurson_plastic_solver_hpp import GTNSimpleJAXSolver
 
 from .multiphase_solve import MultiphaseSolver
-# from .multiphase_solve_clean import MultiphaseSolver
 
 
 

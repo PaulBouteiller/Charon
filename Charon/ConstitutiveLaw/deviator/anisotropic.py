@@ -49,7 +49,7 @@ from scipy.linalg import block_diag
 from math import cos, sin
 from numpy import array, diag, ndarray, insert, concatenate, asarray
 from numpy.linalg import inv as np_inv, norm
-from ...utils.MyExpression import interpolation_lin
+from ...utils.time_dependent_expressions import interpolation_lin
 
 
 class AnisotropicDeviator(BaseDeviator):

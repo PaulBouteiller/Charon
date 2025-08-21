@@ -30,7 +30,7 @@ import pytest
 import sys
 from mpi4py import MPI
 
-from Charon import create_rectangle, MyConstant, PlaneStrain, Solve, CellType, MeshManager
+from Charon import create_rectangle, PlaneStrain, Solve, CellType, MeshManager
 sys.path.append("../")
 from Traction_1D_cartesien_solution_analytique import sigma_xx
 sys.path.append("../../")
@@ -51,14 +51,12 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-chargement = MyConstant(mesh, Umax, Type = "Rampe")
-
 ###### Paramètre du problème ######
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},
-                     {"component": "Ux", "tag": 3, "value": chargement},
+                     {"component": "Ux", "tag": 3, "value": {"type" : "rampe", "amplitude" : Umax}},
                      {"component": "Uy", "tag": 4}
                     ],
                 "analysis" : "static",

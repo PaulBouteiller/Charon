@@ -22,7 +22,7 @@ aux limites 3D.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import create_box, MyConstant, Tridimensional, Solve, MeshManager
+from Charon import create_box, Tridimensional, Solve, MeshManager
 from mpi4py import MPI
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,7 +47,6 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-chargement = MyConstant(mesh, Umax, Type = "Rampe")
 
 ###### Paramètre du problème ######
 dictionnaire = {"mesh_manager" : mesh_manager,
@@ -57,7 +56,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                      {"component": "Uy", "tag": 3},
                      {"component": "Uy", "tag": 4},
                      {"component": "Uz", "tag": 5},
-                     {"component": "Uz", "tag": 6, "value": chargement},
+                     {"component": "Uz", "tag": 6, "value": {"type" : "rampe", "amplitude" : Umax}},
                     ],
                 "analysis" : "static",
                 "isotherm" : True

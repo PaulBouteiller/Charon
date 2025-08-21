@@ -18,7 +18,7 @@ Une comparaison est effectuée entre la force calculée numériquement et analyt
 Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
-from Charon import create_1D_mesh, CartesianUD, Solve, MyConstant, MeshManager
+from Charon import create_1D_mesh, CartesianUD, Solve, MeshManager
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -37,11 +37,11 @@ mesh = create_1D_mesh(0, Longueur, Nx)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, Longueur]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-chargement = MyConstant(mesh, Umax, Type = "Rampe")
+
 dictionnaire = {"mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
-                     {"component": "U", "tag": 2, "value": chargement}
+                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "amplitude" : Umax}}
                     ],
                 "analysis" : "static",
                 "isotherm" : True

@@ -29,7 +29,7 @@ BoundaryConditions : Unified base class for all boundary conditions
 
 from dolfinx.fem import locate_dofs_topological, dirichletbc
 from petsc4py.PETSc import ScalarType
-from ..utils.MyExpression import MyConstant
+from ..utils.time_dependent_expressions import MyConstant
 
 
 class BoundaryConditions:
