@@ -95,6 +95,7 @@ class Solve:
         self.setup_export(dictionnaire)
         self.set_iterative_solver_parameters()
         self.set_time_step(**kwargs)
+        self.user_defined_displacement = dictionnaire.get("user_defined_displacement", None)
 
         # self.update_Pth()
         self.update_form_with_stabilization(dictionnaire)
@@ -104,7 +105,7 @@ class Solve:
         self._create_time_and_bcs_update()
         self._create_problem_solve()
         self._create_output()
-        
+
     def _set_initial_conditions(self, dictionnaire):
         def set_field(field, value, V):
             if isinstance(value, Conditional):
@@ -250,7 +251,7 @@ class Solve:
                 operations.append(lambda: self.update_pressure())
         
         elif self.pb.analysis == "User_driven":
-            operations.append(lambda: self.pb.user_defined_displacement(self.t))
+            operations.append(lambda: self.user_defined_displacement(self.pb, self.t))
             
             if self.pb.is_tabulated:
                 operations.append(lambda: self.update_pressure())

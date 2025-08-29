@@ -44,31 +44,10 @@ optional_import : Utility for importing optional dependencies
 Dataframe_to_array : Convert pandas DataFrame to arrays for tabulation
 """
 
-import importlib.util
+from ...utils.generic_functions import optional_import
 from dolfinx.fem import Function, Expression
 
-def optional_import(module_name, as_name=None):
-    """Attempt to import an optional module.
-    
-    Parameters
-    ----------
-    module_name : str Name of the module to import
-    as_name : str, optional Name to import the module as
-        
-    Returns
-    -------
-    module or None The imported module or None if import failed
-    """
-    try:
-        spec = importlib.util.find_spec(module_name)
-        if spec is None:
-            return None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-    except:
-        print(f"Warning: Optional module {module_name} not found. Some functionality may be limited.")
-        return None
+
 
 # Import optional modules
 jax_numpy = optional_import("jax.numpy")

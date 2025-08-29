@@ -39,14 +39,15 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [Rin
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 2, "value" : -Pext}],
                 "analysis" : "static",
                 "isotherm" : True
                 }
     
-pb = SphericalUD(Acier, dictionnaire)
+pb = SphericalUD(dictionnaire)
 solve_instance = Solve(pb, {}, compteur=1, npas=10)
 solve_instance.solve()
 

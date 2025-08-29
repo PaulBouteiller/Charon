@@ -16,10 +16,9 @@ try:
     from jax import vmap, jit, jacfwd
     import jax.numpy as jnp
     from .jax_newton_solver import JAXNewton
-except Exception:
-    raise ImportError("JAX is required for this solver")
-
-
+except:
+    print(f"Warning: Optional module jax not found. Some functionality may be limited.")
+    # raise ImportError("JAX is required for this solver")
 
 def to_vect(tensor_3x3, length):
     """Convert 3x3 tensor to vector format.

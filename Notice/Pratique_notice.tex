@@ -85,17 +85,20 @@ conda config --set proxy_servers.http http://proxy.dam.intra.cea.fr:3128
 conda config --set proxy_servers.https https://proxy.dam.intra.cea.fr:3128
 conda create -n fenicsx-env
 conda activate fenicsx-env
-conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx pyvista4dolfinx pytest 
+conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx pytest spyder gmsh scipy pandas tqdm
 \end{verbatim}
 S'il y a un problème de proxy lors de la création de l'environnement il peut être utile de re-spécifier en dur l'adresse du proxy via :
 \begin{verbatim}
 conda create -n fenicsx-env --proxy http://proxy.dam.intra.cea.fr:3128
 \end{verbatim}
+Nous conseillons ensuite d'installer les packages suivants via pip:
+\begin{verbatim}
+pip install pyvista4dolfinx jax jaxlib diffrax optimistix
+\end{verbatim}
 Puis pour lancer un calcul ultérieurement il faut activer l'environnement en tapant :
 \begin{verbatim}
 conda activate fenicsx-env
 \end{verbatim}
-Pour vérifier quels sont les packages installer dans l'environnement virtuel créé par Anaconda il faut taper:
 \subsection{Installation via ppa}\label{Subsection:ppa}
 Dans un terminal, après avoir exporté le proxy avec \eqref{export_proxy} appliquer successivement les commandes:
 \begin{verbatim}
@@ -113,8 +116,8 @@ sudo -E apt install python3-pip
 sudo -E apt install spyder
 sudo -E apt install paraview
 sudo -E pip3 install --upgrade gmsh
-sudo - E pip3 install jax jaxlib
-sudo - E pip3 install diffrax
+sudo -E pip3 install jax jaxlib
+sudo -E pip3 install diffrax
 \end{verbatim}
 \subsection{Problème lors de l'installation}
 Si certains packages ont été incorrectement installés où sont présent en doublon (par exemple petsc4py qui aurait été installé préalablement via pip), nous conseillons de désinstaller les potentiels conflits (par exemple pip uninstall petsc4py) puis sudo apt autoremove fenicsx (et pas seulement remove qui n'enlèverait pas les dépendances).
@@ -162,7 +165,7 @@ Par rapport à la commande \eqref{installation_avec_modifs} notons les différen
 \item Utiliser simplement pip au lieu de pip3. Dans un environnement Conda, pip pointera automatiquement vers la version de Python de cet environnement.
 \end{itemize}
 Comme précédemment, l'option \verb|--editable| (ou \texttt{-e}) installera le package en mode développement, ce qui signifie que les modifications que vous apporterez au code source seront immédiatement reflétées sans avoir besoin de réinstaller le package.
-\subsection{Utilisation d'un environnement virtuel avec CONDA}
+\subsection{Utilisation d'un environnement virtuel avec Conda}
 Le problème majeur rencontré précédemment avec conda était l'impossibilité d'utiliser un editeur de texte tel que spyder à moins de l'installer directement dans l'environnement virtuel conda. Il est pourtant possible de le faire en utilisant l’interpréteur python qui se trouve à l'intérieur de l'environnement. Pour cela :
 \begin{center}
 \begin{verbatim}

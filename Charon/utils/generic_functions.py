@@ -21,6 +21,31 @@ the CharonX framework.
 
 from ufl import exp
 
+import importlib.util
+def optional_import(module_name, as_name=None):
+    """Attempt to import an optional module.
+    
+    Parameters
+    ----------
+    module_name : str Name of the module to import
+    as_name : str, optional Name to import the module as
+        
+    Returns
+    -------
+    module or None The imported module or None if import failed
+    """
+    try:
+        spec = importlib.util.find_spec(module_name)
+        if spec is None:
+            return None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    except:
+        print(f"Warning: Optional module {module_name} not found. Some functionality may be limited.")
+        return None
+
+
 def ppart(x):
     """
     Return the positive part of x: max(x, 0).

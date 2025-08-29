@@ -531,13 +531,3 @@ class Problem:
         num_pas : int Current time step number
         """
         pass
-
-    def user_defined_displacement(self, t):
-        """
-        Apply user-defined displacement at time t.
-        
-        Parameters
-        ----------
-        t : float Current time
-        """
-        set_bc(self.u.x.petsc_vec, self.bcs.bcs)

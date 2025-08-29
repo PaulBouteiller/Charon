@@ -38,16 +38,17 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
-                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "amplitude" : Umax}}
+                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "pente" : Umax}}
                     ],
                 "analysis" : "static",
                 "isotherm" : True
                 }
 
-pb = CartesianUD(Acier, dictionnaire)
+pb = CartesianUD(dictionnaire)
     
 dictionnaire_solve = {
     "Prefix" : "Traction_1D",
