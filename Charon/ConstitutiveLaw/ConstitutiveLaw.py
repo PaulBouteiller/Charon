@@ -83,7 +83,7 @@ class ConstitutiveLaw:
     relative_rho_0 : float or Function Relative initial density field
     """
     
-    def __init__(self, u, material, plasticity_dictionnary, damage_dictionnary, multiphase, 
+    def __init__(self, u, material, constitutive_dictionnary, multiphase, mesh_manager,
                  name, kinematic, quadrature, relative_rho_0):
         """Initialize the constitutive law manager.
 
@@ -100,10 +100,13 @@ class ConstitutiveLaw:
         h : float or Function Characteristic mesh size
         """
         self.material = material
-        self.plasticity_dictionnary = plasticity_dictionnary
-        self.plastic_model = plasticity_dictionnary.get("model")
-        self.damage_dictionnary = damage_dictionnary
-        self.damage_model = damage_dictionnary.get("model")
+        self.plasticity_dictionnary = constitutive_dictionnary["plasticity"]
+        self.plastic_model = self.plasticity_dictionnary.get("model")
+        self.damage_dictionnary = constitutive_dictionnary["damage"]
+        self.damage_model = self.damage_dictionnary.get("model")
+        self.polycristal_dictionnary = constitutive_dictionnary["polycristal"]
+        if self.polycristal_dictionnary!={}:
+            self.material.devia.set_orientation(mesh_manager, self.polycristal_dictionnary)
         self.multiphase = multiphase
         self.kinematic = kinematic
         self.quadrature = quadrature
@@ -121,8 +124,9 @@ class ConstitutiveLaw:
             damage_class = damage_mapper.get(self.damage_model)
             if damage_class is None:
                 raise ValueError(f"Unknown damage model: {self.damage_model}")
-            self.damage = damage_class(self.mesh, quadrature, damage_dictionnary, 
-                          u=u, J=self.kinematic.J(u), pressure=self.p, 
+                #TODO le self.mesh est probablement à définir
+            self.damage = damage_class(self.mesh, quadrature, self.damage_dictionnary, 
+                          u=u, J=self.kinematic.J(u), pressure = self.p, 
                           material=material, kinematic=kinematic)
             
             
@@ -136,7 +140,7 @@ class ConstitutiveLaw:
             plastic_class = plastic_mapper.get(self.plastic_model)
             if plastic_class is None:
                 raise ValueError(f"Unknown plasticity model: {self.plastic_model}") 
-            self.plastic = plastic_class(u, material.devia.mu, name, kinematic, quadrature, plasticity_dictionnary)
+            self.plastic = plastic_class(u, material.devia.mu, name, kinematic, quadrature, self.plasticity_dictionnary)
     
     def stress_3D(self, u, v, T, T0, J):
         """Calculate the complete 3D Cauchy stress tensor.

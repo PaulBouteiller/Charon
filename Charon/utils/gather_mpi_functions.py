@@ -96,7 +96,7 @@ def gather_coordinate(V):
     
     Parameters
     ----------
-    V : dolfinx.fem.FunctionSpace
+    V : dolfinx.fem.functionspace
         The function space whose mesh coordinates are to be gathered.
         Must be a vector-valued space for geometric coordinates.
     

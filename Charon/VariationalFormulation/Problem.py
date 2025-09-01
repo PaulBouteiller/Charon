@@ -41,7 +41,6 @@ from ..Kinematic import Kinematic
 
 from mpi4py.MPI import COMM_WORLD
 from basix.ufl import element
-from dolfinx.fem.petsc import set_bc
 from petsc4py.PETSc import ScalarType
 
 from dolfinx.fem import (functionspace, Constant, Function, Expression)
@@ -163,8 +162,12 @@ class Problem:
             - 'Thermal_material' : ThermalMaterial, thermal properties
         """
         self.analysis = dictionnaire.get("analysis", "explicit_dynamic")
-        self.damage_dictionnary = dictionnaire.get("damage", {})
-        self.plasticity_dictionnary = dictionnaire.get("plasticity", {})        
+        damage_dictionnary = dictionnaire.get("damage", {})
+        plasticity_dictionnary = dictionnaire.get("plasticity", {})
+        polycristal_dictionnary = dictionnaire.get("polycristal", {})
+        self.constitutive_dictionnary = {"plasticity" : plasticity_dictionnary,
+                                         "damage" : damage_dictionnary,
+                                         "polycristal" : polycristal_dictionnary}
         if self.analysis == "Pure_diffusion":
             self.adiabatic = False
             self.iso_T = False
@@ -175,8 +178,8 @@ class Problem:
         if not self.adiabatic:
             self.mat_th = dictionnaire.get("Thermal_material", None)
             
-        self.plastic_analysis = bool(self.plasticity_dictionnary)
-        self.damage_analysis = bool(self.damage_dictionnary)
+        self.plastic_analysis = bool(plasticity_dictionnary)
+        self.damage_analysis = bool(damage_dictionnary)
         
     def _transfer_data_from_mesh_manager(self, simulation_dic):
         mesh_manager = simulation_dic["mesh_manager"]
@@ -265,10 +268,9 @@ class Problem:
         for the material and problem type.
         """
         self.constitutive = ConstitutiveLaw(
-            self.u, self.material, self.plasticity_dictionnary,
-            self.damage_dictionnary, self.multiphase,
-            self.name, self.kinematic, self.quad,
-            self.relative_rho_field_init_list)
+            self.u, self.material, self.constitutive_dictionnary, 
+            self.multiphase, self.mesh_manager, 
+            self.name, self.kinematic, self.quad, self.relative_rho_field_init_list)
     
     def _init_thermal_analysis(self):
         """

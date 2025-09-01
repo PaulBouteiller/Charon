@@ -23,7 +23,7 @@ boundary marking, and the definition of integration measures.
 """
 
 from dolfinx.mesh import locate_entities_boundary, meshtags
-from ufl import SpatialCoordinate, Measure
+from ufl import Measure
 from numpy import hstack, argsort, finfo, full_like, array, zeros, where, unique
 from dolfinx.fem import functionspace, Function
 from .quadrature import Quadrature
@@ -81,6 +81,8 @@ class MeshManager:
         # self.cell_type = self.get_cell_type(self.mesh_type)
         self.cell_type = self.mesh.ufl_cell().cellname()
         
+        self.cell_tags = dictionnaire.get("cell_tags", None)
+        
     def set_mesh_type(self, mesh):
         import dolfinx
         import ufl
@@ -111,8 +113,8 @@ class MeshManager:
         # Get facets and their flags
         facets, full_flag = self._set_facet_flags(flag_list, coord_list, localisation_list, tol)
         
-        # Add custom facet flags if needed
-        facets, full_flag = self.set_custom_facet_flags(facets, full_flag)
+        # # Add custom facet flags if needed
+        # facets, full_flag = self.set_custom_facet_flags(facets, full_flag)
         
         # Assemble and sort marked facets
         marked_facets = hstack(facets)
@@ -124,23 +126,23 @@ class MeshManager:
                                   marked_facets[sorted_facets], 
                                   marked_values[sorted_facets])
         
-    def set_custom_facet_flags(self, facets, full_flag):
-        """
-        Add custom facet flags to the boundary marking.
+    # def set_custom_facet_flags(self, facets, full_flag):
+    #     """
+    #     Add custom facet flags to the boundary marking.
         
-        This method can be overridden in derived classes to add
-        custom boundary markings beyond the standard coordinate-based approach.
+    #     This method can be overridden in derived classes to add
+    #     custom boundary markings beyond the standard coordinate-based approach.
         
-        Parameters
-        ----------
-        facets : list of numpy.ndarray List of arrays containing facet indices
-        full_flag : list of numpy.ndarray List of arrays containing corresponding flags
+    #     Parameters
+    #     ----------
+    #     facets : list of numpy.ndarray List of arrays containing facet indices
+    #     full_flag : list of numpy.ndarray List of arrays containing corresponding flags
             
-        Returns
-        -------
-        tuple of (list, list) Potentially modified (facets, full_flag) lists
-        """
-        return facets, full_flag
+    #     Returns
+    #     -------
+    #     tuple of (list, list) Potentially modified (facets, full_flag) lists
+    #     """
+    #     return facets, full_flag
         
     def _set_facet_flags(self, flag_list, coord_list, localisation_list, tol):
         """

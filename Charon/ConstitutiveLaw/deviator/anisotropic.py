@@ -39,18 +39,25 @@ AnisotropicDeviator : General anisotropic hyperelastic model
     Includes calibration utilities for fitting to experimental data
 """
 from ...utils.tensor_operations import (symetrized_tensor_product, Voigt_to_tridim, 
-                                        tridim_to_Voigt, bulk_anisotropy_tensor,
+                                        tridim_to_Voigt,
                                         polynomial_expand, polynomial_derivative,
                                         reduced_deviator)
 from ...utils.fonctions_fit import fit_and_plot_shifted_polynomial_fixed
-from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
+from ...utils.time_dependent_expressions import interpolation_lin
+
 from .base_deviator import BaseDeviator
+
+from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from scipy.linalg import block_diag
 from math import cos, sin
 from numpy import array, diag, ndarray, insert, concatenate, asarray
 from numpy.linalg import inv as np_inv, norm
-from ...utils.time_dependent_expressions import interpolation_lin
+from numpy import dot as np_dot
 
+def bulk_anisotropy_tensor(Rigi, numpy = False):
+    unit_tensor_voigt = array([1, 1, 1, 0, 0, 0])
+    M0 = np_dot(Rigi, unit_tensor_voigt)  
+    return Voigt_to_tridim(M0, numpy = numpy)
 
 class AnisotropicDeviator(BaseDeviator):
     """General anisotropic hyperelastic deviatoric stress model.
@@ -280,6 +287,18 @@ class AnisotropicDeviator(BaseDeviator):
         # Apply rotation to stiffness tensor
         self.C = R.dot(self.C.dot(R.T))
         
+    def set_orientation(self, mesh_manager, polycristal_dic):
+        from dolfinx.fem import functionspace, Function
+        import numpy as np
+        from dolfinx import default_scalar_type
+        print(mesh_manager.cell_tags)
+        Q = functionspace(mesh_manager.mesh, ("DG", 0))
+        angle_func = Function(Q)
+        for index, angle in zip(polycristal_dic["tags"], polycristal_dic["angle"]):
+            cells = mesh_manager.cell_tags.find(index)
+            angle_func.x.array[cells] = np.full_like(cells, angle, dtype=default_scalar_type)
+        a=1
+        
     def _orthotropic_unified_gij_fit(self, data, plot, save):
         """Calibrate unified volumetric coupling functions from experimental data.
            
@@ -301,11 +320,8 @@ class AnisotropicDeviator(BaseDeviator):
                    Polynomial degree for fitting (typically 2-4).
                - Additional plotting/saving options.
                
-           plot : bool
-               Whether to display fitting plots for quality assessment.
-               
-           save : bool
-               Whether to save plots to files.
+           plot : bool Whether to display fitting plots for quality assessment.
+           save : bool Whether to save plots to files.
                
            Returns
            -------
@@ -328,22 +344,29 @@ class AnisotropicDeviator(BaseDeviator):
            """
         def prefactor(J):
             return (J - 1) / (3 * J) 
+        
+        def inv_prefactor(J):
+            3 * J / (J - 1)
 
         # Vérifier si le matériau est isotrope
-
-
         J_list = data.get("J")
-        pref_list = [prefactor(J) for J in J_list]
-        s_data = [data.get("s_xx"), data.get("s_yy"), data.get("s_zz")]
         devM0 = reduced_deviator(diag(self.M0))
         if norm(devM0) < 1:
             print("Le matériau est isotrope en volume")
             
             return 3 * [1 for _ in range(len(J_list))], None
 
+        
+
+        s_data = [data.get("s_xx"), data.get("s_yy"), data.get("s_zz")]
+        
         # Calcul des coefficients gij pour chaque point expérimental
-        # Note: la formule devrait être 3 * J / (J-1) pour éviter une division par zéro
-        g_list = [[1 / (pref * devM0[i]) * s for pref, s in zip(pref_list, s_data[i])]
+        # Note: la formule devrait être 3 * J / (J-1) pour éviter une division par zéro peut être plutôt inv_prefactor ?
+        # pref_list = [prefactor(J) for J in J_list]
+        # g_list = [[1 / (pref * devM0[i]) * s for pref, s in zip(pref_list, s_data[i])]
+        #              for i in range(3)]
+        inv_pref_list = [inv_prefactor(J) for J in J_list]
+        g_list = [[inv_pref * s / devM0[i] for inv_pref, s in zip(inv_pref_list, s_data[i])]
                      for i in range(3)]
         # Extraction des composantes individuelles
         g_xx, g_yy, g_zz = asarray(g_list[0]), asarray(g_list[1]), asarray(g_list[2])
@@ -380,11 +403,8 @@ class AnisotropicDeviator(BaseDeviator):
             Previously fitted spherical data containing g_ij functions.
             Used to account for volumetric coupling when extracting f_ij.
             
-        plot : bool
-            Whether to display fitting plots for each shear component.
-            
-        save : bool
-            Whether to save plots to files.
+        plot : bool Whether to display fitting plots for each shear component.
+        save : bool Whether to save plots to files.
             
         Returns
         -------
@@ -442,12 +462,9 @@ class AnisotropicDeviator(BaseDeviator):
             - "J" : array_like, Jacobian values during test
             - "s" : array_like, Measured shear stress values (Pa)
             - "gamma" : float, Applied shear strain magnitude
-        J_spherical : array_like
-            J values from spherical test data (for g function interpolation).
-        C_idx : int
-            Index in stiffness matrix C corresponding to this shear component.
-        m_idx : int
-            Index in anisotropy tensor M₀ for volumetric coupling.
+        J_spherical : array_like J values from spherical test data (for g function interpolation).
+        C_idx : int Index in stiffness matrix C corresponding to this shear component.
+        m_idx : int Index in anisotropy tensor M₀ for volumetric coupling.
             
         Returns
         -------

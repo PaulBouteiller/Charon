@@ -72,7 +72,8 @@ mesh_manager = MeshManager(mesh, {})
 dictionnaire = {"material" : TATB,
                 "mesh_manager" : mesh_manager,
                 "analysis" : "User_driven",
-                "isotherm" : True
+                "isotherm" : True,
+                "polycristal" : True
                 }
 
 pb = Tridimensional(dictionnaire)
