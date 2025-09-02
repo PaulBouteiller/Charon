@@ -45,9 +45,11 @@ from ...utils.time_dependent_expressions import interpolation_lin
 from .base_deviator import BaseDeviator
 
 from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
-from scipy.linalg import block_diag
-from numpy import array, diag, ndarray, insert, concatenate, asarray
-from numpy.linalg import inv as np_inv, norm
+from numpy import array, diag, ndarray, insert, concatenate, asarray, full_like
+from numpy.linalg import inv as norm
+
+from dolfinx.fem import functionspace, Function
+from dolfinx import default_scalar_type
 
 def bulk_anisotropy_tensor(Rigi, module):
     voigt_M0 = [sum(Rigi[i,column] for i in range(3))for column in range(6)]
@@ -151,24 +153,20 @@ class AnisotropicDeviator(BaseDeviator):
             self.f_func_coeffs = None
         
     def set_orientation(self, mesh_manager, polycristal_dic):
-        from dolfinx.fem import functionspace, Function
-        import numpy as np
-        from dolfinx import default_scalar_type
         mesh = mesh_manager.mesh
-        print(mesh_manager.cell_tags)
         Q = functionspace(mesh, ("DG", 0))
         angle_func = Function(Q)
         Q_axis = functionspace(mesh, ("DG", 0, (3, )))    
         axis_func = Function(Q_axis)
         for index, angle, axis in zip(polycristal_dic["tags"], polycristal_dic["angle"], polycristal_dic["axis"]):
             cells = mesh_manager.cell_tags.find(index)
-            angle_func.x.array[cells] = np.full_like(cells, angle, dtype=default_scalar_type)
-            axis_func.x.array[3 * cells] = np.full_like(cells, axis[0], dtype=default_scalar_type)
-            axis_func.x.array[3 * cells+1] = np.full_like(cells, axis[1], dtype=default_scalar_type)
-            axis_func.x.array[3 * cells+2] = np.full_like(cells, axis[2], dtype=default_scalar_type)
+            angle_func.x.array[cells] = full_like(cells, angle, dtype=default_scalar_type)
+            axis_func.x.array[3 * cells] = full_like(cells, axis[0], dtype=default_scalar_type)
+            axis_func.x.array[3 * cells+1] = full_like(cells, axis[1], dtype=default_scalar_type)
+            axis_func.x.array[3 * cells+2] = full_like(cells, axis[2], dtype=default_scalar_type)
             
-        print("vecteur axial", axis_func.x.array)
-        print("angles", angle_func.x.array)
+        # print("vecteur axial", axis_func.x.array)
+        # print("angles", angle_func.x.array)
         self.R = rotation_matrix_direct(angle_func, axis_func)
         self.C = rotate_stifness(self.C, self.R)
         
@@ -423,14 +421,13 @@ class AnisotropicDeviator(BaseDeviator):
                 
                 Returns
                 -------
-                ufl.Matrix 6x6 matrix representing the symmetrized tensor product (S1⊗S2 + S2⊗S1)
-                            in Voigt notation
+                ufl.Matrix 6x6 matrix representing the symmetrized tensor product (S1⊗S2 + S2⊗S1) in Voigt notation
                 """
                 def sym_mat_to_vec(mat):
                     """
-                    Converts a symmetric 3x3 matrix to a vector in Voigt notation order: [11, 22, 33, 12, 13, 23]
+                    Converts a symmetric 3x3 matrix to a vector in Voigt notation order: [11, 22, 33, 23, 13, 12]
                     """
-                    return [mat[0, 0], mat[1, 1], mat[2, 2], mat[0, 1], mat[0, 2], mat[1, 2]]
+                    return [mat[0, 0], mat[1, 1], mat[2, 2], mat[1, 2], mat[0, 2], mat[0, 1]]
                 list1 = sym_mat_to_vec(S1)
                 list2 = sym_mat_to_vec(S2)
                 mat_tot = [[list1[i] * list2[j] for j in range(6)] for i in range(6)]
@@ -440,16 +437,16 @@ class AnisotropicDeviator(BaseDeviator):
             g_func = self.g_func_coeffs
             GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
             if g_func is None:
-                D = 1./2 * symetrized_tensor_product(M0, inv_C)
+                D = 1./3 * symetrized_tensor_product(M0, inv_C)#Il doit y avoir un facteur 1/2 en trop dans ma théorie ????? ou alors un problème avec sym_mat_to_vec ????
             elif isinstance(g_func, ndarray):
                 print("Single fit")
-                D = 1./2 * ((J-1) * polynomial_derivative(J, 1, g_func) + 
+                D = 1./3 * ((J-1) * polynomial_derivative(J, 1, g_func) + 
                             polynomial_expand(J, 1, g_func)) * symetrized_tensor_product(M0, inv_C)
             elif isinstance(g_func, list):
                 pibar_derivative = 1./3 * as_tensor([[M0[i, j] * (polynomial_expand(J, 1, g_func[i][j]) 
                                                                   + (J - 1) * polynomial_derivative(J, 1, g_func[i][j]))
                                                       for i in range(3)] for j in range(3)])
-                D = 1./2 * symetrized_tensor_product(pibar_derivative(M0, g_func, J), inv_C)
+                D = 1./3 * symetrized_tensor_product(pibar_derivative(M0, g_func, J), inv_C)
             DE = kinematic.voigt_to_tensor_3d(dot(D, GLDBar_V))
             return kinematic.push_forward(DE, u)
         
@@ -500,3 +497,4 @@ class AnisotropicDeviator(BaseDeviator):
             return term_1 + term_2 + term_3 + term_4
         else:
             return term_1 + term_2 + term_3
+            # return term_1 + term_3

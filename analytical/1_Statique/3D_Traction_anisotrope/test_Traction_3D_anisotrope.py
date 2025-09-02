@@ -28,7 +28,7 @@ la cohérence de l'équation d'état.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import Material, create_box, Tridimensional, Solve, MeshManager, build_orthotropic_stiffness, compute_bulk_modulus
+from Charon import Material, create_box, Tridimensional, Solve, MeshManager, build_orthotropic_stiffness, compute_bulk_modulus, build_transverse_isotropic_stiffness
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -52,14 +52,17 @@ muTN = 337
 nuLT = 0.466
 nuLN = 0.478
 nuTN = 0.371
-dev_type = "Anisotropic"
+
 
 
 C = build_orthotropic_stiffness(EL, ET, EN, nuLT, nuLN, nuTN, muLT, muLN, muTN)
+
+
+dev_type = "Anisotropic"
 deviator_params = {"C" : C}
 iso_T_K0 = compute_bulk_modulus(C)
 T_dep_K0 = 0
-iso_T_K1 = 6
+iso_T_K1 = 1
 T_dep_K1 = 0
 eos_type = "Vinet"
 dico_eos = {"iso_T_K0": iso_T_K0, "T_dep_K0" : T_dep_K0, "iso_T_K1": iso_T_K1, "T_dep_K1" : T_dep_K1}
@@ -96,7 +99,7 @@ dictionnaire = {"material" : Oak,
                 "isotherm" : True
                 }
 
-traction = "transverse"    
+traction = "longitudinal"    
 output_name = "Traction_3D_sens_"+traction
 
 dictionnaire_solve = {

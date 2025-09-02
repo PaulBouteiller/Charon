@@ -81,8 +81,7 @@ def build_orthotropic_stiffness(EL, ET, EN, nuLT, nuLN, nuTN, muLT, muLN, muTN):
         
     Returns
     -------
-    ndarray
-        6x6 stiffness matrix in Voigt notation
+    ndarray 6x6 stiffness matrix in Voigt notation
         
     Notes
     -----
