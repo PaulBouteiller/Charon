@@ -7,6 +7,8 @@ from dolfinx import __version__
 from .ConstitutiveLaw.material import Material
 from .ConstitutiveLaw.thermal_material import LinearThermal
 
+from .utils.stiffness_builders import build_transverse_isotropic_stiffness, build_orthotropic_stiffness, compute_bulk_modulus
+
 from .Mesh.mesh_manager import MeshManager
 
 from .VariationalFormulation.unidimensional import CartesianUD, CylindricalUD, SphericalUD

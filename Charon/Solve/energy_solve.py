@@ -33,7 +33,7 @@ The explicit solver uses Butcher tableau methods for temporal integration
 while the diffusion solver employs implicit schemes for stability with
 large conductivity values.
 """
-from ..utils.default_parameters import default_energy_solver_order
+from ..utils.parameters.default import default_energy_solver_order
 from .explicit_butcher import ButcherIntegrator
 from .hybrid_solver import create_linear_solver
 

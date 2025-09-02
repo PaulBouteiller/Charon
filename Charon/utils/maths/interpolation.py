@@ -29,7 +29,7 @@ Key components:
 - Batch interpolation for multiple functions
 """
 from dolfinx.fem import Function, Expression
-from ..utils.petsc_operations import petsc_assign
+from ...utils.petsc_operations import petsc_assign
 
 def interpolate_to_function(target_function, value):
     """

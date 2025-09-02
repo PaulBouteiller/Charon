@@ -16,9 +16,6 @@ from Charon import CartesianUD, Material, create_1D_mesh, CellType, Axisymmetric
 from mpi4py import MPI
 from dolfinx.fem import Function
 import pytest
-import sys
-sys.path.append("../../")
-from Generic_isotropic_material import Acier
 ###### Modèle géométrique ######
 rho = 2
 tol = 1e-16
@@ -29,16 +26,17 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 
-dictionnaire_1D = {"mesh_manager" : mesh_manager,
-                "boundary_setup": 
-                    {"tags": [1, 2],
-                     "coordinate": ["x", "x"], 
-                     "positions": [0, 1]
-                     },
-                "analysis" : "static",
-                "isotherm" : True
-                }
-pb_1D = CartesianUD(Acier, dictionnaire_1D)
+dictionnaire_1D = {"material" : DummyMat,
+                   "mesh_manager" : mesh_manager,
+                   "boundary_setup": 
+                        {"tags": [1, 2],
+                         "coordinate": ["x", "x"], 
+                         "positions": [0, 1]
+                         },
+                    "analysis" : "static",
+                    "isotherm" : True
+                    }
+pb_1D = CartesianUD(dictionnaire_1D)
 quad_func = Function(pb_1D.V_quad_UD)
 print("Longueur du vecteur quadrature", len(quad_func.x.array))
 assert len(quad_func.x.array) == 1
@@ -51,7 +49,7 @@ mesh_manager2D = MeshManager(mesh_2D, dictionnaire_mesh)
 dictionnaire_2D = dictionnaire_1D
 dictionnaire_2D["mesh_manager"] = mesh_manager2D
     
-pb_2D = Axisymmetric(DummyMat, dictionnaire_2D)
+pb_2D = Axisymmetric(dictionnaire_2D)
 u = Function(pb_2D.V)
 print("Nombre de noeuds", len(u.x.array)//2)
 quad_func = Function(pb_2D.V_quad_UD)

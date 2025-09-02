@@ -20,7 +20,7 @@ from dolfinx.io.gmshio import model_to_mesh
 from mpi4py.MPI import COMM_WORLD
 from dolfinx.mesh import create_interval, create_rectangle, CellType
 from numpy import array
-from ..utils.default_parameters import default_fem_degree
+from ..utils.parameters.default import default_fem_degree
 
 def create_1D_mesh(x_left, x_right, N_el):
     return create_interval(COMM_WORLD, N_el, [array(x_left), array(x_right)])

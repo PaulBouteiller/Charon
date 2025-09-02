@@ -33,7 +33,7 @@ Key components:
 from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 
-from ..utils.interpolation import create_function_from_expression
+from ..utils.maths.interpolation import create_function_from_expression
 from ..utils.time_dependent_expressions import MyConstant
 
 from ..Multiphase.multiphase import Multiphase

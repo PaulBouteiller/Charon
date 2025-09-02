@@ -35,8 +35,6 @@ import sys
 sys.path.append("../../")
 from Generic_isotropic_material import Acier, Alu, ratio
 
-Mat = [Acier, Alu]
-
 ###### Paramètre géométrique ######
 Longueur = 1
 
@@ -51,17 +49,18 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 x = SpatialCoordinate(mesh)
 demi_long = Longueur / 2      
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : [Acier, Alu],
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
-                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "amplitude" : Umax}}
+                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "pente" : Umax}}
                     ],
                 "multiphase" : {"conditions" : [x[0]<demi_long, x[0]>=demi_long]},
                 "analysis" : "static",
                 "isotherm" : True
                 }
 
-pb = CartesianUD(Mat, dictionnaire)
+pb = CartesianUD(dictionnaire)
 
 
 dictionnaire_solve = {

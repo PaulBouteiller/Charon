@@ -38,7 +38,7 @@ from .damage_solve import StaticJohnsonSolve, DynamicJohnsonSolve, InertialJohns
 from .hypoelastic_solve import HypoElasticSolve
 from .time_stepping import TimeStepping
 
-from ..utils.default_parameters import default_Newton_displacement_solver_parameters
+from ..utils.parameters.default import default_Newton_displacement_solver_parameters
 from ..Export.export_result import ExportResults
 
 from dolfinx.nls.petsc import NewtonSolver

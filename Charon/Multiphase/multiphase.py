@@ -41,7 +41,8 @@ Multiphase : Main class for multiphase material management
 
 from dolfinx.fem import Function, Expression
 from ufl import conditional
-from ..utils.interpolation import interpolate_multiple
+
+from ..utils.maths.interpolation import interpolate_multiple
 from .evolution import (ArrheniusEvolution, 
                         ForestFireEvolution,
                         KJMAEvolution, 

@@ -73,7 +73,6 @@ dictionnaire = {"material" : TATB,
                 "mesh_manager" : mesh_manager,
                 "analysis" : "User_driven",
                 "isotherm" : True,
-                "polycristal" : True
                 }
 
 pb = Tridimensional(dictionnaire)
@@ -86,8 +85,9 @@ def user_defined_displacement(problem, t):
     for i in range(len(problem.u.x.array)):
         problem.u.x.array[i] = alpha *  t * pos_ravel[i]
 
+output_name = "Compression_spherique_0D"
 dictionnaire_solve = {
-    "Prefix" : "Compression_spherique_0D",
+    "Prefix" : output_name,
     "csv_output" : {"p" : True, "s" : True}
     }
 
@@ -95,11 +95,11 @@ solve_instance = Solve(pb, dictionnaire_solve, compteur=1, TFin = 1, scheme = "f
 solve_instance.user_defined_displacement = user_defined_displacement #Attache une fonction d'export appelée à chaque pas de temps
 solve_instance.solve()
     
-p = read_csv("Compression_spherique_0D-results/p.csv")
+p = read_csv(output_name + "-results/p.csv")
 pressure = [p[colonne].to_numpy() for colonne in p.columns]
 pressure = [pressure[3:]]
 
-s = read_csv("Compression_spherique_0D-results/s.csv")
+s = read_csv(output_name + "-results/s.csv")
 deviateur = [s[colonne].to_numpy() for colonne in s.columns]
 deviateur = [s.item() for s in deviateur[3:]]
 n = len(deviateur) // 9
@@ -116,12 +116,11 @@ def M_0():
     trace = unit_C_1 + unit_C_2 + unit_C_3
     return np.array([unit_C_1, unit_C_2, unit_C_3]), trace
 
-
 def deviateur_analytique(J):
     M0, trace = M_0()
     dev_M0 = M0 - 1./3 * trace * np.array([1,1,1])
     dev_SPKo = 1./3 * (J - 1) * dev_M0
-    s= J**(-1) * dev_SPKo
+    s = J**(-1) * dev_SPKo
     # s = J**(1./3) * dev_SPKo
     return s
 

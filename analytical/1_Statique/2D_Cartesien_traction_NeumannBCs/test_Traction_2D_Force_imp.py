@@ -49,7 +49,8 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 ###### Paramètre du problème ######
 f_surf = 1e3
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2}
@@ -61,7 +62,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "analysis" : "static"
                 }
     
-pb = PlaneStrain(Acier, dictionnaire)
+pb = PlaneStrain(dictionnaire)
 
 dico_solve = {"Prefix" : "Traction_2D", "csv_output" : {"reaction_force" : {"flag" : 1, "component" : "x"}}}
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=20)

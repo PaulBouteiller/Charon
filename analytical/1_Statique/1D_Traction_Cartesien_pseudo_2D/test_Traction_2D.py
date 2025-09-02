@@ -50,18 +50,19 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 ###### Paramètre du problème ######
 Umax = 0.002
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},
-                     {"component": "Ux", "tag": 3, "value": {"type" : "rampe", "amplitude" : Umax}},
+                     {"component": "Ux", "tag": 3, "value": {"type" : "rampe", "pente" : Umax}},
                      {"component": "Uy", "tag": 4}
                     ],
                 "analysis" : "static",
                 "isotherm" : True
                 }
 
-pb = PlaneStrain(Acier, dictionnaire)
+pb = PlaneStrain(dictionnaire)
 dico_solve = {"Prefix" : "Traction_2D", "csv_output" : {"reaction_force" : {"flag" : 3, "component" : "x"}}}
 
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)

@@ -41,7 +41,8 @@ mesh, _, facets = axi_sphere(Rint, Rext, 40, 10, tol_dyn = 1e-5, quad = False)
 dictionnaire_mesh = {"facet_tag": facets}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Uz", "tag": 1},
                      {"component": "Ur", "tag": 2}
@@ -52,7 +53,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
 
-pb = Axisymmetric(Acier, dictionnaire)
+pb = Axisymmetric(dictionnaire)
 
 ###### Paramètre de la résolution ######
 dictionnaire_solve = {

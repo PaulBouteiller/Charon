@@ -32,7 +32,7 @@ from dolfinx.fem import Function, Expression
 from petsc4py.PETSc import ScalarType
 
 from .base_damage import BaseDamage
-from ...utils.default_parameters import default_porosity_parameters
+from ...utils.parameters.default import default_porosity_parameters
 
 
 class JohnsonDamage(BaseDamage):

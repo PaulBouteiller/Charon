@@ -55,12 +55,10 @@ dictionnaire_mesh = {"tags": [1, 2, 3],
                      "positions": [Rint, Rext, 0]
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
-dictionnaire = {"mesh_manager" : mesh_manager,
-                "boundary_setup": 
-                    {},
-                "boundary_conditions": 
-                    [{"component": "Uz", "tag": 3}
-                    ],
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
+                "boundary_setup": {},
+                "boundary_conditions": [{"component": "Uz", "tag": 3}],
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "Fr", "tag": 1, "value" : -Pint},
                      {"type": "surfacique", "component" : "Fr", "tag": 2, "value" : Pext}
@@ -69,7 +67,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "analysis" : "static"
                 }
     
-pb = Axisymmetric(Acier, dictionnaire)
+pb = Axisymmetric(dictionnaire)
 
 
 dictionnaire_solve = {

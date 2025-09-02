@@ -38,26 +38,33 @@ AnisotropicDeviator : General anisotropic hyperelastic model
     Provides tensor transformation utilities
     Includes calibration utilities for fitting to experimental data
 """
-from ...utils.tensor_operations import (symetrized_tensor_product, Voigt_to_tridim, 
-                                        tridim_to_Voigt,
-                                        polynomial_expand, polynomial_derivative,
-                                        reduced_deviator)
-from ...utils.fonctions_fit import fit_and_plot_shifted_polynomial_fixed
+from ...utils.maths.fitting import fit_and_plot_shifted_polynomial_fixed
+from ...utils.maths.tensor_rotations import rotation_matrix_direct, rotate_stifness
 from ...utils.time_dependent_expressions import interpolation_lin
 
 from .base_deviator import BaseDeviator
 
 from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
 from scipy.linalg import block_diag
-from math import cos, sin
 from numpy import array, diag, ndarray, insert, concatenate, asarray
 from numpy.linalg import inv as np_inv, norm
-from numpy import dot as np_dot
 
-def bulk_anisotropy_tensor(Rigi, numpy = False):
-    unit_tensor_voigt = array([1, 1, 1, 0, 0, 0])
-    M0 = np_dot(Rigi, unit_tensor_voigt)  
-    return Voigt_to_tridim(M0, numpy = numpy)
+def bulk_anisotropy_tensor(Rigi, module):
+    voigt_M0 = [sum(Rigi[i,column] for i in range(3))for column in range(6)]
+    if module == "numpy":
+        return array([[voigt_M0[0], voigt_M0[3], voigt_M0[4]],
+                      [voigt_M0[3], voigt_M0[1], voigt_M0[5]],
+                      [voigt_M0[4], voigt_M0[5], voigt_M0[2]]])
+    else:
+        return as_tensor([[voigt_M0[0], voigt_M0[3], voigt_M0[4]],
+                          [voigt_M0[3], voigt_M0[1], voigt_M0[5]],
+                          [voigt_M0[4], voigt_M0[5], voigt_M0[2]]])
+
+def polynomial_expand(x, point, coeffs):
+    return coeffs[0] + sum(coeff * (x - point)**(i+1) for i, coeff in enumerate(coeffs[1:]))
+
+def polynomial_derivative(x, point, coeffs):
+    return coeffs[1] * (x - point) + sum(coeff * (i+2) * (x - point)**(i+1) for i, coeff in enumerate(coeffs[2:]))
 
 class AnisotropicDeviator(BaseDeviator):
     """General anisotropic hyperelastic deviatoric stress model.
@@ -75,67 +82,32 @@ class AnisotropicDeviator(BaseDeviator):
     """
     
     def required_parameters(self):
-        """Return the list of required parameters.
-        
-        Returns
-        -------
-        list List of required parameters based on initialization method
-        """
-        # Case 1: Direct stiffness tensor
-        if "C" in self.params:
-            return ["C"]
-        
-        # Case 2: Orthotropic material
-        elif "ET" in self.params:
-            return ["ET", "EL", "EN", "nuLT", "nuLN", "nuTN", "muLT", "muLN", "muTN"]
-        
-        # Case 3: Transversely isotropic material
-        elif "ET" in self.params and "EL" in self.params and "nuT" in self.params:
-            return ["ET", "EL", "nuT", "nuL", "muL"]
-        # Default case
+        """Return the list of required parameters."""
         return ["C"]
     
     def __init__(self, params):
-        """Initialize the general anisotropic deviatoric model.
-        
-        The model can be initialized in multiple ways:
-        1. With a direct stiffness tensor: params = {"C": stiffness_tensor}
-        2. With orthotropic parameters: params = {"ET": ET, "EL": EL, ...}
-        3. With transversely isotropic parameters: params = {"ET": ET, "EL": EL, "nuT": nuT, ...}
-        4. With isotropic parameters: params = {"E": E, "nu": nu}
-        
-        Additional parameters:
-        - f_func: [optional] Coefficients for stiffness modulation functions
-        - g_func: [optional] Coefficients for coupling stress modulation functions 
-          doit être un numpy array dont le premier coefficient correspond au terme linéaire.
-        - rotation: [optional] Rotation angle in radians
-        - calibration_data: [optional] Dictionary containing experimental data for calibration
-          with keys:
-            - "spherical_data": Data for volume changes (compression/expansion)
-            - "shear_data": Data for shear deformations
-            - "degree": Polynomial degree for fitting
-            - "plot": Whether to show plots (default: False)
+        """Initialize the anisotropic deviatoric model.
         
         Parameters
         ----------
-        params : dict  Parameters for material behavior
+        params : dict
+            Must contain:
+            - "C": 6x6 stiffness tensor in Voigt notation
+            
+            Optional:
+            - "f_func": Coefficients for stiffness modulation functions
+            - "g_func": Coefficients for coupling stress modulation functions
+            - "calibration_data": Dictionary for experimental calibration
         """
         self.params = params  # Store for required_parameters method
         super().__init__(params)
         
-        # Initialize stiffness tensor based on provided parameters
-        if "C" in params:
-            # Case 1: Direct stiffness tensor provided
-            self.C = params["C"]
-            self._log_direct_stiffness()
-        else:
-            # Build stiffness tensor from material parameters
-            self._build_stiffness_tensor(params)
+        # Only direct stiffness tensor accepted
+        if "C" not in params:
+            raise ValueError("AnisotropicDeviator requires a stiffness tensor 'C'. "
+                           "Use stiffness_builders utility to construct C from material parameters.")
         
-        self.M0 = bulk_anisotropy_tensor(self.C, numpy = True)
-        # Apply rotation if specified
-        if "rotation" in params:
-            self._apply_rotation(params["rotation"])
+        self.C = params["C"]
         
         calibration_data = params.get("calibration_data", None)
         if calibration_data is not None:
@@ -177,129 +149,30 @@ class AnisotropicDeviator(BaseDeviator):
             self.f_func_coeffs = self.calibrate_fij(shear_data, spherical_data, plot, save)
         else:
             self.f_func_coeffs = None
-    
-    def _log_direct_stiffness(self):
-        """Log stiffness tensor components when directly provided."""
-        print("Using direct stiffness tensor (C)")
-    
-    def _build_stiffness_tensor(self, params):
-        """Build stiffness tensor from material parameters.
-        
-        Parameters
-        ----------
-        params : dict Material parameters
-        """
-        # Determine material type and build appropriate stiffness tensor
-        if "ET" in params and "EL" in params and "EN" in params:
-            # Case 2: Orthotropic material
-            self._build_orthotropic_stiffness(params)
-        elif "ET" in params and "EL" in params and "nuT" in params:
-            # Case 3: Transversely isotropic material  
-            self._build_transverse_isotropic_stiffness(params)
-        else:
-            raise ValueError("Invalid parameter set for anisotropic material")
-    
-    def _build_orthotropic_stiffness(self, params):
-        """Build stiffness tensor for orthotropic material.
-        
-        Parameters
-        ----------
-        params : dict Orthotropic material parameters
-        """
-        ET = params["ET"]
-        EL = params["EL"]
-        EN = params["EN"]
-        nuLT = params["nuLT"]
-        nuLN = params["nuLN"]
-        nuTN = params["nuTN"]
-        muLT = params["muLT"]
-        muLN = params["muLN"]
-        muTN = params["muTN"]
-        
-        print("Building orthotropic stiffness tensor with parameters:")
-        print(f"Young's modulus (longitudinal): {EL}")
-        print(f"Young's modulus (transverse): {ET}")
-        print(f"Young's modulus (normal): {EN}")
-        print(f"Poisson ratio (nu_LT): {nuLT}")
-        print(f"Poisson ratio (nu_LN): {nuLN}")
-        print(f"Poisson ratio (nu_TN): {nuTN}")
-        print(f"Shear modulus (mu_LT): {muLT}")
-        print(f"Shear modulus (mu_LN): {muLN}")
-        print(f"Shear modulus (mu_TN): {muTN}")
-        
-        # Create compliance matrix and convert to stiffness
-        Splan = array([[1. / EL, -nuLT / EL, -nuLN / EL],
-                       [-nuLT / EL, 1. / ET, -nuTN / ET],
-                       [-nuLN / EL, -nuTN / ET, 1. / EN]])
-        S = block_diag(Splan, diag([1 / muLN, 1 / muLT, 1 / muTN]))
-        self.C = np_inv(S)
-    
-    def _build_transverse_isotropic_stiffness(self, params):
-        """Build stiffness tensor for transversely isotropic material.
-        
-        Parameters
-        ----------
-        params : dict Transversely isotropic material parameters
-        """
-        ET = params["ET"]
-        EL = params["EL"]
-        nuT = params["nuT"]
-        nuL = params["nuL"]
-        muL = params["muL"]
-        
-        print("Building transversely isotropic stiffness tensor with parameters:")
-        print(f"Young's modulus (longitudinal): {EL}")
-        print(f"Young's modulus (transverse): {ET}")
-        print(f"Poisson ratio (transverse): {nuT}")
-        print(f"Poisson ratio (longitudinal): {nuL}")
-        print(f"Shear modulus (longitudinal): {muL}")
-        
-        # Calculate derived parameters
-        muT = ET / (2 * (1 + nuT))
-        
-        # Reuse orthotropic calculation with appropriate parameters
-        self._build_orthotropic_stiffness({
-            "ET": ET, "EL": EL, "EN": ET,
-            "nuLT": nuL, "nuLN": nuL, "nuTN": nuT,
-            "muLT": muL, "muLN": muL, "muTN": muT
-        })
-    
-    def _apply_rotation(self, alpha):
-        """Apply rotation to the stiffness tensor.
-        
-        Parameters
-        ----------
-        alpha : float Rotation angle in radians
-        """
-        print(f"Applying rotation of {alpha} radians to stiffness tensor")
-        
-        c = cos(alpha)
-        s = sin(alpha)
-        
-        # Create rotation matrix for 6x6 tensor in Voigt notation
-        R = array([[c**2, s**2, 0, 2*s*c, 0, 0],
-                   [s**2, c**2, 0, -2*s*c, 0, 0],
-                   [0, 0, 1, 0, 0, 0],
-                   [-c*s, c*s, 0, c**2 - s**2, 0, 0],
-                   [0, 0, 0, 0, c, s],
-                   [0, 0, 0, 0, -s, c]])
-        
-        # Apply rotation to stiffness tensor
-        self.C = R.dot(self.C.dot(R.T))
         
     def set_orientation(self, mesh_manager, polycristal_dic):
         from dolfinx.fem import functionspace, Function
         import numpy as np
         from dolfinx import default_scalar_type
+        mesh = mesh_manager.mesh
         print(mesh_manager.cell_tags)
-        Q = functionspace(mesh_manager.mesh, ("DG", 0))
+        Q = functionspace(mesh, ("DG", 0))
         angle_func = Function(Q)
-        for index, angle in zip(polycristal_dic["tags"], polycristal_dic["angle"]):
+        Q_axis = functionspace(mesh, ("DG", 0, (3, )))    
+        axis_func = Function(Q_axis)
+        for index, angle, axis in zip(polycristal_dic["tags"], polycristal_dic["angle"], polycristal_dic["axis"]):
             cells = mesh_manager.cell_tags.find(index)
             angle_func.x.array[cells] = np.full_like(cells, angle, dtype=default_scalar_type)
-        a=1
+            axis_func.x.array[3 * cells] = np.full_like(cells, axis[0], dtype=default_scalar_type)
+            axis_func.x.array[3 * cells+1] = np.full_like(cells, axis[1], dtype=default_scalar_type)
+            axis_func.x.array[3 * cells+2] = np.full_like(cells, axis[2], dtype=default_scalar_type)
+            
+        print("vecteur axial", axis_func.x.array)
+        print("angles", angle_func.x.array)
+        self.R = rotation_matrix_direct(angle_func, axis_func)
+        self.C = rotate_stifness(self.C, self.R)
         
-    def _orthotropic_unified_gij_fit(self, data, plot, save):
+    def _orthotropic_unified_gij_fit(self, data, plot, save, tol_bulk_isotropy = 1):
         """Calibrate unified volumetric coupling functions from experimental data.
            
            This method fits a single polynomial function g(J) to describe the nonlinear
@@ -350,7 +223,9 @@ class AnisotropicDeviator(BaseDeviator):
 
         # Vérifier si le matériau est isotrope
         J_list = data.get("J")
-        devM0 = reduced_deviator(diag(self.M0))
+        M0_diag = diag(bulk_anisotropy_tensor(self.C, module = "numpy"))
+        trace_M0 = sum(M0_diag)
+        devM0 = M0_diag - 1./ 3 * trace_M0
         if norm(devM0) < 1:
             print("Le matériau est isotrope en volume")
             
@@ -529,30 +404,58 @@ class AnisotropicDeviator(BaseDeviator):
             if g_func is None:
                 pibar = 1./3 * (J-1) * M0
             elif isinstance(g_func, ndarray):
-                print("Single fit")
+                print("Single fit") #Une seule fonction de pondération g
                 pibar = 1./3 * (J-1) * polynomial_expand(J, 1, g_func)  * M0
             elif isinstance(g_func, list):
                 gM0 = [[polynomial_expand(J, 1, g_func[i][j]) * M0[i, j] for i in range(3)] for j in range(3)]
                 pibar = 1./3 * (J - 1) * as_tensor(gM0)
             return J**(-5./3) * dev(kinematic.push_forward(pibar, u))
         
-        def compute_DEbar_contribution(M0, J, u, GLDBar_V, inv_C):
+        def compute_DEbar_contribution(M0, J, u, GLD_bar, inv_C):
+            def symetrized_tensor_product(S1, S2):
+                """
+                Computes the symmetrized tensor product of two symmetric tensors in Voigt notation.
+                
+                Parameters
+                ----------
+                S1 : array-like First 3x3 symmetric tensor
+                S2 : array-like Second 3x3 symmetric tensor
+                
+                Returns
+                -------
+                ufl.Matrix 6x6 matrix representing the symmetrized tensor product (S1⊗S2 + S2⊗S1)
+                            in Voigt notation
+                """
+                def sym_mat_to_vec(mat):
+                    """
+                    Converts a symmetric 3x3 matrix to a vector in Voigt notation order: [11, 22, 33, 12, 13, 23]
+                    """
+                    return [mat[0, 0], mat[1, 1], mat[2, 2], mat[0, 1], mat[0, 2], mat[1, 2]]
+                list1 = sym_mat_to_vec(S1)
+                list2 = sym_mat_to_vec(S2)
+                mat_tot = [[list1[i] * list2[j] for j in range(6)] for i in range(6)]
+                ufl_mat = as_matrix(mat_tot)
+                return ufl_mat + ufl_mat.T
+            
             g_func = self.g_func_coeffs
+            GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
             if g_func is None:
-                D = 1./3 * symetrized_tensor_product(M0, inv_C)
+                D = 1./2 * symetrized_tensor_product(M0, inv_C)
             elif isinstance(g_func, ndarray):
-                D = 1./3 * ((J-1) * polynomial_derivative(J, 1, g_func) + 
+                print("Single fit")
+                D = 1./2 * ((J-1) * polynomial_derivative(J, 1, g_func) + 
                             polynomial_expand(J, 1, g_func)) * symetrized_tensor_product(M0, inv_C)
             elif isinstance(g_func, list):
                 pibar_derivative = 1./3 * as_tensor([[M0[i, j] * (polynomial_expand(J, 1, g_func[i][j]) 
                                                                   + (J - 1) * polynomial_derivative(J, 1, g_func[i][j]))
                                                       for i in range(3)] for j in range(3)])
-                D = symetrized_tensor_product(pibar_derivative(M0, g_func, J), inv_C)
-            DE = Voigt_to_tridim(dot(D, GLDBar_V))
+                D = 1./2 * symetrized_tensor_product(pibar_derivative(M0, g_func, J), inv_C)
+            DE = kinematic.voigt_to_tensor_3d(dot(D, GLDBar_V))
             return kinematic.push_forward(DE, u)
         
-        def compute_CBarEbar_contribution(J, u, GLDBar_V):
+        def compute_CBarEbar_contribution(J, u, GLD_bar):
             f_func = self.f_func_coeffs
+            GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
             if f_func is not None:
                 size = len(self.C)
                 RigiLinBar = self.C.tolist()
@@ -560,23 +463,24 @@ class AnisotropicDeviator(BaseDeviator):
                     for j in range(size):
                         if f_func[i][j] is not None:
                             RigiLinBar[i][j] *= polynomial_expand(J, 1, f_func[i][j])
-                CBarEbar = Voigt_to_tridim(dot(as_matrix(RigiLinBar), GLDBar_V))
+                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLinBar), GLDBar_V))
             else:
-                CBarEbar = Voigt_to_tridim(dot(as_matrix(self.C), GLDBar_V))
+                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(self.C), GLDBar_V))
             return J**(-5./3) * dev(kinematic.push_forward(CBarEbar, u)) 
         
-        def compute_EEbar_contribution(J, u, GLDBar_V, inv_C, GLD_bar):
+        def compute_EEbar_contribution(J, u, GLD_bar, inv_C):
             f_func = self.f_func_coeffs
             size = len(self.C)
             DerivRigiLinBar = self.C.tolist()
+            GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
             for i in range(size):
                 for j in range(size):
                     if f_func[i][j] is not None:
                         DerivRigiLinBar[i][j] *= polynomial_derivative(J, 1, f_func[i][j])
-            EE = Voigt_to_tridim(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
+            EE = kinematic.voigt_to_tensor_3d(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
             return dev(kinematic.push_forward(EE, u))
             
-        M0 = bulk_anisotropy_tensor(self.C)
+        M0 = bulk_anisotropy_tensor(self.C, module = "ufl")
         # First term 
         term_1 = compute_pibar_contribution(M0, J, u)
         # Build different strain measure
@@ -584,15 +488,14 @@ class AnisotropicDeviator(BaseDeviator):
         C_bar = J**(-2./3) * C
         inv_C = inv(C)
         GLD_bar = 1./2 * (C_bar - Identity(3))
-        GLDBar_V = tridim_to_Voigt(GLD_bar)
         # Second term 
-        term_2 = compute_DEbar_contribution(M0, J, u, GLDBar_V, inv_C)
+        term_2 = compute_DEbar_contribution(M0, J, u, GLD_bar, inv_C)
         # Third term 
-        term_3 = compute_CBarEbar_contribution(J, u, GLDBar_V)  
+        term_3 = compute_CBarEbar_contribution(J, u, GLD_bar)  
         
         # Optional fourth term
         if self.f_func_coeffs is not None:
-            term_4 = compute_EEbar_contribution(J, u, GLDBar_V, inv_C, GLD_bar)
+            term_4 = compute_EEbar_contribution(J, u, GLD_bar, inv_C)
             
             return term_1 + term_2 + term_3 + term_4
         else:

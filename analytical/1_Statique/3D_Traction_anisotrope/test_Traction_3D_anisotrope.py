@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 21 14:20:06 2025
-
-@author: bouteillerp
-"""
-
 """
 Test de traction 3D sur un matériau orthotrope selon différentes directions.
 
@@ -24,9 +16,9 @@ Matériau orthotrope:
     - Équation d'état: Vinet avec kappa_eq calculé à partir de la matrice de rigidité
 
 Tests de traction:
-    - Direction "Fibre": parallèle à la direction des fibres (EL)
-    - Direction "maty": perpendiculaire aux fibres, dans le plan (ET)
-    - Direction "matz": direction normale au plan (EN)
+    - Direction "longitudinal": parallèle à la direction des fibres (EL)
+    - Direction "transverse": perpendiculaire aux fibres, dans le plan (ET)
+    - Direction "normal": direction normale au plan (EN)
 
 Le script trace les courbes force-déplacement pour les trois directions et
 effectue une comparaison avec les solutions analytiques basées sur les modules d'Young.
@@ -36,17 +28,19 @@ la cohérence de l'équation d'état.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import Material, create_box, Tridimensional, Solve, MeshManager
+from Charon import Material, create_box, Tridimensional, Solve, MeshManager, build_orthotropic_stiffness, compute_bulk_modulus
 from mpi4py.MPI import COMM_WORLD
-import time
 import matplotlib.pyplot as plt
-import pytest
-import csv
 import pandas as pd
 import numpy as np
 from math import exp
+from numpy import array, loadtxt
 
 ###### Modèle mécanique ######
+rho0 = 1
+C_mass = 1
+
+# Paramètres du comportement déviatorique anisotrope
 EL = 12827
 ET = 633
 EN = 1344
@@ -58,38 +52,23 @@ muTN = 337
 nuLT = 0.466
 nuLN = 0.478
 nuTN = 0.371
+dev_type = "Anisotropic"
 
-rho0 = 1
-C_mass = 1
 
-kappa_eq = 300
-
-iso_T_K0 = kappa_eq
+C = build_orthotropic_stiffness(EL, ET, EN, nuLT, nuLN, nuTN, muLT, muLN, muTN)
+deviator_params = {"C" : C}
+iso_T_K0 = compute_bulk_modulus(C)
 T_dep_K0 = 0
 iso_T_K1 = 6
 T_dep_K1 = 0
 eos_type = "Vinet"
 dico_eos = {"iso_T_K0": iso_T_K0, "T_dep_K0" : T_dep_K0, "iso_T_K1": iso_T_K1, "T_dep_K1" : T_dep_K1}
 
-# Paramètres du comportement déviatorique anisotrope
-dev_type = "Anisotropic"
-deviator_params = {
-    "ET": ET, 
-    "EL": EL, 
-    "EN": EN,
-    "nuLT": nuLT, 
-    "nuLN": nuLN, 
-    "nuTN": nuTN,
-    "muLT": muLT, 
-    "muLN": muLN, 
-    "muTN": muTN
-}
+Oak = Material(rho0, C_mass, eos_type, dev_type, dico_eos, deviator_params)
 
-# Création du matériau avec la nouvelle syntaxe
-Fibre = Material(rho0, C_mass, eos_type, dev_type, dico_eos, deviator_params)
-
+#%%Maillage
 Longueur, Largeur, hauteur = 1, 1, 1.
-Nx, Ny, Nz = 5, 5, 5
+Nx, Ny, Nz = 1, 1, 1
 mesh = create_box(COMM_WORLD, [np.array([0, 0, 0]), 
                                    np.array([Longueur, Largeur, hauteur])],
                                   [Nx, Ny, Nz])
@@ -100,11 +79,14 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],
                      "positions": [0, Longueur, 0, Largeur, 0, hauteur]
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
+
+#%%Chargement et paramètre du problème
 eps = 0.01
 Umax = eps * hauteur
-chargement = {"type" : "rampe", "amplitude" : Umax}
+chargement = {"type" : "rampe", "pente" : Umax}
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Oak,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 3},
@@ -113,145 +95,62 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "analysis" : "static",
                 "isotherm" : True
                 }
- 
+
+traction = "transverse"    
+output_name = "Traction_3D_sens_"+traction
+
+dictionnaire_solve = {
+    "Prefix" : output_name,
+    "csv_output" : {"p" : True, "rho" : True}
+    }
     
-traction = "Fibre"
-    
-if traction == "Fibre":
+if traction == "longitudinal":
     dictionnaire["boundary_conditions"].append({"component": "Ux", "tag": 2, "value": chargement})
-elif traction == "maty":
+    dictionnaire_solve["csv_output"]["reaction_force"] = {"flag" : 2, "component" : "x"}
+    
+elif traction == "transverse":
     dictionnaire["boundary_conditions"].append({"component": "Uy", "tag": 4, "value": chargement})
-elif traction == "matz":
+    dictionnaire_solve["csv_output"]["reaction_force"] = {"flag" : 4, "component" : "y"}
+    
+elif traction == "normal":
     dictionnaire["boundary_conditions"].append({"component": "Uz", "tag": 6, "value": chargement})
+    dictionnaire_solve["csv_output"]["reaction_force"] = {"flag" : 6, "component" : "z"}
     
-pb = Tridimensional(Fibre, dictionnaire)
-pb.eps_list = [0]
-pb.F_list = [0]
-if traction == "Fibre":
-    pb.Force = pb.set_F(2, "x")
-elif traction == "maty":
-    pb.Force = pb.set_F(4, "y")
-elif traction == "matz":
-    pb.Force = pb.set_F(6, "z")
-    
-    
+pb = Tridimensional(dictionnaire)
+solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
+solve_instance.solve()
 
+def force_elast(eps, essai):
+    if essai == "longitudinal":
+        return EL * eps * Largeur * hauteur
+    elif essai == "transverse":
+        return ET * eps * Longueur * hauteur
+    elif essai == "normal":
+        return EN * eps * Longueur * Largeur
 
-for traction in ["Fibre", "maty", "matz"]:
-    pb.eps_list = []
-    pb.F_list = []
-    dictionnaire_solve = {
-        "Prefix" : "Traction_3D"+traction,
-        "csv_output" : {"p" : True, "rho" : True}
-        }
-    def query_output(problem, t):
-        problem.eps_list.append(eps * t)
-        problem.F_list.append(problem.get_F(problem.Force))
+output_folder = output_name + "-results/"
+temps = loadtxt(output_folder + "export_times.csv",  delimiter=',', skiprows=1)
+numerical_results = loadtxt(output_folder + "reaction_force.csv",  delimiter=',', skiprows=1)
+eps_list = [eps * t for t in temps]    
 
-    
-    solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
-    solve_instance.query_output = query_output #Attache une fonction d'export appelée à chaque pas de temps
-    solve_instance.solve()
-    numerical_results = np.array(pb.F_list)
-    with open("Deformation", "w", newline = '') as fichier:
-        writer = csv.writer(fichier)
-        writer.writerow(pb.eps_list)
-    with open("Test" + traction, "w", newline = '') as fichier:
-        writer = csv.writer(fichier)
-        writer.writerow(numerical_results)
+solution_analytique = array([force_elast(eps, traction) for eps in eps_list])
+eps_list_percent = [100 * eps for eps in eps_list]
 
+df_p = pd.read_csv(output_folder + "p.csv")
+colonnes_numpy = [df_p[colonne].to_numpy() for colonne in df_p.columns]  
+p_list = [p[0] for p in colonnes_numpy[3:]]
 
+df = pd.read_csv(output_folder + "rho.csv")
+colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
+rho_list = [rho[0] for rho in colonnes_numpy[3:]]
 
-F_max = EL * eps * Largeur * hauteur
+plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "red", label="CHARON")
+plt.plot(eps_list_percent, solution_analytique, linestyle = "-", color = "black", label = "Analytique")
 
-def lire_csv_en_numpy(nom_du_fichier):
-    with open(nom_du_fichier, 'r') as fichier:
-        reader=csv.reader(fichier)
-        data = list(reader)
-        return np.array(data[0], dtype = float)
+def Vinet(K0, K1, rho):
+    J = rho0/rho
+    return 3 * K0 * J**(-2/3) * (1-J**(1/3)) * exp(3./2 * (K1-1)*(1 - J**(1./3)))
 
-def plot_result():
-    def force_elast(eps, essai):
-        if essai == "Fibre":
-            return EL * eps * Largeur * hauteur
-        elif essai == "maty":
-            return ET * eps * Longueur * hauteur
-        elif essai == "matz":
-            return EN * eps * Longueur * Largeur
-    
-    Eps = lire_csv_en_numpy("Deformation")
-    F_fibre = lire_csv_en_numpy("TestFibre")
-    F_maty = lire_csv_en_numpy("Testmaty")
-    F_matz = lire_csv_en_numpy("Testmatz")
-    
-    df = pd.read_csv("Traction_3DFibre-results/Pressure.csv")
-    colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
-    p_fibre = [p_list[0] for p_list in colonnes_numpy[3:]]
-    
-    df = pd.read_csv("Traction_3DFibre-results/rho.csv")
-    colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
-    rho_fibre = [rho_list[0] for rho_list in colonnes_numpy[3:]]
-    
-    df = pd.read_csv("Traction_3Dmaty-results/Pressure.csv")
-    colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
-    p_maty = [p_list[0] for p_list in colonnes_numpy[3:]]
-    
-    df = pd.read_csv("Traction_3Dmaty-results/rho.csv")
-    colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
-    rho_maty = [rho_list[0] for rho_list in colonnes_numpy[3:]]
-    
-    df = pd.read_csv("Traction_3Dmatz-results/Pressure.csv")
-    colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
-    p_matz = [p_list[0] for p_list in colonnes_numpy[3:]]
-    
-    df = pd.read_csv("Traction_3Dmatz-results/rho.csv")
-    colonnes_numpy = [df[colonne].to_numpy() for colonne in df.columns]  
-    rho_matz = [rho_list[0] for rho_list in colonnes_numpy[3:]]
-    
-    F_fibre_analytique = np.array([force_elast(eps, "Fibre") for eps in Eps])
-    F_maty_analytique = np.array([force_elast(eps, "maty") for eps in Eps])
-    F_matz_analytique = np.array([force_elast(eps, "matz") for eps in Eps])
-    eps_list_percent = [100 * eps for eps in Eps]
-
-
-    plt.scatter(eps_list_percent, F_fibre, marker = "x", color = "red", label="CHARON")
-    plt.plot(eps_list_percent, F_fibre_analytique, linestyle = "-", color = "black", label = "Analytique")
-    
-    plt.scatter(eps_list_percent, F_maty, marker = "x", color = "red")
-    plt.plot(eps_list_percent, F_maty_analytique, linestyle = "-", color = "black")
-
-    plt.scatter(eps_list_percent, F_matz, marker = "x", color = "red")
-    plt.plot(eps_list_percent, F_matz_analytique, linestyle = "-", color = "black")
-    plt.xlim(0, 1.1 * eps_list_percent[-1])
-    plt.ylim(0, 1.1 * F_max)
-    plt.xlabel(r"Déformation(%)", size = 18)
-    plt.ylabel(r"Force (N)", size = 18)
-    plt.legend()
-    plt.savefig("Traction_3D_anisotrope.pdf", bbox_inches = 'tight')
-    plt.close()
-    
-    plt.scatter(rho_fibre, p_fibre, marker = "x", color = "green", label = "L")
-    plt.scatter(rho_maty, p_maty, marker = "x", color = "blue", label = "T")
-    plt.scatter(rho_matz, p_matz, marker = "x", color = "red", label = "N")
-    
-    def Vinet(K0, K1, rho):
-        J = rho0/rho
-        return 3 * K0 * J**(-2/3) * (1-J**(1/3)) * exp(3./2 * (K1-1)*(1 - J**(1./3)))
-    
-    rho_list = np.linspace(0.9, 1.02)
-    p_analytique = [Vinet(kappa_eq, iso_T_K1, rho) for rho in rho_list]
-    plt.plot(rho_list, p_analytique, linestyle = "-", color = "black", label = "Analyique")
-    
-    
-    # plt.xlim(0, 1.1 * eps_list_percent[-1])
-    # plt.ylim(0, 1.1 * F_max)
-    plt.xlabel(r"$\rho$", size = 18)
-    plt.ylabel(r"Pressure (MPa)", size = 18)
-    plt.legend()
-    plt.savefig("Pressure.pdf", bbox_inches = 'tight')
-    plt.close()
-        
-    
-    
-    
-plot_result()
+p_analytique = [Vinet(iso_T_K0, iso_T_K1, rho) for rho in rho_list]
+# plt.plot(rho_list, p_analytique, linestyle = "-", color = "black", label = "Analyique")
+# plt.scatter(rho_list, p_list, marker = "x", color = "green", label = "L")

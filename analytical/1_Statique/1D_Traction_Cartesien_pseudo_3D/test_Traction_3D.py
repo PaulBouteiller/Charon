@@ -49,20 +49,21 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 #%% Définition du problème
 eps = 0.01
 Umax = eps * hauteur
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Ux", "tag": 2},
                      {"component": "Uy", "tag": 3},
                      {"component": "Uy", "tag": 4},
                      {"component": "Uz", "tag": 5},
-                     {"component": "Uz", "tag": 6, "value": {"type" : "rampe", "amplitude" : Umax}},
+                     {"component": "Uz", "tag": 6, "value": {"type" : "rampe", "pente" : Umax}},
                     ],
                 "analysis" : "static",
                 "isotherm" : True
                 }
     
-pb = Tridimensional(Acier, dictionnaire)
+pb = Tridimensional(dictionnaire)
 
 #%% Résolution
 dico_solve = {"Prefix" : "Traction_3D", "csv_output" : {"reaction_force" : {"flag" : 6, "component" : "z"}}}

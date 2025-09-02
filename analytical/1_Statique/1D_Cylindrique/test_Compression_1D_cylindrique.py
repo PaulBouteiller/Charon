@@ -43,7 +43,8 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [Rin
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material": Acier,
+                "mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 1, "value" : -Pint},
                      {"type": "surfacique", "component" : "F", "tag": 2, "value" : Pext}
@@ -52,7 +53,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
 
-pb = CylindricalUD(Acier, dictionnaire)
+pb = CylindricalUD(dictionnaire)
 
 ###### Paramètre de la résolution ######
 dictionnaire_solve = {

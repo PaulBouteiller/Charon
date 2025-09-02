@@ -54,7 +54,8 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4],
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 ###### Paramètre du problème ######
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material": Acier,
+                "mesh_manager" : mesh_manager,
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : -Pint},
                      {"type": "surfacique", "component" : "Fr", "tag": 3, "value" : Pext}
@@ -67,7 +68,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
    
-pb = Axisymmetric(Acier, dictionnaire)
+pb = Axisymmetric(dictionnaire)
 
 ###### Paramètre de la résolution ######
 dictionnaire_solve = {

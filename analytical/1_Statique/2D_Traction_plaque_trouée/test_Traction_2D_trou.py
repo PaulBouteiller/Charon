@@ -80,7 +80,8 @@ dictionnaire_mesh = {"tags": [1, 2, 3],
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2}
@@ -91,7 +92,7 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
                      
-pb = PlaneStrain(Acier, dictionnaire)
+pb = PlaneStrain(dictionnaire)
 
 ###### Paramètre de la résolution ######
 dictionnaire_solve = {

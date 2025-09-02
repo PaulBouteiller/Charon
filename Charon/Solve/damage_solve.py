@@ -42,9 +42,9 @@ Notes
 Johnson models use JAX for high-performance ODE integration.
 Phase-field uses TAO/SNES optimizers for constrained minimization.
 """
-from ..utils.generic_functions import ppart, over_relaxed_predictor
-from ..utils.petsc_operations import (set_correction, petsc_assign, set_min, petsc_div)
-from ..utils.default_parameters import default_PhaseField_solver_parameters, default_damage_solver_type
+from ..utils.generic_functions import ppart
+from ..utils.petsc_operations import (set_correction, petsc_assign, petsc_div)
+from ..utils.parameters.default import default_PhaseField_solver_parameters, default_damage_solver_type
 
 from .NL_problem import TAOProblem, SNESProblem
 from .hybrid_solver import create_linear_solver
@@ -63,6 +63,25 @@ try:
                         PIDController, Dopri5, Euler)
 except Exception:
     print("JAX or Diffrax has not been loaded therefore Johnson model can not be used")
+    
+def over_relaxed_predictor(d, d_old, omega):
+    """
+    Apply over-relaxation to a predictor.
+    
+    Uses the PETSc axpy function: VecAXPY(Vec y, PetscScalar a, Vec x),
+    which computes y = y + a * x
+    
+    Parameters
+    ----------
+    d     : dolfinx.fem.Function Function to over-relax
+    d_old : dolfinx.fem.Function  Previous value of the function
+    omega : float Over-relaxation parameter
+        
+    Returns
+    -------
+    dolfinx.fem.Function Over-relaxed function
+    """
+    d.x.petsc_vec.axpy(omega, d.x.petsc_vec - d_old.x.petsc_vec)
 
 class DamageSolve:
     """Base class for damage evolution computations.

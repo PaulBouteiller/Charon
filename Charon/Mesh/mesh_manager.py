@@ -27,7 +27,7 @@ from ufl import Measure
 from numpy import hstack, argsort, finfo, full_like, array, zeros, where, unique
 from dolfinx.fem import functionspace, Function
 from .quadrature import Quadrature
-from ..utils.default_parameters import default_fem_parameters
+from ..utils.parameters.default import default_fem_parameters
 
 class MeshManager:
     """

@@ -16,7 +16,7 @@ Created on Tue Oct 15 15:32:00 2024
 
 @author: bouteillerp
 """
-from ufl import as_matrix, cos, sin, as_vector, as_tensor
+from ufl import as_matrix, cos, sin
 from ufl import dot as ufl_dot
 from numpy import array, ndarray
 from numpy import dot as np_dot
@@ -50,7 +50,7 @@ def rotation_matrix_direct(theta, axis):
     
     return R
 
-def stifness_rotation_matrix(Q):
+def stiffness_rotation_matrix(Q):
     """
     Computes the 6x6 transformation matrix for rotating fourth-order stiffness tensors in Voigt notation.
     
@@ -120,100 +120,9 @@ def rotate_stifness(stiff, Q):
         Rotated stiffness matrix: Q_sigma * stiff * Q_sigma^T
         Returns same type as input (numpy array or UFL matrix)
     """
-    Q_sigma = stifness_rotation_matrix(Q)
+    Q_sigma = stiffness_rotation_matrix(Q)
     if type(Q_sigma) == ndarray:
         return np_dot(np_dot(Q_sigma, stiff), Q_sigma.T)
     else:
         Q_sig = as_matrix(Q_sigma)
         return ufl_dot(ufl_dot(Q_sig, as_matrix(stiff)), Q_sig.T)
-    
-def sym_mat_to_vec(mat):
-    """
-    Converts a symmetric 3x3 matrix to a vector in Voigt notation.
-    
-    Parameters
-    ----------
-    mat : array-like 3x3 symmetric matrix
-    
-    Returns
-    -------
-    list
-        6-component vector in Voigt notation order: [11, 22, 33, 12, 13, 23]
-    """
-    return [mat[0,0], mat[1,1], mat[2,2], mat[0,1], mat[0,2], mat[1,2]]
-    
-def symetrized_tensor_product(S1, S2):
-    """
-    Computes the symmetrized tensor product of two symmetric tensors in Voigt notation.
-    
-    Parameters
-    ----------
-    S1 : array-like First 3x3 symmetric tensor
-    S2 : array-like Second 3x3 symmetric tensor
-    
-    Returns
-    -------
-    ufl.Matrix
-        6x6 matrix representing the symmetrized tensor product (S1⊗S2 + S2⊗S1)/2
-        in Voigt notation
-    """
-    list1 = sym_mat_to_vec(S1)
-    list2 = sym_mat_to_vec(S2)
-    mat_tot = [[list1[i] * list2[j] for j in range(6)] for i in range(6)]
-    ufl_mat = as_matrix(mat_tot)
-    return ufl_mat + ufl_mat.T
-
-def fourt_on_second_order(C, tens):
-    pass
-    
-def tridim_to_Voigt(tens):
-    """
-    Convert a 3D tensor to its Voigt representation.
-    
-    The components order is: [11, 22, 33, 23, 13, 12]
-
-    Parameters
-    ----------
-    tens : Tensor 3D tensor
-
-    Returns
-    -------
-    Vector Voigt representation
-    """
-    return as_vector([tens[0,0], tens[1,1], tens[2,2],
-                    2 * tens[1,2], 2 * tens[0,2], 2 * tens[0,1]])
-
-def Voigt_to_tridim(Voigt, numpy = False):
-    """
-    Convert a Voigt representation to a 3D tensor.
-    
-    Note: Doesn't work for strains due to the factor 2.
-
-    Parameters
-    ----------
-    Voigt : Vector Voigt representation
-
-    Returns
-    -------
-    Tensor Corresponding 3D tensor, see tridim_to_Voigt for convention used
-    """
-    if numpy:
-        return array([[Voigt[0], Voigt[5], Voigt[4]],
-                      [Voigt[5], Voigt[1], Voigt[3]],
-                      [Voigt[4], Voigt[3], Voigt[2]]])
-    else:
-        return as_tensor([[Voigt[0], Voigt[5], Voigt[4]],
-                          [Voigt[5], Voigt[1], Voigt[3]],
-                          [Voigt[4], Voigt[3], Voigt[2]]])
-
-
-def polynomial_expand(x, point, coeffs):
-    return coeffs[0] + sum(coeff * (x - point)**(i+1) for i, coeff in enumerate(coeffs[1:]))
-
-def polynomial_derivative(x, point, coeffs):
-    return coeffs[1] * (x - point) + sum(coeff * (i+2) * (x - point)**(i+1) for i, coeff in enumerate(coeffs[2:]))
-
-def reduced_deviator(diagonal_array):
-    trace = sum(diagonal_array)
-    deviator = diagonal_array - 1./3 * trace
-    return deviator

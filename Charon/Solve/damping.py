@@ -7,7 +7,7 @@ Created on Fri Aug  1 15:12:33 2025
 @author: bouteillerp
 """
 from ..utils.generic_functions import npart
-from ..utils.default_parameters import default_damping_parameters
+from ..utils.parameters.default import default_damping_parameters
 from ufl import dot
 
 

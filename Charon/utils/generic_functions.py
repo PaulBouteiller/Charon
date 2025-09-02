@@ -108,26 +108,3 @@ def smooth_shifted_heaviside(x, x_lim, width):
     """
     k = 9.19 / width  # Relation derived from 2*ln(99)/k = width
     return 1 / (1 + exp(-k * (x - x_lim)))
-
-def over_relaxed_predictor(d, d_old, omega):
-    """
-    Apply over-relaxation to a predictor.
-    
-    Uses the PETSc axpy function: VecAXPY(Vec y, PetscScalar a, Vec x),
-    which computes y = y + a * x
-    
-    Parameters
-    ----------
-    d : dolfinx.fem.Function
-        Function to over-relax
-    d_old : dolfinx.fem.Function
-        Previous value of the function
-    omega : float
-        Over-relaxation parameter
-        
-    Returns
-    -------
-    dolfinx.fem.Function
-        Over-relaxed function
-    """
-    d.x.petsc_vec.axpy(omega, d.x.petsc_vec - d_old.x.petsc_vec)

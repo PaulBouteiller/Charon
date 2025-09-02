@@ -16,7 +16,7 @@ Created on Fri Mar 11 09:28:55 2022
 
 @author: bouteillerp
 """
-from ..utils.default_parameters import default_post_processing_parameters
+from ..utils.parameters.default import default_post_processing_parameters
 from .csv_export import OptimizedCSVExport
 
 from dolfinx.io import XDMFFile, VTKFile

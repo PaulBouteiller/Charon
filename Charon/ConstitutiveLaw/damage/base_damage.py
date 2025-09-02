@@ -28,7 +28,7 @@ BaseDamage : Abstract base class for damage models
 """
 
 from abc import ABC, abstractmethod
-from ...utils.default_parameters import default_damage_parameters
+from ...utils.parameters.default import default_damage_parameters
 from petsc4py.PETSc import ScalarType
 
 

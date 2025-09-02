@@ -41,7 +41,7 @@ from dolfinx.fem import Function, form
 from ufl import action
 from numpy import sqrt
 from petsc4py.PETSc import ScatterMode, InsertMode
-from ..utils.default_parameters import default_dynamic_parameters
+from ..utils.parameters.default import default_dynamic_parameters
 from ..utils.petsc_operations import petsc_div, dt_update
 
 class ExplicitDisplacementSolver:

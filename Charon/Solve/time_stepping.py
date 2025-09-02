@@ -31,7 +31,7 @@ wave speeds and element sizes. For static analysis, pseudo-time stepping
 is used for load application.
 """
 from numpy import linspace, concatenate, array
-from ..utils.default_parameters import default_dynamic_parameters
+from ..utils.parameters.default import default_dynamic_parameters
 from mpi4py import MPI
 
 class TimeStepping:

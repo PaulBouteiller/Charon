@@ -19,7 +19,6 @@ Date de création: 24 Juillet 2023
 from Charon import create_1D_mesh, Solve, CartesianUD, MeshManager
 
 import pytest
-# from Analytique_EOS_deviateur import *
 from material_definition import set_material
 from numerical_analytical_comparison import comparison
 
@@ -36,17 +35,17 @@ mesh = create_1D_mesh(0, 1, 1)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-# chargement = MyConstant(mesh, varepsilon, Type = "Rampe")
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Mat,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": 
                     [{"component": "U", "tag": 1},
-                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "amplitude" : varepsilon}}
+                     {"component": "U", "tag": 2, "value": {"type" : "rampe", "pente" : varepsilon}}
                     ],
                 "analysis" : "static",
                 "isotherm" : True
                 }
     
-pb = CartesianUD(Mat, dictionnaire)
+pb = CartesianUD(dictionnaire)
 
 pb.T.x.petsc_vec.set(T0)
 pb.T0.x.petsc_vec.set(T0)

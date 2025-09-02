@@ -16,7 +16,7 @@ Created on Tue Sep 10 11:28:37 2024
 
 @author: bouteillerp
 """
-from ..utils.gather_mpi_functions import gather_coordinate, gather_function
+from ..utils.mpi.gather import gather_coordinate, gather_function
 
 from dolfinx.fem import locate_dofs_topological
 from mpi4py.MPI import COMM_WORLD

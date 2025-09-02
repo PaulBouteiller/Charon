@@ -1,14 +1,29 @@
-"""
-Module de fonctions d'ajustement polynomial pour la calibration de modèles mécaniques
+# Copyright 2025 CEA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Ce module fournit des fonctions pour ajuster des polynômes de la forme 
-1 + b*(x-1) + c*(x-1)² + ... aux données expérimentales. Ces polynômes 
-sont particulièrement adaptés à la calibration de modèles mécaniques où 
-les fonctions doivent valoir 1 à l'état non déformé (x=1).
+"""
+Polynomial Fitting Module
+========================
+
+Polynomial fitting functions for mechanical model calibration. The polynomials 
+are of the form 1 + b*(x-1) + c*(x-1)² + ... which are suitable for mechanical 
+models where functions must equal 1 at the undeformed state (x=1).
 
 Created on Wed Nov 27 12:41:36 2024
 @author: bouteillerp
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -17,15 +32,20 @@ from scipy.optimize import curve_fit
 
 def shifted_polynomial_fixed_constant(x, *params):
     """
-    Crée un polynôme de la forme: 1 + b*(x-1) + c*(x-1)^2 + d*(x-1)^3 + ...
+    Create polynomial of form: 1 + b*(x-1) + c*(x-1)^2 + d*(x-1)^3 + ...
     
-    Cette forme polynomiale est utilisée pour des fonctions qui doivent valoir 1
-    lorsque x=1 (état de référence non déformé).
+    This polynomial form is used for functions that must equal 1
+    when x=1 (reference undeformed state).
     
-    Arguments: x (array-like): Points d'évaluation du polynôme
-        *params: Coefficients du polynôme (à partir du degré 1)
+    Parameters
+    ----------
+    x : array-like Evaluation points for the polynomial
+    *params : float  Polynomial coefficients (starting from degree 1)
     
-    Returns: array-like: Valeurs du polynôme aux points x
+    Returns
+    -------
+    array-like
+        Polynomial values at points x
     """
     # print("Attention le premier terme de paramètres doit correspondre au terme linéaire")
     result = 1  # terme constant fixé à 1
@@ -39,21 +59,22 @@ def shifted_polynomial_fixed_constant(x, *params):
 def fit_and_plot_shifted_polynomial_fixed(x_data, y_data, degree, plot, save_dict,
                                          xlabel=r'$J$', ylabel=r'$f$', title_prefix='', ):
     """
-    Ajuste un polynôme de la forme 1 + b*(x-1) + c*(x-1)^2 + ... sur les données
-    et affiche les résultats graphiquement.
+    Fit shifted polynomial to data with visualization.
     
-    Arguments:
-        x_data (array-like): Les valeurs x des données expérimentales
-        y_data (array-like): Les valeurs y des données expérimentales
-        degree (int): Le degré du polynôme à ajuster
-        plot_original (bool, optional): Si True, trace aussi les données originales
-        xlabel (str, optional): Libellé de l'axe x (défaut: 'J')
-        ylabel (str, optional): Libellé de l'axe y (défaut: 'f')
-        title_prefix (str, optional): Préfixe pour le titre du graphique
+    Parameters
+    ----------
+    x_data : array-like Independent variable data
+    y_data : array-like Dependent variable data
+    degree : int Polynomial degree
+    plot : bool, optional Whether to create plot, by default True
+    save_dict : dict, optional Save configuration with 'save' and 'name' keys, by default None
+    xlabel : str, optional X-axis label, by default r'$J$'
+    ylabel : str, optional Y-axis label, by default r'$f$'
+    title_prefix : str, optional Plot title prefix, by default ''
     
-    Returns:
-        tuple: (params, r2) où params est un tableau des coefficients du polynôme
-               et r2 est le coefficient de détermination
+    Returns
+    -------
+    tuple (coefficients, r_squared) fitted parameters and goodness of fit
     """
     # Valeurs initiales pour l'optimisation
     p0 = np.ones(degree)
@@ -70,15 +91,12 @@ def fit_and_plot_shifted_polynomial_fixed(x_data, y_data, degree, plot, save_dic
     r2 = 1 - np.sum((y_data - y_pred) ** 2) / np.sum((y_data - np.mean(y_data)) ** 2)
     if plot:
         plt.figure(figsize=(12, 7))
-        # plt.plot(x_data, y_data, 'b.', label='Données originales', alpha=0.5)
         plt.plot(x_data, y_data, 'b.', label='Original Data', alpha=0.5)
-        # plt.plot(x_fit, y_fit, 'r-', label=f'Polynôme (x-1) degré {degree}')
         plt.plot(x_fit, y_fit, 'r-', label=f'Polynomial degree {degree}')
         plt.xlabel(xlabel, fontsize = 20)
         plt.ylabel(ylabel, fontsize = 20)
-        plt.xticks(fontsize=16)  # Taille de police pour les graduations de l'axe x
-        plt.yticks(fontsize=16)  # Taille de police pour les graduations de l'axe y
-        # plt.title(f'Ajustement polynomial avec (x-1) et terme constant=1 (R² = {r2:.4f})')
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.title(f'Polynomial fit (R² = {r2:.4f})', fontsize = 24)
         plt.legend(fontsize = 18)
         plt.grid(True)
