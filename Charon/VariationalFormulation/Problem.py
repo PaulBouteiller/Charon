@@ -34,7 +34,7 @@ from ..ConstitutiveLaw.ConstitutiveLaw import ConstitutiveLaw
 from ..ConstitutiveLaw.Thermal import Thermal
 
 from ..utils.maths.interpolation import create_function_from_expression
-from ..utils.time_dependent_expressions import MyConstant
+from ..utils.time_dependent_expressions import MyConstant, MyExpression
 
 from ..Multiphase.multiphase import Multiphase
 from ..Kinematic import Kinematic
@@ -303,8 +303,10 @@ class Problem:
             component = loading["component"]
             
             if isinstance(value, dict):
-                # value = self._create_constant_from_dict(value_config)
-                value = MyConstant.from_dict(self.mesh, value)
+                if value["type"] == "ufl_expression":
+                    pass #TODO
+                else:
+                    value = MyConstant.from_dict(self.mesh, value)
             else:
                 # Scalar value
                 value = value
@@ -333,8 +335,10 @@ class Problem:
             value_config = bc_config.get("value", ScalarType(0))
             
             if isinstance(value_config, dict):
-                # value = self._create_constant_from_dict(value_config)
-                value = MyConstant.from_dict(self.mesh, value_config)
+                if value_config["type"] == "ufl_expression":
+                    value = MyExpression(value_config)
+                else:
+                    value = MyConstant.from_dict(self.mesh, value_config)
             else:
                 # Scalar value
                 value = value_config
@@ -503,19 +507,6 @@ class Problem:
         j = self.therm.thermal_constitutive_law(self.mat_th, self.kinematic.grad_scalar_compact(self.dT), self.constitutive.p)
         self.bilinear_flux_form = self.kinematic.measure(self.kinematic.contract_scalar_gradients(j, self.kinematic.grad_scalar_compact(self.T_)), self.dx)
         
-    def set_time_dependant_BCs(self, load_steps):
-        """
-        Define the list giving the temporal evolution of loading.
-        
-        Parameters
-        ----------
-        load_steps : list List of time steps
-        """
-        for constant in self.loading.my_constant_list:
-            constant.set_time_dependant_array(load_steps)
-        for constant in self.bcs.my_constant_list:
-            constant.set_time_dependant_array(load_steps)
-    
     def set_T_dependant_massic_capacity(self):
         """
         Set temperature-dependent specific heat capacity.

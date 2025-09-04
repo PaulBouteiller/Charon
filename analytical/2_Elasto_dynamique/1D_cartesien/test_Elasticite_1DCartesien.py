@@ -68,13 +68,14 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 T_unload = largeur_creneau/wave_speed
 chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : material,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": [{"component": "U", "tag": 2}],
                 "loading_conditions": [{"type": "surfacique", "component" : "F", "tag": 1, "value" : chargement}],
                 "isotherm" : True
                 }
 
-pb = CartesianUD(material, dictionnaire)
+pb = CartesianUD(dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",

@@ -29,8 +29,9 @@ BoundaryConditions : Unified base class for all boundary conditions
 
 from dolfinx.fem import locate_dofs_topological, dirichletbc
 from petsc4py.PETSc import ScalarType
-from ..utils.time_dependent_expressions import MyConstant
+from ..utils.time_dependent_expressions import MyConstant, MyExpression
 
+from dolfinx.fem import Function, Expression, functionspace
 
 class BoundaryConditions:
     """
@@ -84,6 +85,7 @@ class BoundaryConditions:
         self.bcs_axi = []
         self.bcs_axi_homog = []
         self.my_constant_list = []
+        self.my_expression_list = []
         self.T_bcs = []
         
         # Setup component mapping if dimension provided
@@ -125,20 +127,28 @@ class BoundaryConditions:
         -----
         For time-dependent values, use MyConstant objects which will be
         automatically added to the time-dependent expressions list.
-        """
-        def bc_value(value):
-            if isinstance(value, float) or hasattr(value, 'value'):  # Constant-like
-                return value
-            elif isinstance(value, MyConstant):
-                return value.Expression.constant
-         
+        """        
         dof_loc = locate_dofs_topological(self.current_space(space, isub), 
                                          self.facet_tag.dim, 
                                          self.facet_tag.find(region))
-        bcs.append(dirichletbc(bc_value(value), dof_loc, self.current_space(space, isub)))
-        
-        if isinstance(value, MyConstant):
+
+        if isinstance(value, float) or hasattr(value, 'value'):  # Constant-like
+            bcs.append(dirichletbc(value, dof_loc, self.current_space(space, isub)))        
+        elif isinstance(value, MyConstant):
+            bcs.append(dirichletbc(value.Expression.constant, dof_loc, self.current_space(space, isub)))
             self.my_constant_list.append(value.Expression)
+        elif isinstance(value, MyExpression):
+            V_bc = functionspace(space.mesh, ("Lagrange", 1))
+            dof_loc_with_mapping = locate_dofs_topological((self.current_space(space, isub),V_bc), 
+                                                           self.facet_tag.dim, 
+                                                           self.facet_tag.find(region))
+            function = Function(V_bc)
+            initial_function = Function(V_bc)
+            expression = Expression(value.ufl_expression, V_bc.element.interpolation_points())
+            initial_function.interpolate(expression)
+            bcs.append(dirichletbc(function, dof_loc_with_mapping, self.current_space(space, isub)))
+            self.my_expression_list.append((function, initial_function))
+            
             
     def add_associated_speed_acceleration(self, space, isub, region, value=ScalarType(0)):
         """
@@ -150,15 +160,19 @@ class BoundaryConditions:
         """
         def associated_speed(value):
             if isinstance(value, float) or hasattr(value, 'value'):
-                return value
+                return 0.
             elif isinstance(value, MyConstant):
                 return value.Expression.v_constant
+            elif isinstance(value, MyExpression):
+                return 0.
             
         def associated_acceleration(value):
             if isinstance(value, float) or hasattr(value, 'value'):
-                return value
+                return 0.
             elif isinstance(value, MyConstant):
                 return value.Expression.a_constant
+            elif isinstance(value, MyExpression):
+                return 0.
          
         dof_loc = locate_dofs_topological(self.current_space(space, isub), 
                                          self.facet_tag.dim, 

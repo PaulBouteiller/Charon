@@ -48,6 +48,10 @@ def interpolation_lin(temps_originaux, valeurs_originales, nouveaux_temps):
     f = interpolate.interp1d(temps_originaux, valeurs_originales)
     return f(nouveaux_temps)
 
+class MyExpression:
+    def __init__(self, dictionnaire):
+        self.ufl_expression = dictionnaire["expression"]
+
 class MyConstant:
     """
     Base class for time-dependent expressions.

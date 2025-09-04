@@ -100,7 +100,7 @@ class Solve:
         # self.update_Pth()
         self.update_form_with_stabilization(dictionnaire)
         self.set_solver()
-        self.pb.set_time_dependant_BCs(self.load_steps)
+        self._set_time_dependant_BCs(self.load_steps)
         self.compteur_output = kwargs.get("compteur", 1)
         self._create_time_and_bcs_update()
         self._create_problem_solve()
@@ -153,6 +153,20 @@ class Solve:
                                    self.pb.J_transfo, self.pb.material, self.pb.kinematic, 
                                    self.pb.dx, h, self.pb.multiphase, self.pb.form, self.pb.name)
             self.pb.form -= self.damping.damping_form
+            
+    def _set_time_dependant_BCs(self, load_steps):
+        """
+        Define the list giving the temporal evolution of loading.
+        
+        Parameters
+        ----------
+        load_steps : list List of time steps
+        """
+        for constant in self.pb.loading.my_constant_list:
+            constant.set_time_dependant_array(load_steps)
+        for constant in self.pb.bcs.my_constant_list:
+            constant.set_time_dependant_array(load_steps)
+    
         
     def _create_time_and_bcs_update(self):
         """
@@ -174,6 +188,7 @@ class Solve:
                     for bc in self.pb.bcs.my_constant_list]
         loading_refs = [(load.constant, load.value_array) 
                         for load in self.pb.loading.my_constant_list]
+        bcs_expression = [bcs_expression for bcs_expression in self.pb.bcs.my_expression_list]
         
         def update_time_and_bcs(j):
             t = load_steps[j]
@@ -185,6 +200,8 @@ class Solve:
                 v_constant.value = speeds[j]
             for constant, values in loading_refs:
                 constant.value = values[j]
+            for function, initial_function in bcs_expression:
+                function.x.array[:] = self.t * initial_function.x.array
         self.update_time_and_bcs = update_time_and_bcs
     
     def _create_output(self):
