@@ -262,7 +262,7 @@ class Solve:
             if self.pb.damage_analysis or self.pb.plastic_analysis:
                 operations.append(lambda: self.staggered_solve())
             else:
-                operations.append(lambda: self.solver.solve(self.pb.u))
+                operations.append(lambda: self.problem_u.solve())
             
             if self.pb.is_tabulated:
                 operations.append(lambda: self.update_pressure())
@@ -430,11 +430,11 @@ class Solve:
         The solver uses PETSc's nonlinear problem interface.
         """
         param = default_Newton_displacement_solver_parameters()
-        self.problem_u = petsc.NonlinearProblem(self.pb.form, self.pb.u, self.pb.bcs.bcs)
-        self.solver = NewtonSolver(self.pb.mesh.comm, self.problem_u)
-        self.solver.atol = param.get("absolute_tolerance")
-        self.solver.rtol = param.get("relative_tolerance")
-        self.solver.convergence_criterion = param.get("convergence_criterion")
+        self.problem_u = petsc.NonlinearProblem(self.pb.form, self.pb.u, bcs=self.pb.bcs.bcs, petsc_options_prefix = "my_nl_problem_")
+        # self.solver = NewtonSolver(self.pb.mesh.comm, self.problem_u)
+        # self.solver.atol = param.get("absolute_tolerance")
+        # self.solver.rtol = param.get("relative_tolerance")
+        # self.solver.convergence_criterion = param.get("convergence_criterion")
         
     def set_iterative_solver_parameters(self):
         """

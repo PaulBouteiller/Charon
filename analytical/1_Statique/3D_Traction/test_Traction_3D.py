@@ -1,29 +1,30 @@
-"""
-Test de traction uniaxiale sur un cube 3D avec matériau isotrope.
+# -*- coding: utf-8 -*-
+# """
+# Test de traction uniaxiale sur un cube 3D avec matériau isotrope.
 
-Ce script simule un essai de traction uniaxiale sur un cube 3D et compare
-les résultats numériques avec la solution analytique.
+# Ce script simule un essai de traction uniaxiale sur un cube 3D et compare
+# les résultats numériques avec la solution analytique.
 
-Paramètres géométriques:
-    - Dimensions du cube: 0.5 x 2.0 x 2.0
-    - Discrétisation: maillage 10x10x10
+# Paramètres géométriques:
+#     - Dimensions du cube: 0.5 x 2.0 x 2.0
+#     - Discrétisation: maillage 10x10x10
 
-Chargement:
-    - Déformation imposée (eps): 0.005 (0.5% de déformation)
+# Chargement:
+#     - Déformation imposée (eps): 0.005 (0.5% de déformation)
 
-Conditions aux limites:
-    - Déplacement horizontal bloqué sur la face gauche
-    - Déplacement vertical bloqué sur la face inférieure
-    - Déplacement selon Z bloqué sur la face arrière
-    - Déplacement selon Z imposé sur la face avant
+# Conditions aux limites:
+#     - Déplacement horizontal bloqué sur la face gauche
+#     - Déplacement vertical bloqué sur la face inférieure
+#     - Déplacement selon Z bloqué sur la face arrière
+#     - Déplacement selon Z imposé sur la face avant
 
-Le script calcule la force résultante et la compare avec la solution analytique
-pour un problème de traction uniaxiale 3D. Une assertion vérifie que l'erreur
-relative est inférieure à 1%.
+# Le script calcule la force résultante et la compare avec la solution analytique
+# pour un problème de traction uniaxiale 3D. Une assertion vérifie que l'erreur
+# relative est inférieure à 1%.
 
-Auteur: bouteillerp
-Date de création: 11 Mars 2022
-"""
+# Auteur: bouteillerp
+# Date de création: 11 Mars 2022
+# """
 from Charon import create_box, Tridimensional, Solve, MeshManager
 from mpi4py.MPI import COMM_WORLD
 from numpy import array, loadtxt
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
     plt.xlim(0, 1.1 * eps_list_percent[-1])
     plt.ylim(0, 1.1 * numerical_results[-1])
-    plt.xlabel(r"Déformation(%)", size = 18)
+    plt.xlabel(r"Deformation(%)", size = 18)
     plt.ylabel(r"Force (N)", size = 18)
     plt.legend()
     plt.show()
