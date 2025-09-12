@@ -85,7 +85,8 @@ conda config --set proxy_servers.http http://proxy.dam.intra.cea.fr:3128
 conda config --set proxy_servers.https https://proxy.dam.intra.cea.fr:3128
 conda create -n fenicsx-env
 conda activate fenicsx-env
-conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx pytest spyder gmsh scipy pandas tqdm
+conda install -c conda-forge fenics-dolfinx mpich pyvista adios4dolfinx pytest spyder 
+gmsh scipy pandas tqdm
 \end{verbatim}
 S'il y a un problème de proxy lors de la création de l'environnement il peut être utile de re-spécifier en dur l'adresse du proxy via :
 \begin{verbatim}

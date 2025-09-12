@@ -135,7 +135,20 @@ class Quadrature():
                 x = array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],  [0.0, 0.0, 1.0]])
                 w = array([1/4.,]*4)
             elif degree == 2:
-                raise ValueError("Not implemented yet")
+                # Points 1D de Gauss-Lobatto-Legendre
+                points_1D = array([0.0, 0.5, 1.0])
+                weights_1D = array([1/6., 2/3., 1/6.])
+                
+                # Création des 27 points par produit tensoriel
+                x = []
+                for i in range(3):
+                    for j in range(3):
+                        for k in range(3):
+                            x.append([points_1D[i], points_1D[j], points_1D[k]])
+                x = array(x)
+                
+                # Poids par produit tensoriel des poids 1D
+                w = kron(weights_1D, kron(weights_1D, weights_1D))
         return x, w
     
     def create_lumped_metadata(self):

@@ -51,10 +51,11 @@ from .hybrid_solver import create_linear_solver
 
 from ufl import (TrialFunction, TestFunction, dot, grad, inner, derivative)
 from dolfinx.fem.petsc import assemble_vector, create_matrix
+from dolfinx.la import create_petsc_vector
 
 from petsc4py.PETSc import TAO, SNES, COMM_SELF
 from dolfinx.fem import form, Function
-from dolfinx.la import create_petsc_vector
+
 
 try:
     import jax.numpy as jnp
@@ -346,7 +347,6 @@ class PhaseFieldSolve(DamageSolve):
         -------
         PETSc.TAO or PETSc.SNES Configured nonlinear solver
         """
-
         tol = self.solver_parameters.get("tol")
         if self.dam_solver_type == "TAO":
             solver_d = TAO().create(COMM_SELF)
