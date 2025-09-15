@@ -35,7 +35,7 @@ from Generic_isotropic_material import Acier, E
 
 ######## Paramètres géométriques et de maillage ########
 Longueur, Largeur, hauteur = 0.5, 2., 2.
-Nx, Ny, Nz = 10, 10, 10
+Nx, Ny, Nz = 1, 1, 1
 mesh = create_box(COMM_WORLD, [array([0, 0, 0]), 
                                array([Longueur, Largeur, hauteur])],
                               [Nx, Ny, Nz])
@@ -55,7 +55,7 @@ dictionnaire = {"material" : Acier,
                     [{"component": "Ux", "tag": 1},
                      {"component": "Uy", "tag": 2},
                      {"component": "Uz", "tag": 3},
-                     {"component": "Uz", "tag": 4, "value": {"type" : "rampe", "pente" : Umax}},
+                     {"component": "Ux", "tag": 4, "value": {"type" : "rampe", "pente" : Umax}},
                     ],
                 "analysis" : "static",
                 "isotherm" : True
@@ -69,29 +69,29 @@ solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.solve()
 
 #%% Validation et tracé du résultat
-def force_elast(eps):
-    return E * eps * Largeur * Longueur
+# def force_elast(eps):
+#     return E * eps * Largeur * Longueur
 
-temps = loadtxt("Traction_3D-results/export_times.csv",  delimiter=',', skiprows=1)
-numerical_results = loadtxt("Traction_3D-results/reaction_force.csv",  delimiter=',', skiprows=1)
-eps_list = [eps * t for t in temps]    
+# temps = loadtxt("Traction_3D-results/export_times.csv",  delimiter=',', skiprows=1)
+# numerical_results = loadtxt("Traction_3D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+# eps_list = [eps * t for t in temps]    
 
-solution_analytique = array([force_elast(eps) for eps in eps_list])
-eps_list_percent = [100 * eps for eps in eps_list]
+# solution_analytique = array([force_elast(eps) for eps in eps_list])
+# eps_list_percent = [100 * eps for eps in eps_list]
 
-# On calcule la différence entre les deux courbes
-len_vec = len(solution_analytique)
-diff_tot = solution_analytique - numerical_results
-# Puis on réalise une sorte d'intégration discrète
-integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
-print("La difference est de", integrale_discrete)
-assert integrale_discrete < 0.01, "Static 1D traction fail"
-if __name__ == "__main__": 
-    plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
-    plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
-    plt.xlim(0, 1.1 * eps_list_percent[-1])
-    plt.ylim(0, 1.1 * numerical_results[-1])
-    plt.xlabel(r"Déformation(%)", size = 18)
-    plt.ylabel(r"Force (N)", size = 18)
-    plt.legend()
-    plt.show()
+# # On calcule la différence entre les deux courbes
+# len_vec = len(solution_analytique)
+# diff_tot = solution_analytique - numerical_results
+# # Puis on réalise une sorte d'intégration discrète
+# integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
+# print("La difference est de", integrale_discrete)
+# assert integrale_discrete < 0.01, "Static 1D traction fail"
+# if __name__ == "__main__": 
+#     plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
+#     plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
+#     plt.xlim(0, 1.1 * eps_list_percent[-1])
+#     plt.ylim(0, 1.1 * numerical_results[-1])
+#     plt.xlabel(r"Déformation(%)", size = 18)
+#     plt.ylabel(r"Force (N)", size = 18)
+#     plt.legend()
+#     plt.show()

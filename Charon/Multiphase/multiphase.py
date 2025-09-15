@@ -44,7 +44,7 @@ from ufl import conditional
 
 from ..utils.maths.interpolation import interpolate_multiple
 from .evolution import (ArrheniusEvolution, 
-                        ForestFireEvolution,
+                        # ForestFireEvolution,
                         KJMAEvolution, 
                         WGTEvolution,
                         DesbiensEvolution)
@@ -278,8 +278,8 @@ class Multiphase:
         params = config.get("params", {})        
         if evolution_type == "Arrhenius":
             return ArrheniusEvolution(params)
-        elif evolution_type == "ForestFire":
-            return ForestFireEvolution(params)
+        # elif evolution_type == "ForestFire":
+        #     return ForestFireEvolution(params)
         elif evolution_type == "KJMA":
             return KJMAEvolution(params)
         elif evolution_type == "WGT":
