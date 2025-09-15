@@ -33,9 +33,12 @@ from dolfinx.fem.petsc import assemble_vector
 from dolfinx.fem import form, Function
 from ufl import action
 import numpy as np
+
 rho = 2
 tol = 1e-16
 DummyMat = Material(rho, 1, "IsotropicHPP", "IsotropicHPP", {"E" : 1, "nu" : 0, "alpha" : 1}, {"E":1, "nu" : 0})
+
+dico_mesh_manager = {"fem_parameters" : {"u_degree" : 2, "schema" : "default"}}
 
 #%%Vérification en 1D
 def assemble_diagonal_mass_matrix(m_form, V):
@@ -44,11 +47,11 @@ def assemble_diagonal_mass_matrix(m_form, V):
     diag_M = assemble_vector(form(action(m_form, u1)))
     return diag_M.array
 
-mesh_manager = MeshManager(create_1D_mesh(0, 1, 1), {})
+mesh_manager = MeshManager(create_1D_mesh(0, 1, 1), dico_mesh_manager)
 
-dictionnaire_1D = {"mesh_manager" : mesh_manager}
+dictionnaire_1D = {"material" : DummyMat, "mesh_manager" : mesh_manager}
 
-pb_1D = CartesianUD(DummyMat, dictionnaire_1D)
+pb_1D = CartesianUD(dictionnaire_1D)
 mass_array = assemble_diagonal_mass_matrix(pb_1D.m_form, pb_1D.u.function_space)
 print("La diagonale de la matrice de masse pour le cas 1D est", mass_array)
 # from dolfinx.fem.petsc import assemble_matrix
@@ -60,10 +63,10 @@ print("La diagonale de la matrice de masse pour le cas 1D est", mass_array)
 R_int = 0.1
 R_ext = 1
 
-mesh_manager = MeshManager(create_rectangle(COMM_WORLD, [(R_int, 0), (R_ext, 1)], [1, 1], CellType.quadrilateral), {})    
-dictionnaire_axi = {"mesh_manager" : mesh_manager}
+mesh_manager = MeshManager(create_rectangle(COMM_WORLD, [(R_int, 0), (R_ext, 1)], [1, 1], CellType.quadrilateral), dico_mesh_manager)    
+dictionnaire_axi = {"material" : DummyMat, "mesh_manager" : mesh_manager}
 
-pb_axi = Axisymmetric(DummyMat, dictionnaire_axi)
+pb_axi = Axisymmetric(dictionnaire_axi)
 mass_array = assemble_diagonal_mass_matrix(pb_axi.m_form, pb_axi.u.function_space)
 
 half_len_diag_M = len(mass_array)//2
@@ -81,10 +84,10 @@ print("La diagonale de la matrice de masse axisymétrique est", mass_array)
 
 #%%Vérification en 2D plan
     
-mesh_manager = MeshManager(create_rectangle(COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral), {})    
-dictionnaire_2D = {"mesh_manager" : mesh_manager}
+mesh_manager = MeshManager(create_rectangle(COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral), dico_mesh_manager)    
+dictionnaire_2D = {"material" : DummyMat, "mesh_manager" : mesh_manager}
 
-pb_2D = PlaneStrain(DummyMat, dictionnaire_2D)
+pb_2D = PlaneStrain(dictionnaire_2D)
 mass_array = assemble_diagonal_mass_matrix(pb_2D.m_form, pb_2D.u.function_space)
 print("Le nombre de coeff est", len(mass_array)//2)
 print("La masse totale en 2D plan est", sum(mass_array[2*i] for i in range(len(mass_array)//2)))
@@ -92,10 +95,10 @@ print("La diagonale de la matrice de masse 2D plan est", mass_array)
 
 
 #%%Vérification en 3D
-mesh_manager = MeshManager(create_box(COMM_WORLD, [np.array([0,0,0]), np.array([1, 1, 1])], [1, 1, 1], CellType.hexahedron), {})   
-dictionnaire_3D = {"mesh_manager" : mesh_manager}
+mesh_manager = MeshManager(create_box(COMM_WORLD, [np.array([0,0,0]), np.array([1, 1, 1])], [1, 1, 1], CellType.hexahedron), dico_mesh_manager)   
+dictionnaire_3D = {"material" : DummyMat, "mesh_manager" : mesh_manager}
 
-pb_3D = Tridimensional(DummyMat, dictionnaire_3D)
+pb_3D = Tridimensional(dictionnaire_3D)
 mass_array = assemble_diagonal_mass_matrix(pb_3D.m_form, pb_3D.u.function_space)
 print("Le nombre de coeff est", len(mass_array)//3)
 print("La masse totale 3D est", sum(mass_array[3*i] for i in range(len(mass_array)//3)))

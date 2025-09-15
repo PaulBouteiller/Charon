@@ -43,7 +43,6 @@ class MeshManager:
     name : str Problem type identifier (e.g., "Axisymmetric", "PlaneStrain")
     dim : int Topological dimension of the mesh
     fdim : int Dimension of facets (dim-1)
-    h : dolfinx.fem.Function Function containing local mesh size at each element
     facet_tag : dolfinx.mesh.MeshTags, optional
         Tags identifying different regions of the boundary
     """
@@ -78,7 +77,6 @@ class MeshManager:
             elif self.mesh_type == "ufl_mesh":
                 self.facet_tag = None
         self.set_measures(self.quad)
-        # self.cell_type = self.get_cell_type(self.mesh_type)
         self.cell_type = self.mesh.ufl_cell().cellname()
         
         self.cell_tags = dictionnaire.get("cell_tags", None)
@@ -112,10 +110,6 @@ class MeshManager:
         """
         # Get facets and their flags
         facets, full_flag = self._set_facet_flags(flag_list, coord_list, localisation_list, tol)
-        
-        # # Add custom facet flags if needed
-        # facets, full_flag = self.set_custom_facet_flags(facets, full_flag)
-        
         # Assemble and sort marked facets
         marked_facets = hstack(facets)
         marked_values = hstack(full_flag)
@@ -125,24 +119,6 @@ class MeshManager:
         self.facet_tag = meshtags(self.mesh, self.fdim, 
                                   marked_facets[sorted_facets], 
                                   marked_values[sorted_facets])
-        
-    # def set_custom_facet_flags(self, facets, full_flag):
-    #     """
-    #     Add custom facet flags to the boundary marking.
-        
-    #     This method can be overridden in derived classes to add
-    #     custom boundary markings beyond the standard coordinate-based approach.
-        
-    #     Parameters
-    #     ----------
-    #     facets : list of numpy.ndarray List of arrays containing facet indices
-    #     full_flag : list of numpy.ndarray List of arrays containing corresponding flags
-            
-    #     Returns
-    #     -------
-    #     tuple of (list, list) Potentially modified (facets, full_flag) lists
-    #     """
-    #     return facets, full_flag
         
     def _set_facet_flags(self, flag_list, coord_list, localisation_list, tol):
         """

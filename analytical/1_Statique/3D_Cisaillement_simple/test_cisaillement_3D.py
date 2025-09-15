@@ -42,7 +42,8 @@ mesh = create_box(COMM_WORLD, [array([0, 0, 0]),
 
 dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      "coordinate": ["x", "y", "z", "z"], 
-                     "positions": [0, 0, 0, hauteur]
+                     "positions": [0, 0, 0, hauteur],
+                     "fem_parameters" : {"u_degree" : 2, "schema" : "default"},
                      }
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 

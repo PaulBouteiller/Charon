@@ -49,13 +49,13 @@ dictionnaire_mesh = {"tags": [1, 2, 3], "coordinate": ["x", "y", "z"], "position
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 T_unload = largeur_creneau/wave_speed
 chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier, "mesh_manager" : mesh_manager,
                 "boundary_conditions": [{"component": "Uy", "tag": 2}, {"component": "Uz", "tag": 3}],
                 "loading_conditions": [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}],
                 "isotherm" : True,
                 }
    
-pb = Tridimensional(Acier, dictionnaire)
+pb = Tridimensional(dictionnaire)
 
 dictionnaire_solve = {
     "Prefix" : "Test_elasticite",
