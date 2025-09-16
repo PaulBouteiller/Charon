@@ -52,7 +52,7 @@ from dolfinx.fem import functionspace, Function
 from dolfinx import default_scalar_type
 
 def bulk_anisotropy_tensor(Rigi, module):
-    voigt_M0 = [sum(Rigi[i,column] for i in range(3))for column in range(6)]
+    voigt_M0 = [sum(Rigi[i,column] for i in range(3)) for column in range(6)]
     if module == "numpy":
         return array([[voigt_M0[0], voigt_M0[3], voigt_M0[4]],
                       [voigt_M0[3], voigt_M0[1], voigt_M0[5]],
@@ -168,7 +168,6 @@ class AnisotropicDeviator(BaseDeviator):
         # print("vecteur axial", axis_func.x.array)
         # print("angles", angle_func.x.array)
         self.R = rotation_matrix_direct(angle_func, axis_func)
-        self.C = rotate_stifness(self.C, self.R)
         
     def _orthotropic_unified_gij_fit(self, data, plot, save, tol_bulk_isotropy = 1):
         """Calibrate unified volumetric coupling functions from experimental data.
@@ -450,34 +449,47 @@ class AnisotropicDeviator(BaseDeviator):
             DE = kinematic.voigt_to_tensor_3d(dot(D, GLDBar_V))
             return kinematic.push_forward(DE, u)
         
-        def compute_CBarEbar_contribution(J, u, GLD_bar):
+        def compute_CBarEbar_contribution(J, u, GLD_bar, C):
             f_func = self.f_func_coeffs
             GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
+            size = 6
             if f_func is not None:
-                size = len(self.C)
-                RigiLinBar = self.C.tolist()
+                #Modification par rapport à la version originale
+                RigiLinBar = [[None]* size] * size
+                # C_matrix = as_matrix(self.C)
                 for i in range(size):
                     for j in range(size):
-                        if f_func[i][j] is not None:
-                            RigiLinBar[i][j] *= polynomial_expand(J, 1, f_func[i][j])
-                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLinBar), GLDBar_V))
+                        # if f_func[i][j] is not None:
+                        #     print("Coucou j'ai rempli C")
+                        #     RigiLinBar[i][j] = polynomial_expand(J, 1, f_func[i][j]) * C_matrix[i, j]
+                        # else:
+                        #     RigiLinBar[i][j] = C_matrix[i, j]
+                        RigiLinBar[i][j] = C[i,j]
+                # CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLinBar), GLDBar_V))
+                #Debug ca fonctionne
+                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(C), GLDBar_V))
             else:
-                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(self.C), GLDBar_V))
+                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(C), GLDBar_V))
             return J**(-5./3) * dev(kinematic.push_forward(CBarEbar, u)) 
         
-        def compute_EEbar_contribution(J, u, GLD_bar, inv_C):
+        def compute_EEbar_contribution(J, u, GLD_bar, inv_C, C):
             f_func = self.f_func_coeffs
-            size = len(self.C)
-            DerivRigiLinBar = self.C.tolist()
+            size = 6
             GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
+            
+            DerivRigiLinBar = [[0]* size] * size
+            C_matrix = as_matrix(C)
+            
             for i in range(size):
                 for j in range(size):
                     if f_func[i][j] is not None:
-                        DerivRigiLinBar[i][j] *= polynomial_derivative(J, 1, f_func[i][j])
+                        DerivRigiLinBar[i][j] = polynomial_derivative(J, 1, f_func[i][j]) * C_matrix[i, j]
             EE = kinematic.voigt_to_tensor_3d(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
             return dev(kinematic.push_forward(EE, u))
-            
-        M0 = bulk_anisotropy_tensor(self.C, module = "ufl")
+        
+        
+        rotated_C = rotate_stifness(self.C, self.R)
+        M0 = bulk_anisotropy_tensor(rotated_C, module = "ufl")
         # First term 
         term_1 = compute_pibar_contribution(M0, J, u)
         # Build different strain measure
@@ -488,13 +500,15 @@ class AnisotropicDeviator(BaseDeviator):
         # Second term 
         term_2 = compute_DEbar_contribution(M0, J, u, GLD_bar, inv_C)
         # Third term 
-        term_3 = compute_CBarEbar_contribution(J, u, GLD_bar)  
+        term_3 = compute_CBarEbar_contribution(J, u, GLD_bar, rotated_C)  
         
         # Optional fourth term
         if self.f_func_coeffs is not None:
-            term_4 = compute_EEbar_contribution(J, u, GLD_bar, inv_C)
             
-            return term_1 + term_2 + term_3 + term_4
+            term_4 = compute_EEbar_contribution(J, u, GLD_bar, inv_C, rotated_C)
+            # return term_1 + term_2 + term_3 + term_4
+            #Debug
+            return term_1 + term_2 + term_3
         else:
             return term_1 + term_2 + term_3
             # return term_1 + term_3

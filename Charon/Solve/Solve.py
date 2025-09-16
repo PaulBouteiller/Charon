@@ -42,7 +42,7 @@ from ..utils.parameters.default import default_Newton_displacement_solver_parame
 from ..Export.export_result import ExportResults
 
 from dolfinx.nls.petsc import NewtonSolver
-from dolfinx.fem import petsc, Expression
+from dolfinx.fem import petsc, Expression, Function
 from tqdm import tqdm
 from ufl.classes import Conditional, LE, GE, LT, GT, EQ
 from ufl import conditional
@@ -134,6 +134,14 @@ class Solve:
             T0 = 293.15      
             self.pb.T0.x.petsc_vec.set(T0)
             self.pb.T.x.petsc_vec.set(T0)
+        if "Ux" in ci_dictionnaire:
+            self.pb.u.sub(0).interpolate(ci_dictionnaire["Ux"])
+            # set_field(self.pb.u, ci_dictionnaire["Ux"], self.pb.V, isub = 0)
+            V_x, _ = self.pb.V.sub(0).collapse()
+            self.u_ci = Function(V_x)
+            self.u_ci.interpolate(ci_dictionnaire["Ux"])
+            # self.u_ci = Function(self.pb.V)
+            # set_field(self.u_ci, ci_dictionnaire["Ux"], self.pb.V)
         
     def update_form_with_stabilization(self, dictionnaire):
         """
@@ -202,6 +210,10 @@ class Solve:
                 constant.value = values[j]
             for function, initial_function in bcs_expression:
                 function.x.array[:] = self.t * initial_function.x.array
+                if hasattr(self, 'u_ci'):
+                    function.x.array[:]+=self.u_ci.x.array
+                #S'il y a une condition initiale faire plutôt
+                #function.x.array[:] = self.t * initial_function.x.array + self.initial_condition.x.array
         self.update_time_and_bcs = update_time_and_bcs
     
     def _create_output(self):
