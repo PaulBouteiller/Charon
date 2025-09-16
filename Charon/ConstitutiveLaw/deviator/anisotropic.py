@@ -109,7 +109,7 @@ class AnisotropicDeviator(BaseDeviator):
             raise ValueError("AnisotropicDeviator requires a stiffness tensor 'C'. "
                            "Use stiffness_builders utility to construct C from material parameters.")
         
-        self.C = params["C"]
+        self.RigiLin = params["C"]
         
         calibration_data = params.get("calibration_data", None)
         if calibration_data is not None:
@@ -164,9 +164,6 @@ class AnisotropicDeviator(BaseDeviator):
             axis_func.x.array[3 * cells] = full_like(cells, axis[0], dtype=default_scalar_type)
             axis_func.x.array[3 * cells+1] = full_like(cells, axis[1], dtype=default_scalar_type)
             axis_func.x.array[3 * cells+2] = full_like(cells, axis[2], dtype=default_scalar_type)
-            
-        # print("vecteur axial", axis_func.x.array)
-        # print("angles", angle_func.x.array)
         self.R = rotation_matrix_direct(angle_func, axis_func)
         
     def _orthotropic_unified_gij_fit(self, data, plot, save, tol_bulk_isotropy = 1):
@@ -220,7 +217,7 @@ class AnisotropicDeviator(BaseDeviator):
 
         # Vérifier si le matériau est isotrope
         J_list = data.get("J")
-        M0_diag = diag(bulk_anisotropy_tensor(self.C, module = "numpy"))
+        M0_diag = diag(bulk_anisotropy_tensor(self.RigiLin, module = "numpy"))
         trace_M0 = sum(M0_diag)
         devM0 = M0_diag - 1./ 3 * trace_M0
         if norm(devM0) < 1:
@@ -340,9 +337,8 @@ class AnisotropicDeviator(BaseDeviator):
             
         Returns
         -------
-        tuple
-            - J_array : ndarray, Jacobian values from experiment
-            - fij_values : ndarray, Extracted f_ij function values
+        tuple - J_array : ndarray, Jacobian values from experiment
+              - fij_values : ndarray, Extracted f_ij function values
             
         Notes
         -----
@@ -371,7 +367,7 @@ class AnisotropicDeviator(BaseDeviator):
         sij_array = data.get("s")  # Shear stress component
         gamma = data.get("gamma")        
         # Get rigidity component
-        mu = self.C[C_idx, C_idx]
+        mu = self.RigiLin[C_idx, C_idx]
         
         # Calculate appropriate g value for each point
         if self.g_func_coeffs is not None:
@@ -449,47 +445,53 @@ class AnisotropicDeviator(BaseDeviator):
             DE = kinematic.voigt_to_tensor_3d(dot(D, GLDBar_V))
             return kinematic.push_forward(DE, u)
         
-        def compute_CBarEbar_contribution(J, u, GLD_bar, C):
+        def compute_CBarEbar_contribution(J, u, GLD_bar, RigiLin):
             f_func = self.f_func_coeffs
             GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
             size = 6
             if f_func is not None:
-                #Modification par rapport à la version originale
-                RigiLinBar = [[None]* size] * size
-                # C_matrix = as_matrix(self.C)
+                RigiLinBar = [[None for _ in range(size)] for _ in range(size)]
                 for i in range(size):
                     for j in range(size):
-                        # if f_func[i][j] is not None:
-                        #     print("Coucou j'ai rempli C")
-                        #     RigiLinBar[i][j] = polynomial_expand(J, 1, f_func[i][j]) * C_matrix[i, j]
-                        # else:
-                        #     RigiLinBar[i][j] = C_matrix[i, j]
-                        RigiLinBar[i][j] = C[i,j]
-                # CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLinBar), GLDBar_V))
-                #Debug ca fonctionne
-                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(C), GLDBar_V))
+                        if f_func[i][j] is not None:
+                            RigiLinBar[i][j] = polynomial_expand(J, 1, f_func[i][j]) * RigiLin[i, j]
+                        else:
+                            RigiLinBar[i][j] = RigiLin[i, j]
+                if hasattr(self, "R"):
+                    RotatedRigiLinBar = rotate_stifness(RigiLinBar, self.R)
+                    CBarEbar = kinematic.voigt_to_tensor_3d(dot(RotatedRigiLinBar, GLDBar_V))
+                else:
+                    CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLinBar), GLDBar_V))
             else:
-                CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(C), GLDBar_V))
+                if hasattr(self, "R"):
+                    RotatedRigiLinBar = rotate_stifness(C, self.R)
+                    CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RotatedRigiLinBar), GLDBar_V))
+                else:
+                    CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(C), GLDBar_V))
             return J**(-5./3) * dev(kinematic.push_forward(CBarEbar, u)) 
         
-        def compute_EEbar_contribution(J, u, GLD_bar, inv_C, C):
+        def compute_EEbar_contribution(J, u, GLD_bar, inv_C, RigiLin):
             f_func = self.f_func_coeffs
             size = 6
             GLDBar_V = kinematic.tensor_3d_to_voigt(GLD_bar)
             
-            DerivRigiLinBar = [[0]* size] * size
-            C_matrix = as_matrix(C)
-            
+            DerivRigiLinBar = [[0 for _ in range(size)] for _ in range(size)]
             for i in range(size):
                 for j in range(size):
                     if f_func[i][j] is not None:
-                        DerivRigiLinBar[i][j] = polynomial_derivative(J, 1, f_func[i][j]) * C_matrix[i, j]
-            EE = kinematic.voigt_to_tensor_3d(1./2 * inner(inv_C, GLD_bar) * dot(as_matrix(DerivRigiLinBar), GLDBar_V))
+                        DerivRigiLinBar[i][j] = polynomial_derivative(J, 1, f_func[i][j]) * RigiLin[i, j]
+            if hasattr(self, "R"):
+                RotatedDerivRigiLinBar = rotate_stifness(DerivRigiLinBar, self.R)
+                EE = kinematic.voigt_to_tensor_3d(1./2 * inner(inv_C, GLD_bar) * dot(RotatedDerivRigiLinBar, GLDBar_V))
+            else:
+                EE = kinematic.voigt_to_tensor_3d(1./2 * inner(inv_C, GLD_bar) * dot(DerivRigiLinBar, GLDBar_V))
             return dev(kinematic.push_forward(EE, u))
         
-        
-        rotated_C = rotate_stifness(self.C, self.R)
-        M0 = bulk_anisotropy_tensor(rotated_C, module = "ufl")
+        if hasattr(self, "R"):
+            rotated_C = rotate_stifness(self.RigiLin, self.R)
+            M0 = bulk_anisotropy_tensor(rotated_C, module = "ufl")
+        else:
+            M0 = bulk_anisotropy_tensor(self.RigiLin, module = "ufl")
         # First term 
         term_1 = compute_pibar_contribution(M0, J, u)
         # Build different strain measure
@@ -500,15 +502,12 @@ class AnisotropicDeviator(BaseDeviator):
         # Second term 
         term_2 = compute_DEbar_contribution(M0, J, u, GLD_bar, inv_C)
         # Third term 
-        term_3 = compute_CBarEbar_contribution(J, u, GLD_bar, rotated_C)  
+        term_3 = compute_CBarEbar_contribution(J, u, GLD_bar, self.RigiLin)  
         
         # Optional fourth term
         if self.f_func_coeffs is not None:
-            
-            term_4 = compute_EEbar_contribution(J, u, GLD_bar, inv_C, rotated_C)
-            # return term_1 + term_2 + term_3 + term_4
-            #Debug
-            return term_1 + term_2 + term_3
+            term_4 = compute_EEbar_contribution(J, u, GLD_bar, inv_C, self.RigiLin)
+            return term_1 + term_2 + term_3 + term_4
         else:
             return term_1 + term_2 + term_3
             # return term_1 + term_3

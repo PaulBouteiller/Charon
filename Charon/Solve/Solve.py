@@ -524,15 +524,26 @@ class Solve:
         displayed via tqdm progress bar.
         """
         num_time_steps = self.time_stepping.num_time_steps
-        
+        last_export_time = None
         with tqdm(total=num_time_steps, desc="Progression", unit="pas") as pbar:
             j = 0
             while self.t < self.Tfin:
                 self.update_time_and_bcs(j)
                 self.problem_solve()
                 j += 1
-                self.output(self.compteur_output)
+                # Nouvelle version s'export
+                if self.compteur_output == 1 or self.compteur == self.compteur_output:
+                    self.in_loop_export(self.t)
+                    last_export_time = self.t
+                    if self.compteur_output > 1:
+                        self.compteur = 0
+                
+                if self.compteur_output > 1:
+                    self.compteur += 1
+                # self.output(self.compteur_output)
                 pbar.update(1)
+        if last_export_time != self.t:
+            self.in_loop_export(self.t)
     
         self.export.csv.close_files()
         self.final_output(self.pb)
