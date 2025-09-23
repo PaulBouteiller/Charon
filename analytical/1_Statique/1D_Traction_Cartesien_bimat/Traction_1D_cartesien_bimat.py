@@ -62,17 +62,14 @@ dictionnaire = {"material" : [Acier, Alu],
 
 pb = CartesianUD(dictionnaire)
 
-
-dictionnaire_solve = {
-    "Prefix" : "Traction_1D",
-    "csv_output" : {"U" : True}
-    }
+output_name = "Traction_1D"
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"U" : True}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=100)
 solve_instance.solve()
 
 #%%Validation et tracé du résultat
-u_csv = read_csv("Traction_1D-results/U.csv")
+u_csv = read_csv(output_name+"-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 x_result = resultat[0]
 half_n_node = len(x_result)//2

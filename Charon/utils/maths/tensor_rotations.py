@@ -21,6 +21,16 @@ from ufl import dot as ufl_dot
 from numpy import array, ndarray
 from numpy import dot as np_dot
 
+def euler_to_rotation(phi1, Phi, phi2):
+    """Angles d'Euler → matrice de rotation (convention Bunge ZXZ)"""
+    c1, s1 = cos(phi1), sin(phi1)
+    cP, sP = cos(Phi), sin(Phi)
+    c2, s2 = cos(phi2), sin(phi2)
+    
+    return [[c1*c2 - s1*s2*cP, -c1*s2 - s1*c2*cP,  s1*sP],
+            [s1*c2 + c1*s2*cP, -s1*s2 + c1*c2*cP, -c1*sP],
+            [s2*sP,             c2*sP,              cP    ]]
+
 
 def rotation_matrix_direct(theta, axis):
     """
@@ -56,8 +66,7 @@ def stiffness_rotation_matrix(Q):
     
     Parameters
     ----------
-    Q : array-like or ufl.Matrix
-        3x3 rotation matrix, can be either numpy array or UFL matrix
+    Q : array-like or ufl.Matrix 3x3 rotation matrix, can be either numpy array or UFL matrix
     
     Returns
     -------

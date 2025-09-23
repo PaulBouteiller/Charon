@@ -69,8 +69,6 @@ if __name__ == "__main__":
     plt.scatter(pas_espace, solution_numerique, marker = "x", color = "blue", label = "CHARON")
     
     plt.xlim(Rint, Rext)
-    # plt.ylim(- 1.05 * magnitude, 0)
-
     plt.xlabel(r"$r$ (mm)", size = 18)
     plt.ylabel(r"Déplacement radial (mm)", size = 18)
     plt.legend()

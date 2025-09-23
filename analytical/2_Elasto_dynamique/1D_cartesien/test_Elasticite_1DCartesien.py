@@ -42,7 +42,6 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 from Analytical_wave_propagation import cartesian1D_progressive_wave
 
-
 #Paramètre matériau#
 eos_type = "U1"
 dev_type = None
@@ -76,10 +75,9 @@ dictionnaire = {"material" : material,
 
 pb = CartesianUD(dictionnaire)
 
-dictionnaire_solve = {
-    "Prefix" : "Test_elasticite",
-    "csv_output" : {"sig" : True}
-    }
+output_name = "Test_elasticite"
+
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"sig" : True}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 tps1 = time.perf_counter()
@@ -87,8 +85,8 @@ solve_instance.solve()
 tps2 = time.perf_counter()
 print("temps d'execution", tps2 - tps1)
 
-df = read_csv("Test_elasticite-results/sig.csv")
-temps = np.loadtxt("Test_elasticite-results/export_times.csv",  delimiter=',', skiprows=1)
+df = read_csv(output_name+"-results/sig.csv")
+temps = np.loadtxt(output_name+"-results/export_times.csv",  delimiter=',', skiprows=1)
 resultat = [df[colonne].to_numpy() for colonne in df.columns]
 pas_espace = np.linspace(0, Longueur, len(resultat[-1]))
 for i, t in enumerate(temps):

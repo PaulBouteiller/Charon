@@ -24,7 +24,7 @@ relative est inférieure à 1%.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import create_box, Tridimensional, Solve, MeshManager
+from Charon import create_box, Tridimensional, Solve, MeshManager, CellType
 from mpi4py.MPI import COMM_WORLD
 from numpy import array, loadtxt
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ Longueur, Largeur, hauteur = 0.5, 2., 2.
 Nx, Ny, Nz = 10, 10, 10
 mesh = create_box(COMM_WORLD, [array([0, 0, 0]), 
                                array([Longueur, Largeur, hauteur])],
-                              [Nx, Ny, Nz])
+                              [Nx, Ny, Nz], cell_type=CellType.tetrahedron)
 
 dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      "coordinate": ["x", "y", "z", "z"], 
@@ -64,7 +64,8 @@ dictionnaire = {"material" : Acier,
 pb = Tridimensional(dictionnaire)
 
 #%% Résolution   
-dico_solve = {"Prefix" : "Traction_3D", "csv_output" : {"reaction_force" : {"flag" : 4, "component" : "z"}}}
+output_name = "Traction_3D"
+dico_solve = {"Prefix" : output_name, "csv_output" : {"reaction_force" : {"flag" : 4, "component" : "z"}}}
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.solve()
 
@@ -72,8 +73,8 @@ solve_instance.solve()
 def force_elast(eps):
     return E * eps * Largeur * Longueur
 
-temps = loadtxt("Traction_3D-results/export_times.csv",  delimiter=',', skiprows=1)
-numerical_results = loadtxt("Traction_3D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+temps = loadtxt(output_name+"-results/export_times.csv",  delimiter=',', skiprows=1)
+numerical_results = loadtxt(output_name+"-results/reaction_force.csv",  delimiter=',', skiprows=1)
 eps_list = [eps * t for t in temps]    
 
 solution_analytique = array([force_elast(eps) for eps in eps_list])

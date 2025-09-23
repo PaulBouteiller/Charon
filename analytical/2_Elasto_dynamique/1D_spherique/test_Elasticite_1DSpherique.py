@@ -55,25 +55,22 @@ mesh = create_interval(COMM_WORLD, Nx, [np.array(R_int), np.array(R_ext)])
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [R_int, R_ext]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier, 
+                "mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : magnitude}
-                    ],
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : magnitude}],
                 "isotherm" : True
                 }
 
-pb = SphericalUD(Acier, dictionnaire)
+pb = SphericalUD(dictionnaire)
 
-dictionnaire_solve = {
-    "Prefix" : "Onde_spherique",
-    "csv_output" : {"sig" : True}
-    }
-
+output_name = "Onde_spherique"
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"sig" : True}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
                
 
-df = read_csv("Onde_spherique-results/sig.csv")
+df = read_csv(output_name+"-results/sig.csv")
 plt.plot(df['r'], df.iloc[:, -3], 
         linestyle="--", label=f'CHARON t={Tfin:.2e}ms')
 

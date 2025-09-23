@@ -28,11 +28,7 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 dictionnaire_1D = {"material" : DummyMat,
                    "mesh_manager" : mesh_manager,
-                   "boundary_setup": 
-                        {"tags": [1, 2],
-                         "coordinate": ["x", "x"], 
-                         "positions": [0, 1]
-                         },
+                   "boundary_setup":  {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]},
                     "analysis" : "static",
                     "isotherm" : True
                     }
@@ -43,7 +39,7 @@ assert len(quad_func.x.array) == 1
 
 mesh_2D = create_rectangle(MPI.COMM_WORLD, [(0, 0), (1, 1)], [1, 1], CellType.quadrilateral)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [0, 1],
-                     "fem_parameters" : {"u_degree" : 2, "schema" : "reduit"}}
+                     "fem_parameters" : {"u_degree" : 2, "schema" : "default"}}
 mesh_manager2D = MeshManager(mesh_2D, dictionnaire_mesh)
 
 dictionnaire_2D = dictionnaire_1D

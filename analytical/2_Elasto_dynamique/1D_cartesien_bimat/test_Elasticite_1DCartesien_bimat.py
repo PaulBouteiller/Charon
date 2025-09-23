@@ -38,8 +38,6 @@ import sys
 sys.path.append("../../")
 from Generic_isotropic_material import Acier, Alu, rho, E, nu, rho_alu, E_alu, nu_alu
 
-Mat = [Acier, Alu]
-
 ###### Paramètre géométrique ######
 L = 50
 demi_longueur = L/2
@@ -67,10 +65,9 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 
 x = SpatialCoordinate(mesh)
-dictionnaire = {"mesh_manager" : mesh_manager,
-                "boundary_conditions": 
-                    [{"component": "U", "tag": 2}
-                    ],
+dictionnaire = {"material" : [Acier, Alu],
+                "mesh_manager" : mesh_manager,
+                "boundary_conditions": [{"component": "U", "tag": 2}],
                 "loading_conditions": 
                     [{"type": "surfacique", "component" : "F", "tag": 1, "value" : chargement}
                     ],
@@ -78,17 +75,15 @@ dictionnaire = {"mesh_manager" : mesh_manager,
                 "isotherm" : True
                 }
 
-pb = CartesianUD([Acier, Alu], dictionnaire)
-        
-dictionnaire_solve = {
-    "Prefix" : "Test_elasticite",
-    "csv_output" : {"sig" : True}
-    }
+pb = CartesianUD(dictionnaire)
+
+output_name = "Test_elasticite_bimat"
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"sig" : True}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 
-df = read_csv("Test_elasticite-results/sig.csv")
+df = read_csv(output_name+"-results/sig.csv")
 import re
 temps = np.array([float(re.search(r't=([0-9.]+)', col).group(1)) 
                   for col in df.columns if "t=" in col])

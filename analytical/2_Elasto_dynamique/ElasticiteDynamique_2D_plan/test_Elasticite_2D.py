@@ -50,19 +50,15 @@ mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 
 T_unload = largeur_creneau/wave_speed
 chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
-dictionnaire = {"mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier,
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": [{"component": "Uy", "tag": 2}],
                 "loading_conditions": [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}],
                 "isotherm" : True,
                 }
 
-pb = PlaneStrain(Acier, dictionnaire)
+pb = PlaneStrain(dictionnaire)
 
-dictionnaire_solve = {
-    "Prefix" : "Test_elasticite",
-    "csv_output" : {"sig" : True},
-    "output" : {"sig" : True}
-    }
-
+dictionnaire_solve = {"Prefix" : "Test_elasticite", "csv_output" : {"sig" : True}, "output" : {"sig" : True}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()

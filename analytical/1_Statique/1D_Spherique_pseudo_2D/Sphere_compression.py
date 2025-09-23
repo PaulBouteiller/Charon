@@ -56,16 +56,14 @@ dictionnaire = {"material" : Acier,
 pb = Axisymmetric(dictionnaire)
 
 ###### Paramètre de la résolution ######
-dictionnaire_solve = {
-    "Prefix" : "Sphere_axi",
-    "csv_output" : {"U" : ["Boundary", 1]}
-    }
+output_name = "Sphere_axi"
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"U" : ["Boundary", 1]}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
 solve_instance.solve()
 
 #%%Validation et tracé du résultat
-u_csv = read_csv("Sphere_axi-results/U.csv")
+u_csv = read_csv(output_name+"-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 r_result = resultat[0]
 solution_numerique = -resultat[-2]

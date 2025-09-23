@@ -63,14 +63,16 @@ dictionnaire = {"material" : Acier,
                 }
 
 pb = PlaneStrain(dictionnaire)
-dico_solve = {"Prefix" : "Traction_2D", "csv_output" : {"reaction_force" : {"flag" : 3, "component" : "x"}}}
+
+output_name = "Traction_2D"
+dico_solve = {"Prefix" : output_name, "csv_output" : {"reaction_force" : {"flag" : 3, "component" : "x"}}}
 
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.solve()
 
 #%%Validation et tracé du résultat
-temps = loadtxt("Traction_2D-results/export_times.csv",  delimiter=',', skiprows=1)
-half_reaction = loadtxt("Traction_2D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+temps = loadtxt(output_name+"-results/export_times.csv",  delimiter=',', skiprows=1)
+half_reaction = loadtxt(output_name+"-results/reaction_force.csv",  delimiter=',', skiprows=1)
 numerical_results = array(2*half_reaction)
 eps_list = [Umax / Longueur * t for t in temps]    
 

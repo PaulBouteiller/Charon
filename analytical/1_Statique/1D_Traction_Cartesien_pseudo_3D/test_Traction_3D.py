@@ -66,13 +66,14 @@ dictionnaire = {"material" : Acier,
 pb = Tridimensional(dictionnaire)
 
 #%% Résolution
-dico_solve = {"Prefix" : "Traction_3D", "csv_output" : {"reaction_force" : {"flag" : 6, "component" : "z"}}}
+output_name = "Traction_3D"
+dico_solve = {"Prefix" : output_name, "csv_output" : {"reaction_force" : {"flag" : 6, "component" : "z"}}}
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.solve()
 
 #%% Validation et tracé du résultat
-temps = loadtxt("Traction_3D-results/export_times.csv",  delimiter=',', skiprows=1)
-half_reaction = loadtxt("Traction_3D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+temps = loadtxt(output_name+"-results/export_times.csv",  delimiter=',', skiprows=1)
+half_reaction = loadtxt(output_name+"-results/reaction_force.csv",  delimiter=',', skiprows=1)
 eps_list = [eps * t for t in temps]    
 
 solution_analytique = array([2 * sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in eps_list])

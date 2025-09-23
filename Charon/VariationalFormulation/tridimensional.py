@@ -42,7 +42,7 @@ class TridimensionalBoundaryConditions(BoundaryConditions):
     This class provides methods to impose displacement boundary conditions
     for three-dimensional mechanical problems.
     """
-    def __init__(self, V, facets, name):
+    def __init__(self, V, V_T, facets, name):
         """
         Initialize 3D boundary conditions.
             
@@ -52,7 +52,7 @@ class TridimensionalBoundaryConditions(BoundaryConditions):
         facet_tag : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
         name : str Identifier for the boundary condition type
         """
-        super().__init__(V, facets, name, dim=3)
+        super().__init__(V, V_T, facets, name, dim=3)
     
     def add_Ux(self, region, value = ScalarType(0)):
         """

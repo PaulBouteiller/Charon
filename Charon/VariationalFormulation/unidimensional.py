@@ -46,7 +46,7 @@ class UnidimensionalBoundaryConditions(BoundaryConditions):
     This class provides methods to impose displacement boundary conditions
     for one-dimensional mechanical problems with various coordinate systems.
     """
-    def __init__(self, V, facets, name):
+    def __init__(self, V, V_T, facets, name):
         """
         Initialize 1D boundary conditions.
         
@@ -56,7 +56,7 @@ class UnidimensionalBoundaryConditions(BoundaryConditions):
         facets : dolfinx.mesh.MeshTags Tags identifying different regions of the boundary
         name : str Identifier for the boundary condition type
         """
-        super().__init__(V, facets, name, dim=1)
+        super().__init__(V, V_T, facets, name, dim=1)
     
     def add_U(self, region, value=ScalarType(0)):
         """

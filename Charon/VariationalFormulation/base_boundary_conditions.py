@@ -63,7 +63,7 @@ class BoundaryConditions:
         3: {'Ux': 0, 'Uy': 1, 'Uz': 2}
     }
     
-    def __init__(self, V, facet_tag, name=None, dim=None):
+    def __init__(self, V, V_T, facet_tag, name=None, dim=None):
         """
         Initialize boundary conditions.
         
@@ -75,6 +75,7 @@ class BoundaryConditions:
         dim : int, optional Problem dimension for component mapping
         """
         self.V = V
+        self.V_T = V_T
         self.facet_tag = facet_tag
         self.name = name
         
@@ -138,7 +139,8 @@ class BoundaryConditions:
             bcs.append(dirichletbc(value.Expression.constant, dof_loc, self.current_space(space, isub)))
             self.my_constant_list.append(value.Expression)
         elif isinstance(value, MyExpression):
-            V_bc = functionspace(space.mesh, ("Lagrange", 1))
+            degree = space.element.basix_element.degree
+            V_bc = functionspace(space.mesh, ("Lagrange", degree))
             dof_loc_with_mapping = locate_dofs_topological((self.current_space(space, isub),V_bc), 
                                                            self.facet_tag.dim, 
                                                            self.facet_tag.find(region))
@@ -148,6 +150,8 @@ class BoundaryConditions:
             initial_function.interpolate(expression)
             bcs.append(dirichletbc(function, dof_loc_with_mapping, self.current_space(space, isub)))
             self.my_expression_list.append((function, initial_function))
+        else:
+            raise ValueError("Unknown Bcs type")
             
             
     def add_associated_speed_acceleration(self, space, isub, region, value=ScalarType(0)):
@@ -259,7 +263,7 @@ class BoundaryConditions:
         self.add_component(self.V, component_idx, self.bcs, region, ScalarType(0))
         self.add_associated_speed_acceleration(self.V, component_idx, region, ScalarType(0))
         
-    def add_T(self, V_T, T_bcs, value, region):
+    def add_T(self, value, region):
         """
         Impose a Dirichlet boundary condition on the temperature field.
         
@@ -270,7 +274,7 @@ class BoundaryConditions:
         value : ScalarType or Expression Value to impose
         region : int Tag identifying the boundary region
         """
-        self.add_component(V_T, None, T_bcs, region, value)
+        self.add_component(self.V_T, None, self.T_bcs, region, value)
         
     def remove_all_bcs(self):
         """

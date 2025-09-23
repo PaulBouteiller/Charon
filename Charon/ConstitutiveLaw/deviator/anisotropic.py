@@ -39,14 +39,14 @@ AnisotropicDeviator : General anisotropic hyperelastic model
     Includes calibration utilities for fitting to experimental data
 """
 from ...utils.maths.fitting import fit_and_plot_shifted_polynomial_fixed
-from ...utils.maths.tensor_rotations import rotation_matrix_direct, rotate_stifness
+from ...utils.maths.tensor_rotations import rotation_matrix_direct, rotate_stifness, euler_to_rotation
 from ...utils.time_dependent_expressions import interpolation_lin
 
 from .base_deviator import BaseDeviator
 
 from ufl import as_tensor, as_matrix, dev, inv, inner, dot, Identity
-from numpy import array, diag, ndarray, insert, concatenate, asarray, full_like
-from numpy.linalg import inv as norm
+from numpy import array, diag, ndarray, insert, concatenate, asarray, full_like, identity
+from numpy.linalg import norm
 
 from dolfinx.fem import functionspace, Function
 from dolfinx import default_scalar_type
@@ -155,16 +155,26 @@ class AnisotropicDeviator(BaseDeviator):
     def set_orientation(self, mesh_manager, polycristal_dic):
         mesh = mesh_manager.mesh
         Q = functionspace(mesh, ("DG", 0))
-        angle_func = Function(Q)
-        Q_axis = functionspace(mesh, ("DG", 0, (3, )))    
-        axis_func = Function(Q_axis)
-        for index, angle, axis in zip(polycristal_dic["tags"], polycristal_dic["angle"], polycristal_dic["axis"]):
-            cells = mesh_manager.cell_tags.find(index)
-            angle_func.x.array[cells] = full_like(cells, angle, dtype=default_scalar_type)
-            axis_func.x.array[3 * cells] = full_like(cells, axis[0], dtype=default_scalar_type)
-            axis_func.x.array[3 * cells+1] = full_like(cells, axis[1], dtype=default_scalar_type)
-            axis_func.x.array[3 * cells+2] = full_like(cells, axis[2], dtype=default_scalar_type)
-        self.R = rotation_matrix_direct(angle_func, axis_func)
+        if "angle" in polycristal_dic and "axis" in polycristal_dic:
+            angle_func = Function(Q)
+            Q_axis = functionspace(mesh, ("DG", 0, (3, )))    
+            axis_func = Function(Q_axis)
+            for index, angle, axis in zip(polycristal_dic["tags"], polycristal_dic["angle"], polycristal_dic["axis"]):
+                cells = mesh_manager.cell_tags.find(index)
+                angle_func.x.array[cells] = full_like(cells, angle, dtype = default_scalar_type)
+                axis_func.x.array[3 * cells] = full_like(cells, axis[0], dtype=default_scalar_type)
+                axis_func.x.array[3 * cells + 1] = full_like(cells, axis[1], dtype=default_scalar_type)
+                axis_func.x.array[3 * cells + 2] = full_like(cells, axis[2], dtype=default_scalar_type)
+            self.R = rotation_matrix_direct(angle_func, axis_func)
+        elif "euler_angle" in polycristal_dic:
+            phi1_func, Phi_func, phi2_func = Function(Q), Function(Q), Function(Q)
+            for index, euler_angle in zip(polycristal_dic["tags"], polycristal_dic["euler_angle"]):
+                cells = mesh_manager.cell_tags.find(index)
+                phi1_func.x.array[cells] = full_like(cells, euler_angle[0], dtype = default_scalar_type)
+                Phi_func.x.array[cells] = full_like(cells, euler_angle[1], dtype=default_scalar_type)
+                phi2_func.x.array[cells] = full_like(cells, euler_angle[2], dtype=default_scalar_type)
+            self.R = euler_to_rotation(phi1_func, Phi_func, phi2_func)            
+            
         
     def _orthotropic_unified_gij_fit(self, data, plot, save, tol_bulk_isotropy = 1):
         """Calibrate unified volumetric coupling functions from experimental data.
@@ -222,10 +232,7 @@ class AnisotropicDeviator(BaseDeviator):
         devM0 = M0_diag - 1./ 3 * trace_M0
         if norm(devM0) < 1:
             print("Le matériau est isotrope en volume")
-            
             return 3 * [1 for _ in range(len(J_list))], None
-
-        
 
         s_data = [data.get("s_xx"), data.get("s_yy"), data.get("s_zz")]
         
@@ -464,10 +471,10 @@ class AnisotropicDeviator(BaseDeviator):
                     CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLinBar), GLDBar_V))
             else:
                 if hasattr(self, "R"):
-                    RotatedRigiLinBar = rotate_stifness(C, self.R)
+                    RotatedRigiLinBar = rotate_stifness(RigiLin, self.R)
                     CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RotatedRigiLinBar), GLDBar_V))
                 else:
-                    CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(C), GLDBar_V))
+                    CBarEbar = kinematic.voigt_to_tensor_3d(dot(as_matrix(RigiLin), GLDBar_V))
             return J**(-5./3) * dev(kinematic.push_forward(CBarEbar, u)) 
         
         def compute_EEbar_contribution(J, u, GLD_bar, inv_C, RigiLin):
@@ -487,27 +494,33 @@ class AnisotropicDeviator(BaseDeviator):
                 EE = kinematic.voigt_to_tensor_3d(1./2 * inner(inv_C, GLD_bar) * dot(DerivRigiLinBar, GLDBar_V))
             return dev(kinematic.push_forward(EE, u))
         
-        if hasattr(self, "R"):
-            rotated_C = rotate_stifness(self.RigiLin, self.R)
-            M0 = bulk_anisotropy_tensor(rotated_C, module = "ufl")
-        else:
-            M0 = bulk_anisotropy_tensor(self.RigiLin, module = "ufl")
-        # First term 
-        term_1 = compute_pibar_contribution(M0, J, u)
         # Build different strain measure
         C = kinematic.right_cauchy_green_3d(u)
         C_bar = J**(-2./3) * C
         inv_C = inv(C)
         GLD_bar = 1./2 * (C_bar - Identity(3))
-        # Second term 
-        term_2 = compute_DEbar_contribution(M0, J, u, GLD_bar, inv_C)
         # Third term 
-        term_3 = compute_CBarEbar_contribution(J, u, GLD_bar, self.RigiLin)  
-        
-        # Optional fourth term
+        CBarEbar_contribution = compute_CBarEbar_contribution(J, u, GLD_bar, self.RigiLin)
         if self.f_func_coeffs is not None:
-            term_4 = compute_EEbar_contribution(J, u, GLD_bar, inv_C, self.RigiLin)
-            return term_1 + term_2 + term_3 + term_4
+            EEbar_contribution = compute_EEbar_contribution(J, u, GLD_bar, inv_C, self.RigiLin)
+        
+        M0 = bulk_anisotropy_tensor(self.RigiLin, module = "numpy")
+        devM0 = M0 - 1./3 * sum(M0[i,i] for i in range(3)) * identity(3)
+        is_bulk_isotropic = norm(devM0)<1
+        if not is_bulk_isotropic:
+            if hasattr(self, "R"):
+                rotated_C = rotate_stifness(self.RigiLin, self.R)
+                M0 = bulk_anisotropy_tensor(rotated_C, module = "ufl")
+            else:
+                M0 = bulk_anisotropy_tensor(self.RigiLin, module = "ufl")
+            pibar_contribution = compute_pibar_contribution(M0, J, u)
+            DEbar_contribution = compute_DEbar_contribution(M0, J, u, GLD_bar, inv_C)
+            if self.f_func_coeffs is not None:
+                return pibar_contribution + DEbar_contribution + CBarEbar_contribution + EEbar_contribution
+            else:
+                return pibar_contribution + DEbar_contribution + CBarEbar_contribution
         else:
-            return term_1 + term_2 + term_3
-            # return term_1 + term_3
+            if self.f_func_coeffs is not None:
+                return CBarEbar_contribution + EEbar_contribution
+            else:
+                return CBarEbar_contribution

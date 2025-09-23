@@ -32,8 +32,6 @@ from .PlasticSolve.jax_gurson_plastic_solver_hpp import GTNSimpleJAXSolver
 
 from .multiphase_solve import MultiphaseSolver
 
-
-
 from .damage_solve import StaticJohnsonSolve, DynamicJohnsonSolve, InertialJohnsonSolve, PhaseFieldSolve
 from .hypoelastic_solve import HypoElasticSolve
 from .time_stepping import TimeStepping
@@ -46,8 +44,6 @@ from dolfinx.fem import petsc, Expression, Function
 from tqdm import tqdm
 from ufl.classes import Conditional, LE, GE, LT, GT, EQ
 from ufl import conditional
-# from ufl.classes import Conditional
-
 
 class Solve:
     """
@@ -136,12 +132,9 @@ class Solve:
             self.pb.T.x.petsc_vec.set(T0)
         if "Ux" in ci_dictionnaire:
             self.pb.u.sub(0).interpolate(ci_dictionnaire["Ux"])
-            # set_field(self.pb.u, ci_dictionnaire["Ux"], self.pb.V, isub = 0)
             V_x, _ = self.pb.V.sub(0).collapse()
-            self.u_ci = Function(V_x)
-            self.u_ci.interpolate(ci_dictionnaire["Ux"])
-            # self.u_ci = Function(self.pb.V)
-            # set_field(self.u_ci, ci_dictionnaire["Ux"], self.pb.V)
+            self.ux_ci = Function(V_x)
+            self.ux_ci.interpolate(ci_dictionnaire["Ux"])
         
     def update_form_with_stabilization(self, dictionnaire):
         """
@@ -210,10 +203,8 @@ class Solve:
                 constant.value = values[j]
             for function, initial_function in bcs_expression:
                 function.x.array[:] = self.t * initial_function.x.array
-                if hasattr(self, 'u_ci'):
-                    function.x.array[:]+=self.u_ci.x.array
-                #S'il y a une condition initiale faire plutôt
-                #function.x.array[:] = self.t * initial_function.x.array + self.initial_condition.x.array
+                if hasattr(self, 'ux_ci'):
+                    function.x.array[:]+=self.ux_ci.x.array
         self.update_time_and_bcs = update_time_and_bcs
     
     def _create_output(self):
@@ -324,8 +315,6 @@ class Solve:
             dictionnaire.get("output", {}),
             dictionnaire.get("csv_output", {})
         )
-        # self.export.export_results(0)   
-        # self.export.csv.csv_export(0)
         
     def set_solver(self):
         """
@@ -447,7 +436,7 @@ class Solve:
         self.solver.atol = param.get("absolute_tolerance")
         self.solver.rtol = param.get("relative_tolerance")
         self.solver.convergence_criterion = param.get("convergence_criterion")
-        
+
     def set_iterative_solver_parameters(self):
         """
         Configure iterative solver parameters.

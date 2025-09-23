@@ -58,18 +58,16 @@ dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["r", "r"], "positions": [Rin
 mesh_manager = MeshManager(mesh1D, dictionnaire_mesh)
 
 chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
-dictionnaire1D = {"mesh_manager" : mesh_manager,
+dictionnaire1D = {"material" : Acier, 
+                  "mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}
-                    ],
+                    [{"type": "surfacique", "component" : "F", "tag": 2, "value" : chargement}],
                 "isotherm" : True
                 }
 
-pb1D = CylindricalUD(Acier, dictionnaire1D)
-dictionnaire1D_solve = {
-    "Prefix" : "Cylindre",
-    "csv_output" : {"U" : True}
-    }
+pb1D = CylindricalUD(dictionnaire1D)
+output_name_1D = "Cylindre"
+dictionnaire1D_solve = {"Prefix" : output_name_1D, "csv_output" : {"U" : True}}
 solve_instance = Solve(pb1D, dictionnaire1D_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
 
@@ -82,33 +80,29 @@ dictionnaire_mesh = {"tags": [1, 2, 3, 4],
                      }
 mesh_manager = MeshManager(mesh2D, dictionnaire_mesh)
 
-dictionnaire2D = {"mesh_manager" : mesh_manager,
+dictionnaire2D = {"material" : Acier, 
+                  "mesh_manager" : mesh_manager,
                 "loading_conditions": 
-                    [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : chargement}
-                    ],
+                    [{"type": "surfacique", "component" : "Fr", "tag": 2, "value" : chargement}],
                 "boundary_conditions": 
-                    [{"component": "Uz", "tag": 3},
-                     {"component": "Uz", "tag": 4}
-                    ],
+                    [{"component": "Uz", "tag": 3}, {"component": "Uz", "tag": 4}],
                 "isotherm" : True
                 }
-pb2D = Axisymmetric(Acier, dictionnaire2D)
+pb2D = Axisymmetric(dictionnaire2D)
 
-dictionnaire2D_solve = {
-    "Prefix" : "Cylindre_axi",
-    "csv_output" : {"U" : ["Boundary", 3]}
-    }
+output_name_2D = "Cylindre_axi"
+dictionnaire2D_solve = {"Prefix" : output_name_2D, "csv_output" : {"U" : ["Boundary", 3]}}
 solve_instance = Solve(pb2D, dictionnaire2D_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()
         
-df_1 = read_csv("Cylindre_axi-results/U.csv")
+df_1 = read_csv(output_name_2D+"-results/U.csv")
 resultat_axi = [df_1[colonne].to_numpy() for colonne in df_1.columns]
 ur_axi = [resultat_axi[2 * i + 4] for i in range((len(resultat_axi)-4)//2)]
 length = len(ur_axi)
 print("longueur axi", len(ur_axi))
 
 
-df_2 = read_csv("Cylindre-results/U.csv")
+df_2 = read_csv(output_name_1D+"-results/U.csv")
 resultat_1D = [df_2[colonne].to_numpy() for colonne in df_2.columns]
 ur_1D = [resultat_1D[i + 2] for i in range((len(resultat_1D)-2))]
 print("longueur cyl", len(ur_1D))

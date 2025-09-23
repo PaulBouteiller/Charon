@@ -53,12 +53,11 @@ Re = 600
 Ri = 300.0
 
 ###### Plasticity dictionnaire ######
-plasticity_model = "HPP_Plasticity"
+plasticity_model = "JAX_Gurson"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})
-elif plasticity_model == "J2_JAX":
-    
+elif plasticity_model == "J2_JAX":  
     b = 10.0
     sigu = 750.0
     
@@ -94,15 +93,13 @@ dictionnaire = {"material" : Acier,
 pb = SphericalUD( dictionnaire)
 
 ###### Paramètre de la résolution ######
-dictionnaire_solve = {
-    "Prefix" : "Dilatation_spherique_elastoplast",
-    "csv_output" : {"U" : True}
-    }
+output_name = "Dilatation_spherique_elastoplast"
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"U" : True}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=compteur, npas=npas)
 solve_instance.solve()
 
-df_u = read_csv("Dilatation_spherique_elastoplast-results/U.csv")
+df_u = read_csv(output_name+"-results/U.csv")
 colonnes_numpy = [df_u[colonne].to_numpy() for colonne in df_u.columns]
 u_int = [colonnes_numpy[i+1][0] for i in range(len(colonnes_numpy)-1)]
 p_list = [p_applied * t for t in np.linspace(0, 1, len(u_int))]

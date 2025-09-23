@@ -19,8 +19,9 @@ Auteur: bouteillerp
 Date de création: 24 Juillet 2023
 """
 from Charon import create_1D_mesh, CartesianUD, Solve, MeshManager
+from numpy import array, loadtxt
 import matplotlib.pyplot as plt
-import numpy as np
+# import numpy as np
 import pytest
 import sys
 sys.path.append("../")
@@ -49,21 +50,20 @@ dictionnaire = {"material" : Acier,
                 }
 
 pb = CartesianUD(dictionnaire)
-    
-dictionnaire_solve = {
-    "Prefix" : "Traction_1D",
-    "output" : {"U" : True},
-    "csv_output" : {"reaction_force" : {"flag" : 2, "component" : "x"}}
-    }
+
+#%%Solve
+output_name = "Traction_1D"
+dictionnaire_solve = {"Prefix" : output_name, "output" : {"U" : True},
+                      "csv_output" : {"reaction_force" : {"flag" : 2, "component" : "x"}}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
 solve_instance.solve()
 
 #%%Validation et tracé du résultat  
-temps = np.loadtxt("Traction_1D-results/export_times.csv",  delimiter=',', skiprows=1)
-numerical_results = np.loadtxt("Traction_1D-results/reaction_force.csv",  delimiter=',', skiprows=1)
+temps = loadtxt(output_name+"-results/export_times.csv",  delimiter=',', skiprows=1)
+numerical_results = loadtxt(output_name+"-results/reaction_force.csv",  delimiter=',', skiprows=1)
 eps_list = [Umax / Longueur * t for t in temps]    
-solution_analytique = np.array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in eps_list])
+solution_analytique = array([sigma_xx(epsilon, kappa, mu, eos_type, devia_type) for epsilon in eps_list])
 eps_list_percent = [100 * eps for eps in eps_list]
 
 # On calcule la différence entre les deux courbes

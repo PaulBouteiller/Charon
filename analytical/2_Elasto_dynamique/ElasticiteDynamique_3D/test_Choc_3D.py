@@ -18,8 +18,8 @@ Auteur: bouteillerp
 
 from Charon import Solve, create_box, Tridimensional, CellType, MeshManager
 from mpi4py.MPI import COMM_WORLD
+from numpy import array
 import pytest
-import numpy as np
 import sys
 sys.path.append("../../")
 from Generic_isotropic_material import Acier, lmbda, mu, rho
@@ -43,13 +43,14 @@ pas_de_temps_sortie = sortie * pas_de_temps
 n_sortie = int(Tfin/pas_de_temps_sortie)
 
 Nx = 200
-mesh = create_box(COMM_WORLD, [np.array([0,0,0]), np.array([L, b, h])],
-          [Nx, Ny, Nz], cell_type = CellType.hexahedron)
+mesh = create_box(COMM_WORLD, [array([0,0,0]), array([L, b, h])],
+                  [Nx, Ny, Nz], cell_type = CellType.hexahedron)
 dictionnaire_mesh = {"tags": [1, 2, 3], "coordinate": ["x", "y", "z"], "positions": [0, 0, 0]}
 mesh_manager = MeshManager(mesh, dictionnaire_mesh)
 T_unload = largeur_creneau/wave_speed
 chargement = {"type" : "creneau", "t_crit": T_unload, "amplitude" : magnitude}
-dictionnaire = {"material" : Acier, "mesh_manager" : mesh_manager,
+dictionnaire = {"material" : Acier, 
+                "mesh_manager" : mesh_manager,
                 "boundary_conditions": [{"component": "Uy", "tag": 2}, {"component": "Uz", "tag": 3}],
                 "loading_conditions": [{"type": "surfacique", "component" : "Fx", "tag": 1, "value" : chargement}],
                 "isotherm" : True,
@@ -57,11 +58,6 @@ dictionnaire = {"material" : Acier, "mesh_manager" : mesh_manager,
    
 pb = Tridimensional(dictionnaire)
 
-dictionnaire_solve = {
-    "Prefix" : "Test_elasticite",
-    "csv_output" : {"sig" : True},
-    "output" : {"sig" : True}
-    }
-
+dictionnaire_solve = {"Prefix" : "Test_elasticite", "csv_output" : {"sig" : True}, "output" : {"sig" : True}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=sortie, TFin=Tfin, scheme = "fixed", dt = pas_de_temps)
 solve_instance.solve()

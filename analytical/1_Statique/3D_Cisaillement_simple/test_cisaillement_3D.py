@@ -65,34 +65,7 @@ dictionnaire = {"material" : Acier,
 pb = Tridimensional(dictionnaire)
 
 #%% Résolution   
-dico_solve = {"Prefix" : "Traction_3D", "csv_output" : {"reaction_force" : {"flag" : 4, "component" : "z"}}}
+output_name = "Cisaillement_simple"
+dico_solve = {"Prefix" : output_name, "csv_output" : {"reaction_force" : {"flag" : 4, "component" : "z"}}}
 solve_instance = Solve(pb, dico_solve, compteur=1, npas=10)
 solve_instance.solve()
-
-#%% Validation et tracé du résultat
-# def force_elast(eps):
-#     return E * eps * Largeur * Longueur
-
-# temps = loadtxt("Traction_3D-results/export_times.csv",  delimiter=',', skiprows=1)
-# numerical_results = loadtxt("Traction_3D-results/reaction_force.csv",  delimiter=',', skiprows=1)
-# eps_list = [eps * t for t in temps]    
-
-# solution_analytique = array([force_elast(eps) for eps in eps_list])
-# eps_list_percent = [100 * eps for eps in eps_list]
-
-# # On calcule la différence entre les deux courbes
-# len_vec = len(solution_analytique)
-# diff_tot = solution_analytique - numerical_results
-# # Puis on réalise une sorte d'intégration discrète
-# integrale_discrete = sum(abs(diff_tot[j]) for j in range(len_vec))/sum(abs(solution_analytique[j]) for j in range(len_vec))
-# print("La difference est de", integrale_discrete)
-# assert integrale_discrete < 0.01, "Static 1D traction fail"
-# if __name__ == "__main__": 
-#     plt.scatter(eps_list_percent, numerical_results, marker = "x", color = "blue", label="CHARON")
-#     plt.plot(eps_list_percent, solution_analytique, linestyle = "--", color = "red", label = "Analytique")
-#     plt.xlim(0, 1.1 * eps_list_percent[-1])
-#     plt.ylim(0, 1.1 * numerical_results[-1])
-#     plt.xlabel(r"Déformation(%)", size = 18)
-#     plt.ylabel(r"Force (N)", size = 18)
-#     plt.legend()
-#     plt.show()

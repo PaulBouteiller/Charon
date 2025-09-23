@@ -95,16 +95,14 @@ dictionnaire = {"material" : Acier,
 pb = PlaneStrain(dictionnaire)
 
 ###### Paramètre de la résolution ######
-dictionnaire_solve = {
-    "Prefix" : "Plaque_2D",
-    "csv_output" : {"U" : ["Boundary", 1]},
-    "output" : {"U" : True}
-    }
+output_name = "Plaque_2D"
+dictionnaire_solve = {"Prefix" : output_name, "csv_output" : {"U" : ["Boundary", 1]},
+                      "output" : {"U" : True}}
 
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=20)
 solve_instance.solve()
 
-u_csv = read_csv("Plaque_2D-results/U.csv")
+u_csv = read_csv(output_name+"-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 x_result = resultat[1]
 displacement = resultat[-1]

@@ -54,8 +54,8 @@ class AxiBoundaryConditions(BoundaryConditions):
     ----------
     V, facet_tag, name : see BidimensionalBoundaryConditions parameters
     """
-    def __init__(self, V, facet_tag, name):
-        super().__init__(V, facet_tag, name, dim=2)
+    def __init__(self, V, V_T, facet_tag, name):
+        super().__init__(V, V_T, facet_tag, name, dim=2)
     
     def add_Ur(self, region, value=ScalarType(0)):
         """
@@ -86,10 +86,10 @@ class PlaneStrainBoundaryConditions(BoundaryConditions):
     
     Parameters
     ----------
-    V, facet_tag, name : see BidimensionalBoundaryConditions parameters
+    V, V_T, facet_tag, name : see BidimensionalBoundaryConditions parameters
     """
-    def __init__(self, V, facet_tag, name):
-        super().__init__(V, facet_tag, name, dim=2)
+    def __init__(self, V, V_T, facet_tag, name):
+        super().__init__(V, V_T, facet_tag, name, dim=2)
     
     def add_Ux(self, region, value=ScalarType(0)):
         """

@@ -561,7 +561,7 @@ class HybridNewtonSolver(HybridSolver):
         return self.solver
 
 
-def create_linear_solver(a, L, u, bcs=None, comm=None, solver_type="hybrid", parameters=None, 
+def create_linear_solver(a, L, u, bcs=None, comm=None, solver_type="default", parameters=None, 
                          direct_solver=None, iterative_solver=None, log=True, timings=False, 
                          collect_stats=True):
     """

@@ -326,7 +326,7 @@ class Problem:
         Creates a BoundaryConditions object and sets up boundary conditions,
         automatically creating MyConstant objects from dictionary specifications.
         """
-        self.bcs = self.boundary_conditions_class()(self.V, self.facet_tag, self.name)
+        self.bcs = self.boundary_conditions_class()(self.V, self.V_T, self.facet_tag, self.name)
         
         boundary_conditions_config = simulation_dic.get("boundary_conditions", [])
         for bc_config in boundary_conditions_config:

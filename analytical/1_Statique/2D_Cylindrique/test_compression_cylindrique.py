@@ -69,15 +69,12 @@ dictionnaire = {"material" : Acier,
     
 pb = Axisymmetric(dictionnaire)
 
-
-dictionnaire_solve = {
-    "Prefix" : "Cylindre_axi",
-    "csv_output" : {"U" : ["Boundary", 3]}
-    }
+output_name = "Cylindre_axi"
+dictionnaire_solve = {"Prefix" : output_name , "csv_output" : {"U" : ["Boundary", 3]}}
 solve_instance = Solve(pb, dictionnaire_solve, compteur=1, npas=10)
 solve_instance.solve()
 
-u_csv = read_csv("Cylindre_axi-results/U.csv")
+u_csv = read_csv(output_name+"-results/U.csv")
 resultat = [u_csv[colonne].to_numpy() for colonne in u_csv.columns]
 r_unsorted = resultat[0]
 sort_indices = np.argsort(r_unsorted)
