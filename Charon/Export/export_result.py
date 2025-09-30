@@ -28,7 +28,7 @@ from ufl import as_vector
 
 
 class ExportResults:
-    def __init__(self, problem, output_file_name, dictionnaire, dictionnaire_csv):
+    def __init__(self, problem, mesh, output_file_name, dictionnaire, dictionnaire_csv):
         """
         Initialise l'export des résultats.
 
@@ -55,18 +55,18 @@ class ExportResults:
                 remove(self.file_name)
                 remove(self.file_name.replace(".xdmf", ".h5"))
                 print("File has been found and deleted.")
-            file_results = XDMFFile(self.pb.mesh.comm, self.file_name, "w")
-            file_results.write_mesh(self.pb.mesh)
-            self.file_results = XDMFFile(self.pb.mesh.comm, self.file_name, "a")
+            file_results = XDMFFile(mesh.comm, self.file_name, "w")
+            file_results.write_mesh(mesh)
+            self.file_results = XDMFFile(mesh.comm, self.file_name, "a")
         elif self.param["writer"] == "VTK":
             if path.isfile(self.file_name) and COMM_WORLD.rank == 0 :
                 remove(self.file_name)
                 print("File has been found and deleted.")
-            file_results = VTKFile(self.pb.mesh.comm, self.file_name, "w")
-            file_results.write_mesh(self.pb.mesh)
-            self.file_results = VTKFile(self.pb.mesh.comm, self.file_name, "a")
+            file_results = VTKFile(mesh.comm, self.file_name, "w")
+            file_results.write_mesh(mesh)
+            self.file_results = VTKFile(mesh.comm, self.file_name, "a")
         
-        self.setup_export_fields()
+        self._setup_export_fields(mesh)
         self.csv = OptimizedCSVExport(self.save_dir(output_file_name), 
                                       problem, dictionnaire_csv, export = self)
 
@@ -112,7 +112,7 @@ class ExportResults:
         else:
             return deviatoric
             
-    def setup_export_fields(self):
+    def _setup_export_fields(self, mesh):
         """Configure tous les espaces et expressions nécessaires pour l'export"""
         def set_func_expr(field_name, expr, V):
             setattr(self, f"V_{field_name}", V)
@@ -122,13 +122,13 @@ class ExportResults:
         # Contraintes
         if self.dico.get("sig") or self.dico_csv.get("sig"):
             sig_element = self.set_sig_element()
-            set_func_expr("sig", self.pb.sig, functionspace(self.pb.mesh, sig_element))
+            set_func_expr("sig", self.pb.sig, functionspace(mesh, sig_element))
 
         # Déviateur
         if self.dico.get("s") or self.dico_csv.get("s"):
             s_element = self.set_s_element()
             s_expr = self.extract_deviatoric(self.pb.constitutive.s)
-            set_func_expr("s", s_expr, functionspace(self.pb.mesh, s_element))
+            set_func_expr("s", s_expr, functionspace(mesh, s_element))
 
         # Pression
         if self.dico.get("p") or self.dico_csv.get("p"):
@@ -144,7 +144,7 @@ class ExportResults:
         # Taux de déformation
         if self.dico.get("D"):
             D_element = self.set_sig_element()
-            set_func_expr("D", self.pb.D, functionspace(self.pb.mesh, D_element))
+            set_func_expr("D", self.pb.D, functionspace(mesh, D_element))
         
         # Concentration
         if self.dico.get("c") is not None and hasattr(self.pb, 'multiphase'):

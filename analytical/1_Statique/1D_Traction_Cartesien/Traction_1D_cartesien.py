@@ -21,7 +21,6 @@ Date de création: 24 Juillet 2023
 from Charon import create_1D_mesh, CartesianUD, Solve, MeshManager
 from numpy import array, loadtxt
 import matplotlib.pyplot as plt
-# import numpy as np
 import pytest
 import sys
 sys.path.append("../")

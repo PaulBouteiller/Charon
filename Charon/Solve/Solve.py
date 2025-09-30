@@ -86,21 +86,24 @@ class Solve:
         5. Sets up optimized solution routines
         """
         self.pb = problem
-        self._set_initial_conditions(dictionnaire)
-        self.t = 0        
-        self.setup_export(dictionnaire)
-        self.set_iterative_solver_parameters()
-        self.set_time_step(**kwargs)
-        self.user_defined_displacement = dictionnaire.get("user_defined_displacement", None)
-
-        # self.update_Pth()
-        self.update_form_with_stabilization(dictionnaire)
-        self.set_solver()
-        self._set_time_dependant_BCs(self.load_steps)
+        self.t = 0
         self.compteur_output = kwargs.get("compteur", 1)
-        self._create_time_and_bcs_update()
-        self._create_problem_solve()
+        self.user_defined_displacement = dictionnaire.get("user_defined_displacement", None)
         self._create_output()
+        
+        #Part that rely on mesh
+        self._setup_export(dictionnaire)
+        self._set_time_step(**kwargs)
+        self._set_time_dependant_BCs(self.load_steps)
+        self._create_time_and_bcs_update()
+        self._update_form_with_stabilization(dictionnaire)
+        
+        
+        #Part that rely on mesh + function dfinition
+        self._set_initial_conditions(dictionnaire)
+        self._set_solver()
+        self._create_problem_solve()
+        self.update_Pth()
 
     def _set_initial_conditions(self, dictionnaire):
         def set_field(field, value, V):
@@ -136,7 +139,7 @@ class Solve:
             self.ux_ci = Function(V_x)
             self.ux_ci.interpolate(ci_dictionnaire["Ux"])
         
-    def update_form_with_stabilization(self, dictionnaire):
+    def _update_form_with_stabilization(self, dictionnaire):
         """
         Add artificial viscosity stabilization to the weak form.
         
@@ -294,7 +297,7 @@ class Solve:
                 op()
         self.problem_solve = problem_solve
 
-    def setup_export(self, dictionnaire):
+    def _setup_export(self, dictionnaire):
         """
         Configure the result export system.
         
@@ -311,12 +314,13 @@ class Solve:
         """
         self.export = ExportResults(
             self.pb, 
+            dictionnaire.get("mesh", self.pb.mesh),
             dictionnaire.get("Prefix", "Problem"), 
             dictionnaire.get("output", {}),
             dictionnaire.get("csv_output", {})
         )
         
-    def set_solver(self):
+    def _set_solver(self):
         """
         Initialize all specialized solvers based on problem configuration.
         
@@ -391,7 +395,7 @@ class Solve:
         if self.pb.multiphase_analysis and self.pb.multiphase_evolution:
             self.multiphase_solver = MultiphaseSolver(self.pb.multiphase, self.dt)
 
-    def set_time_step(self, **kwargs):
+    def _set_time_step(self, **kwargs):
         """
         Initialize time-stepping parameters and load steps.
 
@@ -436,15 +440,6 @@ class Solve:
         self.solver.atol = param.get("absolute_tolerance")
         self.solver.rtol = param.get("relative_tolerance")
         self.solver.convergence_criterion = param.get("convergence_criterion")
-
-    def set_iterative_solver_parameters(self):
-        """
-        Configure iterative solver parameters.
-        
-        Placeholder method for setting advanced iterative solver parameters.
-        Can be overridden in derived classes for specific solver configurations.
-        """
-        pass
             
     def update_pressure(self):
         """
