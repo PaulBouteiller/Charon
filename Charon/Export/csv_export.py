@@ -355,6 +355,8 @@ class OptimizedCSVExport:
             self.reaction_force.append(assemble_scalar(self.reaction_form))
             
     def export_field(self, t, field_name, field, dofs_to_export, subfield_name = None):
+        if self.pb.mpi_bool and COMM_WORLD.rank != 0:
+            return
         if isinstance(subfield_name, list):
             n_sub = len(subfield_name)
             for i in range(n_sub):
@@ -362,7 +364,9 @@ class OptimizedCSVExport:
                 self.write_field_data(field_name, t, data)
         else:
             data = self.gather_field_data(field, dofs_to_export)
-            self.write_field_data(field_name, t, data)        
+            self.write_field_data(field_name, t, data)       
+            
+        
 
     def get_coordinate_data(self, V, key):
         dof_coords = gather_coordinate(V) if self.pb.mpi_bool else V.tabulate_dof_coordinates()
@@ -387,12 +391,29 @@ class OptimizedCSVExport:
                 data = {"x": specific(dof_coords, 0, key), "y": specific(dof_coords, 1, key), "z" : specific(dof_coords, 2, key)}
             return data
 
+    # def gather_field_data(self, field, dofs_to_export, size = None, comp = None):
+    #     if self.pb.mpi_bool:
+    #         field_data = gather_function(field)
+    #     else:
+    #         field_data = field.x.petsc_vec.array
+
+    #     if isinstance(dofs_to_export, str) and dofs_to_export == "all" and size is None:
+    #         return field_data
+    #     elif isinstance(dofs_to_export, str) and dofs_to_export == "all" and size is not None:
+    #         return field_data[comp::size]
+    #     elif isinstance(dofs_to_export, ndarray):
+    #         return field_data[dofs_to_export]
+    #     else:
+    #         return field_data
+        
     def gather_field_data(self, field, dofs_to_export, size = None, comp = None):
         if self.pb.mpi_bool:
             field_data = gather_function(field)
+            if field_data is None:  # Sur les rangs non-root, gather renvoie None
+                return None
         else:
             field_data = field.x.petsc_vec.array
-
+        
         if isinstance(dofs_to_export, str) and dofs_to_export == "all" and size is None:
             return field_data
         elif isinstance(dofs_to_export, str) and dofs_to_export == "all" and size is not None:

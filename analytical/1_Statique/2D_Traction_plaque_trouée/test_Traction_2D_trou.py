@@ -27,7 +27,7 @@ import pytest
 from numpy import pi
 from mpi4py.MPI import COMM_WORLD
 import gmsh
-from dolfinx.io.gmshio import model_to_mesh
+from dolfinx.io.gmsh import model_to_mesh
 import sys
 sys.path.append("../../")
 from Generic_isotropic_material import Acier, E, nu
@@ -69,7 +69,7 @@ def quarter_perforated_plate(width, height, radius, h):
     gmsh.model.addPhysicalGroup(2, [surf], 1)
     gmsh.model.mesh.generate(2)
     
-    domain, _, _ = model_to_mesh(gmsh.model, COMM_WORLD, 0, gdim=2)
+    domain, _, _, _, _, _ = model_to_mesh(gmsh.model, COMM_WORLD, 0, gdim=2)
     gmsh.finalize()
     return domain, _, _
 

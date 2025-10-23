@@ -4,7 +4,7 @@ Created on Mon Feb 27 10:12:53 2023
 @author: bouteillerp
 """
 
-from CharonX import create_box, MyConstant, Tridimensional, Solve, MeshManager
+from Charon import create_box, MyConstant, Tridimensional, Solve, MeshManager
 from mpi4py.MPI import COMM_WORLD
 import numpy as np
 import time

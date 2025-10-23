@@ -146,7 +146,7 @@ class BoundaryConditions:
                                                            self.facet_tag.find(region))
             function = Function(V_bc)
             initial_function = Function(V_bc)
-            expression = Expression(value.ufl_expression, V_bc.element.interpolation_points())
+            expression = Expression(value.ufl_expression, V_bc.element.interpolation_points)
             initial_function.interpolate(expression)
             bcs.append(dirichletbc(function, dof_loc_with_mapping, self.current_space(space, isub)))
             self.my_expression_list.append((function, initial_function))

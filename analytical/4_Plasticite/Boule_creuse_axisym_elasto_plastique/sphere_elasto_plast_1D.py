@@ -53,7 +53,7 @@ Re = 600
 Ri = 300.0
 
 ###### Plasticity dictionnaire ######
-plasticity_model = "JAX_Gurson"
+plasticity_model = "HPP_Plasticity"
 plasticity_dic = {"model" : plasticity_model}
 if plasticity_model == "HPP_Plasticity" or plasticity_model == "Finite_Plasticity":
     plasticity_dic.update({"sigY" : sig0, "Hardening" : "Isotropic", "Hardening_modulus" : H})

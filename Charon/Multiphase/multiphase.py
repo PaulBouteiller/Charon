@@ -90,6 +90,9 @@ class Multiphase:
         self._setup_concentration_fields()
         self._set_initial_concentrations(multiphase_dictionary["conditions"])
         
+        chemical_energy_release_list = multiphase_dictionary.get("chemical_energy_release")
+        self.has_chemical_energy = bool(chemical_energy_release_list)
+        
         # Initialize evolution system if specified
         self.has_evolution = "evolution_laws" in multiphase_dictionary
         if self.has_evolution:
@@ -98,8 +101,6 @@ class Multiphase:
             self._create_interpolation_mask()
             self._setup_evolution_system(multiphase_dictionary["evolution_laws"])
             # self.dot_c_list = self.compute_concentration_rates()
-            chemical_energy_release_list = multiphase_dictionary.get("chemical_energy_release")
-            self.has_chemical_energy = bool(chemical_energy_release_list)
             if self.has_chemical_energy:
                 self._setup_chemical_energy_release(chemical_energy_release_list)
         else:
@@ -132,7 +133,7 @@ class Multiphase:
         
         # Convert conditions to UFL expressions and create Expression objects
         ufl_conditions = [conditional(condition, 1, 0) for condition in conditions]
-        interp = self.V_c.element.interpolation_points()
+        interp = self.V_c.element.interpolation_points
         expression_list = [Expression(condition, interp) for condition in ufl_conditions]
         
         # Interpolate onto concentration fields and initialize old concentrations

@@ -1,6 +1,6 @@
 from Charon import Tridimensional, Solve, MeshManager, Material
 from mpi4py.MPI import COMM_WORLD
-from dolfinx.io import gmshio
+from dolfinx.io import gmsh
 from pandas import read_csv
 from math import exp
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ copper = Material(rho0, C_mass, eos_type, dev_type, dico_eos, deviator_params)
 #%%Mesh
 mesh_name= "polycristal3D_min"
 output_name = "Compression_cisaillement"+mesh_name
-mesh, cell_tags, _ = gmshio.read_from_msh(mesh_name+".msh", COMM_WORLD, gdim=3, rank=0)
+mesh, cell_tags, _, _, _, _ = gmsh.read_from_msh(mesh_name+".msh", COMM_WORLD, gdim=3, rank=0)
 
 
 dictionnaire_mesh = {"tags": [1, 2, 3, 4, 5, 6],

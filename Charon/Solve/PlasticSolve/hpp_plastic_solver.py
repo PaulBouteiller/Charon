@@ -80,8 +80,8 @@ class HPPPlasticSolver:
             f_elas = sig_VM - self.plastic.sig_yield - self.plastic.H * self.plastic.p
             Delta_p = ppart(f_elas) / (3. * self.plastic.mu + self.plastic.H)
             Delta_eps_p = 3. * Delta_p / (2. * sig_VM) * s_mandel
-            self.Delta_p_expression = Expression(Delta_p, self.plastic.Vp.element.interpolation_points())
-        self.Delta_eps_p_expression = Expression(Delta_eps_p, self.plastic.Vepsp.element.interpolation_points())
+            self.Delta_p_expression = Expression(Delta_p, self.plastic.Vp.element.interpolation_points)
+        self.Delta_eps_p_expression = Expression(Delta_eps_p, self.plastic.Vepsp.element.interpolation_points)
     
     def solve(self):
         """Solve small strain plasticity problem.

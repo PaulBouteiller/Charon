@@ -56,7 +56,7 @@ class ExplicitEnergySolver:
         self.dt = dt
         self.T = T
         self.dot_T = PVol / C_tan
-        self.dot_T_expr = Expression(self.dot_T, self.T.function_space.element.interpolation_points())
+        self.dot_T_expr = Expression(self.dot_T, self.T.function_space.element.interpolation_points)
         self.dot_T_func = Function(self.T.function_space)
         self.integrator = ButcherIntegrator(lambda: self.dot_T_expr)
         

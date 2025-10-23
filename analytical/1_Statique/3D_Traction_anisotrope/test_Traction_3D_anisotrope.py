@@ -28,7 +28,7 @@ la cohérence de l'équation d'état.
 Auteur: bouteillerp
 Date de création: 11 Mars 2022
 """
-from Charon import Material, create_box, Tridimensional, Solve, MeshManager, build_orthotropic_stiffness, compute_bulk_modulus, build_transverse_isotropic_stiffness
+from Charon import Material, create_box, Tridimensional, Solve, MeshManager, build_orthotropic_stiffness, compute_bulk_modulus
 from mpi4py.MPI import COMM_WORLD
 import matplotlib.pyplot as plt
 import pandas as pd

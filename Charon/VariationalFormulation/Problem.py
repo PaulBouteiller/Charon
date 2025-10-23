@@ -461,11 +461,11 @@ class Problem:
                 rho_sum = sum(c * mat.rho_0 for c, mat in zip(self.multiphase.c, self.material))
                 rho_0_field_init = create_function_from_expression(
                     self.V_quad_UD, 
-                    Expression(rho_sum, self.V_quad_UD.element.interpolation_points())
+                    Expression(rho_sum, self.V_quad_UD.element.interpolation_points)
                 )
                 relative_rho_field_init_list = [Function(self.V_quad_UD) for _ in range(self.n_mat)]
                 for i in range(self.n_mat):
-                    relative_rho_field = Expression(self.material[i].rho_0 / rho_sum, self.V_quad_UD.element.interpolation_points()) 
+                    relative_rho_field = Expression(self.material[i].rho_0 / rho_sum, self.V_quad_UD.element.interpolation_points) 
                     relative_rho_field_init_list[i].interpolate(relative_rho_field)
 
                 return rho_0_field_init, relative_rho_field_init_list

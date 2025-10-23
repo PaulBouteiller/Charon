@@ -117,7 +117,7 @@ class ExportResults:
         def set_func_expr(field_name, expr, V):
             setattr(self, f"V_{field_name}", V)
             setattr(self, f"{field_name}", Function(V, name = field_name))
-            setattr(self, f"{field_name}_expr", Expression(expr, V.element.interpolation_points()))
+            setattr(self, f"{field_name}_expr", Expression(expr, V.element.interpolation_points))
 
         # Contraintes
         if self.dico.get("sig") or self.dico_csv.get("sig"):
@@ -151,7 +151,7 @@ class ExportResults:
             V_c = self.pb.multiphase.V_c
             n_mat = len(self.pb.material)
             self.c_list = [Function(V_c, name=f"Concentration ( {i} )")for i in range(n_mat)]    
-            self.c_expr_list= [Expression(self.pb.multiphase.c[i], V_c.element.interpolation_points())
+            self.c_expr_list= [Expression(self.pb.multiphase.c[i], V_c.element.interpolation_points)
                                for i in range(n_mat)]
 
     def export_results(self, t):

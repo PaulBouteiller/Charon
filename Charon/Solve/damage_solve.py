@@ -50,8 +50,7 @@ from .NL_problem import TAOProblem, SNESProblem
 from .hybrid_solver import create_linear_solver
 
 from ufl import (TrialFunction, TestFunction, dot, grad, inner, derivative)
-from dolfinx.fem.petsc import assemble_vector, create_matrix
-from dolfinx.la import create_petsc_vector
+from dolfinx.fem.petsc import assemble_vector, create_matrix, create_vector
 
 from petsc4py.PETSc import TAO, SNES, COMM_SELF
 from dolfinx.fem import form, Function
@@ -300,9 +299,6 @@ class PhaseFieldSolve(DamageSolve):
             self.solver.solve(self.dam.d.x.petsc_vec)
         elif self.dam_solver_type == "SNES":
             self.solver.solve(None, self.dam.d.x.petsc_vec)
-        # if self.over_relaxed:
-        #     over_relaxed_predictor(self.dam.d, self.dam.prev_d, 1.4)
-            
         set_correction(self.dam.d, prev_d, self.dam.max_d)
     
     def explicit_damage(self):
@@ -360,7 +356,7 @@ class PhaseFieldSolve(DamageSolve):
 
         elif self.dam_solver_type == "SNES":
             V = self.dam.V_d
-            b = create_petsc_vector(V.dofmap.index_map, V.dofmap.index_map_bs)
+            b = create_vector(V.dofmap.index_map, V.dofmap.index_map_bs)
             J = create_matrix(self.problem.a)
             solver_d = SNES().create()
             solver_d.setType("vinewtonrsls")

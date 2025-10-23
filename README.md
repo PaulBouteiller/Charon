@@ -44,10 +44,7 @@ Charon is designed for simulations involving complex material behaviors such as:
 
 Charon depends on DOLFINx and other components of the FEniCSx ecosystem. See https://github.com/FEniCS/dolfinx for installation of FEniCSx. To install:
 
+To install Charon and all its dependencies, we recommend using the provided `environment.yml` file which sets up a complete conda environment with FEniCSx and all required packages:
 ```bash
-# Install optional dependencies for advanced features
-python -m pip install jax Diffrax
-# Clone and install CharonX
-git clone https://github.com/username/CharonX.git
-cd CharonX
-pip install -e .
+conda env create -f environment.yml
+conda activate charon-env

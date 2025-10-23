@@ -586,7 +586,7 @@ def create_linear_solver(a, L, u, bcs=None, comm=None, solver_type="default", pa
     -------
     solver : dolfinx.fem.petsc.LinearProblem or HybridLinearSolver Le solveur créé
     """
-    problem = LinearProblem(a, L, u=u, bcs=bcs)
+    problem = LinearProblem(a, L, u=u, bcs=bcs, petsc_options_prefix = "linear")
     
     # Si comm n'est pas fourni, tenter de l'extraire de u
     if comm is None and u is not None:

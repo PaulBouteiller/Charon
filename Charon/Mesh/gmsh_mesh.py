@@ -16,7 +16,7 @@ try:
 except Exception:
     print("Gmsh has not been loaded therefore cannot be used")
 from dolfinx.io import XDMFFile
-from dolfinx.io.gmshio import model_to_mesh
+from dolfinx.io.gmsh import model_to_mesh
 from mpi4py.MPI import COMM_WORLD
 from dolfinx.mesh import create_interval, create_rectangle, CellType
 from numpy import array
@@ -46,7 +46,7 @@ def return_mesh(model, comm, rank, gdim, quad, write):
     gmsh.model.mesh.generate(gdim)
     gmsh.model.mesh.setOrder(default_fem_degree())
     gmsh.model.mesh.optimize("Netgen")
-    domain, meshtags, facets = model_to_mesh(model, comm, rank, gdim=gdim)
+    domain, meshtags, facets, _, _, _ = model_to_mesh(model, comm, rank, gdim=gdim)
     gmsh.finalize()
     if write:
         with XDMFFile(COMM_WORLD, "mesh.xdmf", "w") as infile:

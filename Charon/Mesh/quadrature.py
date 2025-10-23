@@ -20,7 +20,6 @@ Il permet de définir des points et des poids de Gauss personnalisés qui
 vont ensuite être utilisés pour intégrer la forme billinéaire de masse.
 """
 from numpy import array, kron, meshgrid, vstack
-# from basix import make_quadrature, CellType, QuadratureType
 from dolfinx.fem import functionspace
 from basix.ufl import quadrature_element as quad_el
 from ufl import FunctionSpace

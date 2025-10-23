@@ -57,7 +57,7 @@ class MultiphaseSolver:
                 if mask_value or (mask_value is False and self.mult.reactifs[i]):
                     # True: calcul complet OU False mais réactif (on interpole une fois)
                     self.dot_c.append(Function(V_c))
-                    self.dot_c_expr.append(Expression(self.mult.dot_c[i], V_c.element.interpolation_points()))
+                    self.dot_c_expr.append(Expression(self.mult.dot_c[i], V_c.element.interpolation_points))
                     self.interpolation_indices.append(i)
         self.interpolation_length = len(self.dot_c)
     

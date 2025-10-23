@@ -31,15 +31,13 @@ from .PlasticSolve.jax_gurson_plastic_solver import JAXGursonPlasticSolver
 from .PlasticSolve.jax_gurson_plastic_solver_hpp import GTNSimpleJAXSolver
 
 from .multiphase_solve import MultiphaseSolver
-
 from .damage_solve import StaticJohnsonSolve, DynamicJohnsonSolve, InertialJohnsonSolve, PhaseFieldSolve
 from .hypoelastic_solve import HypoElasticSolve
 from .time_stepping import TimeStepping
 
-from ..utils.parameters.default import default_Newton_displacement_solver_parameters
+
 from ..Export.export_result import ExportResults
 
-from dolfinx.nls.petsc import NewtonSolver
 from dolfinx.fem import petsc, Expression, Function
 from tqdm import tqdm
 from ufl.classes import Conditional, LE, GE, LT, GT, EQ
@@ -89,6 +87,7 @@ class Solve:
         self.t = 0
         self.compteur_output = kwargs.get("compteur", 1)
         self.user_defined_displacement = dictionnaire.get("user_defined_displacement", None)
+        self.nl_solver_options = dictionnaire.get("petsc_options", None)
         self._create_output()
         
         #Part that rely on mesh
@@ -108,7 +107,7 @@ class Solve:
     def _set_initial_conditions(self, dictionnaire):
         def set_field(field, value, V):
             if isinstance(value, Conditional):
-                expr = Expression(value, V.element.interpolation_points())
+                expr = Expression(value, V.element.interpolation_points)
                 field.interpolate(expr)
             elif isinstance(value, float):
                 field.x.array[:] = value
@@ -119,7 +118,7 @@ class Solve:
             if isinstance(value, (LE, GE, GT, LT, EQ)):
                 condition = conditional(value, 1, 0)
                 set_field(field, condition, V)
-                expr = Expression(value, V.element.interpolation_points())
+                expr = Expression(value, V.element.interpolation_points)
                 field.interpolate(expr)
             elif isinstance(value, float):
                 field.x.array[:] = value
@@ -268,7 +267,7 @@ class Solve:
             if self.pb.damage_analysis or self.pb.plastic_analysis:
                 operations.append(lambda: self.staggered_solve())
             else:
-                operations.append(lambda: self.solver.solve(self.pb.u))
+                operations.append(lambda: self.problem_u.solve())
             
             if self.pb.is_tabulated:
                 operations.append(lambda: self.update_pressure())
@@ -434,12 +433,11 @@ class Solve:
         solving nonlinear equilibrium equations in static analysis.
         The solver uses PETSc's nonlinear problem interface.
         """
-        param = default_Newton_displacement_solver_parameters()
-        self.problem_u = petsc.NonlinearProblem(self.pb.form, self.pb.u, self.pb.bcs.bcs)
-        self.solver = NewtonSolver(self.pb.mesh.comm, self.problem_u)
-        self.solver.atol = param.get("absolute_tolerance")
-        self.solver.rtol = param.get("relative_tolerance")
-        self.solver.convergence_criterion = param.get("convergence_criterion")
+        self.problem_u = petsc.NonlinearProblem(
+            self.pb.form, self.pb.u, bcs=self.pb.bcs.bcs, 
+            petsc_options_prefix = "my_nl_problem_",
+            petsc_options=self.nl_solver_options
+            )
             
     def update_pressure(self):
         """
@@ -479,7 +477,7 @@ class Solve:
             
         while niter < self.Nitermax and (evol_dam or evol_plas):
             # Displacement solve
-            self.solver.solve(self.pb.u)
+            self.problem_u.solve()
             
             # Damage evolution
             if evol_dam:                          

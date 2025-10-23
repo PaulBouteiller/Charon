@@ -181,30 +181,6 @@ def default_porosity_parameters():
     poro.update({"Initial_pore_distance": 1e-7})
     return poro
 
-def default_Newton_displacement_solver_parameters():
-    """
-    Get default parameters for Newton solver for displacement problems.
-    
-    Sets up default solver type, tolerances, and iteration limits.
-    
-    Returns
-    -------
-    dict
-        Dictionary containing Newton solver parameters:
-        - linear_solver: Linear solver type ("mumps")
-        - relative_tolerance: Relative convergence criterion (1e-8)
-        - absolute_tolerance: Absolute convergence criterion (1e-8)
-        - convergence_criterion: Type of convergence criterion ("incremental")
-        - maximum_iterations: Maximum number of iterations (2000)
-    """
-    solver_u = {}
-    solver_u.update({"linear_solver": "mumps"})
-    solver_u.update({"relative_tolerance": 1e-8})
-    solver_u.update({"absolute_tolerance": 1e-8})
-    solver_u.update({"convergence_criterion": "incremental"})
-    solver_u.update({"maximum_iterations": 2000})
-    return solver_u
-
 def default_regularization_linear_solver_parameters():
     """
     Get default parameters for regularization linear solver.

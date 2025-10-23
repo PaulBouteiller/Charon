@@ -39,7 +39,7 @@ class FiniteStrainPlasticSolver:
         self.plastic = plastic
         self.u = u
         Be_trial = self.plastic.Be_trial(u, self.plastic.u_old)
-        self.barI_e_expr = Expression(1./3 * tr(Be_trial), self.plastic.V_Ie.element.interpolation_points())       
+        self.barI_e_expr = Expression(1./3 * tr(Be_trial), self.plastic.V_Ie.element.interpolation_points)       
         self.set_dev_Be_expression(dev(Be_trial))
 
     def set_dev_Be_expression(self, dev_Be_trial):
@@ -61,7 +61,7 @@ class FiniteStrainPlasticSolver:
         eps = 1e-6
         dev_Be_expr_3D = (1 - (2 * self.plastic.barI_e * ppart(Delta_gamma)) / (norme_dev_Be_trial + eps)) * dev_Be_trial
         dev_Be_expr = self.plastic.kin.tensor_3d_to_mandel_compact(dev_Be_expr_3D)
-        self.dev_Be_expr = Expression(dev_Be_expr, self.plastic.V_dev_BE.element.interpolation_points())
+        self.dev_Be_expr = Expression(dev_Be_expr, self.plastic.V_dev_BE.element.interpolation_points)
         self.plastic.dev_Be.interpolate(self.dev_Be_expr)
         
     def solve(self):

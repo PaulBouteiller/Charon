@@ -212,7 +212,7 @@ class TabulatedEOS(BaseEOS):
         """
         V = quadrature.quadrature_space(["Scalar"])
         self.J_func = Function(V)
-        self.J_expr = Expression(J, V.element.interpolation_points())
+        self.J_expr = Expression(J, V.element.interpolation_points)
         self.J_func.interpolate(self.J_expr)
         self.T = T
         p = Function(V)
