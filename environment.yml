@@ -1,0 +1,25 @@
+name: charon-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  # Packages installés via conda
+  - fenics-dolfinx=0.10.0
+  - mpich
+  - pyvista
+  - adios4dolfinx
+  - pytest
+  - spyder
+  - gmsh
+  - scipy
+  - pandas
+  - tqdm
+  # Packages installés via pip
+  - pip
+  - pip:
+    - pyvista4dolfinx
+    - jax
+    - jaxlib
+    - diffrax
+    - optimistix
