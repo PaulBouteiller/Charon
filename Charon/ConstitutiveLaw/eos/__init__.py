@@ -40,6 +40,7 @@ from .macaw import MACAWEOS
 from .mie_gruneisen import MGEOS, xMGEOS, PMGEOS
 from .gas import GPEOS
 from .tabulated import TabulatedEOS, has_tabulated_eos
+from .third_order_birch_murnaghan import BirchMurnaghanEOS
 
 __all__ = [
     'BaseEOS',
@@ -54,7 +55,8 @@ __all__ = [
     'PMGEOS',
     'GPEOS',
     'TabulatedEOS',
-    'has_tabulated_eos'
+    'has_tabulated_eos',
+    'BirchMurnaghanEOS'
 ]
 
 class EOS:
