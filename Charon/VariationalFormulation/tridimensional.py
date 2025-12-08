@@ -169,3 +169,5 @@ class Tridimensional(Problem):
        ufl.tensors.ListTensor Conjugate strain tensor
        """
        return dot(grad(self.u_), self.kinematic.cofactor_compact(self.u))
+       #Version avec PK1 
+       # return grad(self.u_)

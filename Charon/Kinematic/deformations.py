@@ -42,7 +42,7 @@ class Deformations:
             return det(Identity(3) + grad(displacement_field))
         
     def inv_deformation_gradient_3D(self, displacement_field):
-        """Return the inverse of the deformation gradient in compact form."""
+        """Return the inverse of the deformation gradient in 3D form."""
         # 1D models
         if self.name == "CartesianUD":
             return as_tensor([[1 / (1 + displacement_field.dx(0)), 0, 0],

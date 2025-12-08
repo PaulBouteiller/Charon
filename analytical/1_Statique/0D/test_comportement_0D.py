@@ -23,13 +23,13 @@ from material_definition import set_material
 from numerical_analytical_comparison import comparison
 
 ###### Materiau ######
-eos_type = "Tabulated"
+eos_type = "MACAW"
 devia_type = "NeoHook"
 Mat = set_material(eos_type, devia_type)
 
 ###### Chargement ######
 varepsilon = -0.3
-T0 = 1e3
+T0 = 298
 
 mesh = create_1D_mesh(0, 1, 1)
 dictionnaire_mesh = {"tags": [1, 2], "coordinate": ["x", "x"], "positions": [0, 1]}

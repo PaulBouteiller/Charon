@@ -74,7 +74,7 @@ class MACAWEOS(BaseEOS):
         -------
         list List of parameter names
         """
-        return ["A", "B", "C", "eta", "vinf", "rho0", "theta0", "a0", "m", "n", 
+        return ["A", "B", "C", "vinf", "rho0", "theta0", "a0", "m", "n", 
                 "Gammainf", "Gamma0", "cvinf"]
     
     def __init__(self, params):
@@ -92,7 +92,6 @@ class MACAWEOS(BaseEOS):
         self.C = params["C"]
         
         # Store parameters - thermal
-        self.eta = params["eta"]
         self.vinf = params["vinf"]
         self.rho0 = params["rho0"]
         self.theta0 = params["theta0"]
@@ -103,18 +102,26 @@ class MACAWEOS(BaseEOS):
         self.Gamma0 = params["Gamma0"]
         self.cvinf = params["cvinf"]
         
-        # Log parameters
-        print(f"Coefficient A: {self.A}")
-        print(f"Coefficient B: {self.B}")
-        print(f"Coefficient C: {self.C}")
-        print(f"Coefficient eta: {self.eta}")
-        print(f"Coefficient theta0: {self.theta0}")
-        print(f"Coefficient a0: {self.a0}")
-        print(f"Coefficient m: {self.m}")
-        print(f"Coefficient n: {self.n}")
-        print(f"Coefficient Gammainf: {self.Gammainf}")
-        print(f"Coefficient Gamma0: {self.Gamma0}")
-    
+        # Log parameters with physical meaning and units
+        print("=== MACAW EOS Parameters ===")
+        print("--- Cold curve (Eq. 7) ---")
+        print(f"  A = {self.A} [GPa] - Pressure scale parameter")
+        print(f"  B = {self.B} [-] - Exponent related to K'_T at infinite pressure")
+        print(f"  C = {self.C} [-] - Exponent related to K'_T at reference state")
+        
+        print("--- Thermal model ---")
+        print(f"  rho0 = {self.rho0} [g/cm³] - Reference density")
+        print(f"  vinf = {self.vinf} [cm³/g] - Reference specific volume for Gamma model")
+        print(f"  theta0 = {self.theta0} [K] - Temperature scale at V=V_inf")
+        print(f"  cvinf = {self.cvinf} [kJ/(g·K)] - Asymptotic specific heat capacity")
+        print(f"  a0 = {self.a0} [-] - Linear coefficient in Cv model")
+        
+        print("--- Grüneisen parameters ---")
+        print(f"  Gamma0 = {self.Gamma0} [-] - Grüneisen parameter at infinite expansion")
+        print(f"  Gammainf = {self.Gammainf} [-] - Grüneisen parameter at infinite compression")
+        print(f"  m = {self.m} [-] - Exponent controlling Gamma(V) slope")
+        print(f"  n = {self.n} [-] - Exponent controlling a(V) width")
+        
     def celerity(self, rho_0):
         """Calculate wave velocity in material.
         
@@ -147,28 +154,26 @@ class MACAWEOS(BaseEOS):
         """
         def thetav(theta0, v, vinf, gamma0, gammainf, m):
             """Helper function for MACAW thermal calculations."""
-            eta = v/vinf
+            ratio = v / vinf
             beta = (gammainf - gamma0) / m
-            theta = theta0*(eta)**(-gamma0)*((eta)**(-m) + 1)**(beta)
+            theta = theta0*(ratio)**(-gamma0)*((ratio)**(-m) + 1)**(beta)
             return theta
 
         def dthetadv(theta0, v, vinf, gamma0, gammainf, m):
             """Derivative of theta with respect to v."""
-            eta=v/vinf
-            th=thetav(theta0, v, vinf, gamma0, gammainf, m)
-            dtheta=-(th/eta)*(gamma0+(gammainf-gamma0)/(1.+(eta**m)))
+            ratio=v/vinf
+            theta=thetav(theta0, v, vinf, gamma0, gammainf, m)
+            dtheta=-(theta/ratio)*(gamma0+(gammainf-gamma0)/(1.+(ratio**m)))
             return dtheta/vinf
 
         def av(a0, vinf, v, n):
             """Another helper function for MACAW."""
-            eta=v/vinf
-            a=a0/(1.+(eta)**(-n))
-            return a
+            return a0/(1.+(v/vinf)**(-n))
 
         def dadv(a0, vinf, v, n):
             """Derivative of a with respect to v."""
-            eta=v/vinf
-            da=(n/eta)*a0*(eta**n)/((1.+eta**n)**2)
+            ratio=v / vinf
+            da=(n/ratio)*a0*(ratio**n)/((1.+ratio**n)**2)
             return da/vinf
 
         def thermal_curve(rho, T, cvinf, a0, vinf, n, theta0, gamma0, gammainf, m):
@@ -179,25 +184,25 @@ class MACAWEOS(BaseEOS):
             avloc=av(a0, vinf, v, n)
             dadvloc=dadv(a0, vinf, v, n)
     
-            q0=dadvloc/3.-dthetadvloc/thetavloc
-            q1=5*thetavloc*dadvloc/6.-avloc*dthetadvloc/6.
-            q2=(thetavloc**2)*dadvloc/2.-avloc*thetavloc*dthetadvloc/2.
-            pref=cvinf/((T+thetavloc)**3)
-            thermal=pref*(q0*(T**4)+q1*(T**3)+q2*(T**2))
+            q0 = dadvloc/3.-dthetadvloc/thetavloc
+            q1 = 5*thetavloc*dadvloc/6.-avloc*dthetadvloc/6.
+            q2 = (thetavloc**2)*dadvloc/2.-avloc*thetavloc*dthetadvloc/2.
+            pref = cvinf/((T+thetavloc)**3)
+            thermal = pref*(q0*(T**4)+q1*(T**3)+q2*(T**2))
             return thermal
 
-        def cold_curve(rho0, A, B, C, rho):
+        def cold_curve(A, B, C, J):
             """Calculate the cold pressure component."""
-            eta=rho0/rho
-            cold_a=A*eta**(-(B+1.))
-            cold_b=exp(2.*C*(1.-eta**(3./2.))/3.)
-            cold_c=C*eta**(3./2.)+B
-            cold_d=A*(B+C)
-            cold=cold_a*cold_b*cold_c-cold_d
+            eta = J
+            cold_a = A*eta**(-(B+1.))
+            cold_b = exp(2.*C*(1.-eta**(3./2.))/3.)
+            cold_c = C*eta**(3./2.)+B
+            cold_d = A*(B+C)
+            cold = cold_a*cold_b*cold_c-cold_d
             return cold
 
-        rholoc = self.rho0/J
-        pc = cold_curve(self.rho0, self.A, self.B, self.C, rholoc)
-        pth = thermal_curve(rholoc, T, self.cvinf, self.a0, self.vinf, self.n, 
+        rho = self.rho0/J
+        pc = cold_curve(self.A, self.B, self.C, J)
+        pth = thermal_curve(rho, T, self.cvinf, self.a0, self.vinf, self.n, 
                            self.theta0, self.Gamma0, self.Gammainf, self.m)
         return pc + pth

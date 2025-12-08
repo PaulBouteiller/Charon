@@ -40,7 +40,8 @@ from .eos import (IsotropicHPPEOS, UEOS, VinetEOS, JWLEOS, MACAWEOS,
                   MGEOS, xMGEOS, PMGEOS, GPEOS, TabulatedEOS)
 
 from .deviator import (NoneDeviator, IsotropicHPPDeviator, MooneyRivlinDeviator,
-                       AnisotropicDeviator, NeoHookDeviator, HypoelasticDeviator)
+                       AnisotropicDeviator, NeoHookDeviator, HypoelasticDeviator,
+                       CompressedIntermediateDeviator)
 
 
 class Material:
@@ -132,7 +133,8 @@ class Material:
                               "NeoHook": NeoHookDeviator,
                               "Hypoelastic": HypoelasticDeviator,
                               "MooneyRivlin": MooneyRivlinDeviator,
-                              "Anisotropic": AnisotropicDeviator}
+                              "Anisotropic": AnisotropicDeviator,
+                              "CompressedIntermediate" : CompressedIntermediateDeviator}
         
         if dev_type not in deviatoric_classes:
             raise ValueError(f"Unknown deviatoric behavior: {dev_type}")

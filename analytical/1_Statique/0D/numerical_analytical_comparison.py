@@ -51,9 +51,14 @@ def comparison(mat, varepsilon, T):
         elif eos_type == "JWL":
             p_analytique_array.append(JWL(eos.A, eos.B, eos.R1, eos.R2, J))
         elif eos_type == "MACAW":
-            p_analytique_array.append(MACAW(eos.A, eos.B, eos.C, eos.eta, eos.theta0, 
-                                            eos.a0, eos.m, eos.n, eos.Gammainf, 
-                                            eos.Gamma0, mat.C_mass, J, T))
+            p_analytique_array.append(MACAW(eos.A, eos.B, eos.C, 
+                                            1/eos.rho0,      # V0 = volume spécifique de référence
+                                            eos.vinf,        # Vinf (manquait)
+                                            eos.theta0, 
+                                            eos.a0, eos.m, eos.n, 
+                                            eos.Gammainf, eos.Gamma0, 
+                                            eos.cvinf,       # cvinf au lieu de mat.C_mass
+                                            J, T))
         elif eos_type == "Tabulated":
             p_analytique_array.append(tabulated(1e4, J))
         if devia_type == "IsotropicHPP":
@@ -75,7 +80,7 @@ def comparison(mat, varepsilon, T):
     # assert int_discret < 1e-3, "EOS test fail"
     
     
-    s_csv = read_csv("Test_0D_"+eos_type+"-results/deviateur.csv")
+    s_csv = read_csv("Test_0D_"+eos_type+"-results/s.csv")
     resultat = [s_csv[colonne].to_numpy() for colonne in s_csv.columns]
     s_array = array([resultat[3 * i+1][0] for i in range((len(resultat)-1)//3)])
     # if __name__ == "__main__": 

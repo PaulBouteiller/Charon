@@ -51,36 +51,38 @@ def MG(C, D, S, J):
 def JWL(A, B, R1, R2, J):
     return A * exp(-R1 * J) + B * exp(-R2 * J)   
 
-def MACAW(A, B, C, eta, theta0, a0, m, n, gammainf, gamma0, C_mass, J, T):
-    def theta(J, theta0, eta, gamma0, m, gammainf):
-        return theta0 * (J * eta)**(-gamma0) * \
-                (1 + (J * eta)**(-m))**((gammainf-gamma0)/m)
+def MACAW(A, B, C, V0, Vinf, theta0, a0, m, n, gammainf, gamma0, Cv_inf, J, T):
+    V = J * V0
     
-    def a(J, a0, eta, n):
-        return a0 / (1 + (J * eta)**(-n))
+    def theta(V):
+        ratio = V / Vinf
+        return theta0 * ratio**(-gamma0) * (ratio**(-m) + 1)**((gammainf - gamma0) / m)
+      
+    def a(V):
+        return a0 / (1 + (V / Vinf)**(-n))
     
-    def dadJ(J, a0, eta, n):
-        return (a0 * n * (eta * J)**n) / (J * (1 + (J * eta)**n)**2) 
+    def dadV(V):
+        return a0 * n * (V / Vinf)**n / (V * (1 + (V / Vinf)**n)**2)
     
-    def dthetadJ(J, theta0, eta, gamma0, m, gammainf):
-        numerateur = - theta(J, theta0, eta, gamma0, m, gammainf) * \
-                        (gammainf + gamma0 * (J * eta)**m)
-        denominateur = J * (1 + (J * eta)**m)
-        return numerateur / denominateur
-
+    def dthetadV(V):
+        return -theta(V) * (gammainf + gamma0 * (V / Vinf)**m) / (V * (1 + (V / Vinf)**m))
+    
     p_cold = A*J**(-B-1) * exp(2./3*C*(1.-J**(3./2))) * (C * J**(3./2) + B) - A*(B+C)
     
-    thetaJ = theta(J, theta0, eta, gamma0, m, gammainf)
-    aJ = a(J, a0, eta, n)
-    dthetadJJ = dthetadJ(J, theta0, eta, gamma0, m, gammainf)
-    dadJJ = dadJ(J, a0, eta, n)
+    # Appeler les nouvelles fonctions avec V
+    thetaV = theta(V)
+    aV = a(V)
+    dthetadVV = dthetadV(V)
+    dadVV = dadV(V)
         
-    q0 = 1. / 3 * dadJJ - dthetadJJ / thetaJ
-    q1 = 5. / 6 * thetaJ * dadJJ - aJ * dthetadJJ / 6.
-    q2 = thetaJ**2 * dadJJ / 2. - aJ * thetaJ * dthetadJJ / 2.
-    pref = C_mass / (T + thetaJ)**3 #Pour compenser ma dérivation par rapport à J
-    P_th = pref * (q0 * T**4 + q1 *T **3 + q2 * T **2)
+    q0 = 1./3 * dadVV - dthetadVV / thetaV
+    q1 = 5./6 * thetaV * dadVV - aV * dthetadVV / 6.
+    q2 = thetaV**2 * dadVV / 2. - aV * thetaV * dthetadVV / 2.
+    pref = Cv_inf / (T + thetaV)**3
+    P_th = pref * (q0 * T**4 + q1 * T**3 + q2 * T**2)
     return p_cold + P_th
+
+
 
 def tabulated(kappa, J):
     return p1(kappa, J)

@@ -55,7 +55,7 @@ from .deviator import Deviator
 from .plasticity.plastic import HPPPlastic, FiniteStrainPlastic, JAXJ2Plasticity, JAXGursonPlasticity, GTNSimplePlasticity
 from .damage import PhaseFieldDamage, StaticJohnson, DynamicJohnson, InertialJohnson
 
-from ufl import Identity
+from ufl import Identity, dot
 
 class ConstitutiveLaw:
     """Manages the constitutive relations for mechanical simulations.
@@ -197,8 +197,13 @@ class ConstitutiveLaw:
         self.p = sum(self.multiphase.c[i] * self.pressure_list[i] for i in range(n_materials))
         self.s = sum(self.multiphase.c[i] * self.deviatoric_list[i] for i in range(n_materials))
         # Compute total stress
-        return -self.p * Identity(3) + self.s
+        # return -self.p * Identity(3) + self.s
     
+    
+        #Version alternative avec PK1 si self.s designe enfait le déviateur de PK1
+        # invF = self.kinematic.inv_deformation_gradient_3D(u)
+        # return -self.p * J * invF.T + self.s est ce juste ?
+        
     def _calculate_single_phase_stress(self, u, v, T, T0, J):
         """Calculate stress for a single phase material.
         
@@ -213,7 +218,11 @@ class ConstitutiveLaw:
         # Calculate stress components
         self.p, self.s = self._calculate_stress_components(u, v, T, T0, J, self.material)
         # Return total stress
-        return -self.p * Identity(3) + self.s        
+        return -self.p * Identity(3) + self.s   
+    
+        #Version alternative avec PK1 si self.s designe enfait le déviateur de PK1
+        # invF = self.kinematic.inv_deformation_gradient_3D(u)
+        # return -self.p * J * invF.T + self.s est ce juste ?
     
     def _calculate_stress_components(self, u, v, T, T0, J, material, relative_density = 1):
         """Calculate individual stress components for a given material.

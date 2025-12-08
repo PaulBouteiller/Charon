@@ -59,11 +59,12 @@ from .neo_hook import NeoHookDeviator
 from .mooney_rivlin import MooneyRivlinDeviator
 #Anisotropic deviator
 from .anisotropic import AnisotropicDeviator
+from .compressed_intermediate import CompressedIntermediateDeviator
 #Hypoelastic deviator
 from .hypoelastic import HypoelasticDeviator
 __all__ = ['BaseDeviator', 'Deviator', 'NoneDeviator',
            'IsotropicHPPDeviator', 'NeoHookDeviator', 'MooneyRivlinDeviator',
-           'AnisotropicDeviator', 'HypoelasticDeviator']
+           'AnisotropicDeviator', 'HypoelasticDeviator', 'CompressedIntermediateDeviator']
 
 class Deviator:
     """Main interface for deviatoric stress calculations.

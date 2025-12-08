@@ -51,25 +51,39 @@ def set_material(eos_type, devia_type):
         w = 0
         dico_eos = {"A": A, "B" : B, "R1": R1, "R2" : R2, "w":w}
         
-    elif eos_type=="MACAW":
-        rho0 = 1.6
-        v0 = 1/rho0
-        A = 0.127
-        B = 4.6
-        C = 2.4
-        vinf = 0.56
-        eta = v0/vinf
-        theta0 = 80.6
-
-        a0 = 2.0
-        n = -1.4
-
-        gamma0 = 0.2
-        gammainf = 0.37
-        m = 7.1
-        dico_eos = {"A": A, "B" : B, "C": C, "eta" : eta, "theta0" : theta0,
-                    "a0": a0, "n" : n, "m" : m, "Gamma0" : gamma0, "Gammainf" : gammainf}
+    elif eos_type == "MACAW":
+        # PETN parameters from Table III (Lozano et al., J. Appl. Phys. 2023)
         
+        # Cold curve parameters
+        A = 0.10054        # [GPa]
+        B = 0.66667        # [-]
+        C = 10.466         # [-]
+        
+        # Reference state
+        rho0 = 1.774       # [g/cm³] - Table II experimental ambient density
+        
+        # Thermal model parameters
+        vinf = 0.43752     # [cm³/g]
+        theta0 = 218.95    # [K]
+        a0 = 1.9477        # [-]
+        m = 3.1674         # [-]
+        n = 3.1674         # [-]
+        
+        # Grüneisen parameters
+        Gamma0 = 1./84     # [-] (~0.0119)
+        Gammainf = 2./3    # [-] (~0.6667)
+        
+        # Specific heat capacity
+        cvinf = 2.2881e-3  # [kJ/(g·K)]
+        
+        dico_eos = {
+            "A": A, "B": B, "C": C,
+            "rho0": rho0, "vinf": vinf,
+            "theta0": theta0, "a0": a0,
+            "m": m, "n": n,
+            "Gamma0": Gamma0, "Gammainf": Gammainf,
+            "cvinf": cvinf
+        }
     if eos_type == "MACAW":
         C_mass = 1e-2
     else:
