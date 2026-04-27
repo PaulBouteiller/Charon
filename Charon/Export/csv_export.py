@@ -31,6 +31,10 @@ from petsc4py.PETSc import ScalarType
 from dolfinx.fem.petsc import set_bc
 from ufl import action
 
+from ufl import dx
+from dolfinx.fem import Constant
+from mpi4py.MPI import SUM
+
 class OptimizedCSVExport:
     FIELD_COMPONENTS = {
         "CartesianUD": {
@@ -99,6 +103,7 @@ class OptimizedCSVExport:
         self.setup_concentration_export()
         self.setup_free_surface_export()
         self.setup_reaction_force_export()
+        self.setup_mean_stress_export()
         
     def setup_simple_field(self, field_name, space):
         if field_name in self.dico_csv:
@@ -209,6 +214,21 @@ class OptimizedCSVExport:
             self.free_surf_v = []
         else:
             self.csv_FreeSurf_1D = False
+            
+    def setup_mean_stress_export(self):
+        if "sig_mean" in self.dico_csv:
+            self.csv_export_sig_mean = True
+            components = self.FIELD_COMPONENTS[self.pb.name]["sig"]
+            self.sig_mean_name_list = components
+            # Volume du domaine (une seule fois)
+            vol_local = assemble_scalar(form(Constant(self.pb.mesh, ScalarType(1.0)) * dx))
+            self.volume = (COMM_WORLD.allreduce(vol_local, op=SUM)
+                           if self.pb.mpi_bool else vol_local)
+            # Une forme par composante
+            self.sig_mean_forms = [form(self.export.sig[i] * dx)
+                                   for i in range(len(components))]
+        else:
+            self.csv_export_sig_mean = False
             
     def setup_reaction_force_export(self):
         def set_gen_F(boundary_flag, value):
@@ -344,6 +364,20 @@ class OptimizedCSVExport:
         if self.csv_export_c:
             for i, c_field in enumerate(self.pb.multiphase.c):
                 self.export_field(t, f"Concentration{i}", c_field, self.c_dte)
+                        
+        if self.csv_export_sig_mean:
+            self.export.sig.interpolate(self.export.sig_expr)
+            sig_mean_loc = [assemble_scalar(f) for f in self.sig_mean_forms]
+            if self.pb.mpi_bool:
+                sig_mean = [COMM_WORLD.allreduce(s, op=SUM) for s in sig_mean_loc]
+            else:
+                sig_mean = sig_mean_loc
+            sig_mean = [s / self.volume for s in sig_mean]
+            if COMM_WORLD.Get_rank() == 0:
+                row = [f"{t:.6e}"] + [f"{s:.6e}" for s in sig_mean]
+                self.csv_writers["sig_mean"].writerow(row)
+                self.file_handlers["sig_mean"].flush()
+
         if self.csv_FreeSurf_1D:
             if COMM_WORLD.Get_rank() == 0:
                 self.time.append(t)
@@ -477,8 +511,9 @@ class OptimizedCSVExport:
                 self.post_process_csv(field_name, subfield_name = self.s_name_list)
             elif field_name == "FreeSurf_1D":
                 pass
+            elif field_name == "sig_mean":
+                pass  # fichier déjà au bon format (1 ligne/temps, colonnes = composantes)
             elif field_name == "reaction_force":
-                a=1
                 pass
             else:
                 raise ValueError(f"{field_name} can not be post process")

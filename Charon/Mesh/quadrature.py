@@ -189,37 +189,34 @@ class Quadrature():
             
     def default_quadrature_degree(self):
         """
-        Determines the quadrature degree to be used for stiffness matrix integration.
+        Quadrature degree for stiffness/constitutive integration.
     
-        Returns
-        -------
-        int Quadrature degree, maximum degree of polynomials integrated 
-                                exactly by the quadrature rule).
+        Conventions
+        -----------
+        - 'default' : 2p   (intégration robuste sur géométrie distordue ou
+                            loi non linéaire ; couvre simplexes et tensoriels).
+        - 'reduit'  : 2(p-1)
+        - 'over'    : 2(p+1)
     
-        Notes
-        -----
-        - For the stiffness matrix, the integrand involves products of derivatives
-          of shape functions:
-            * Shape functions of degree p = u_deg
-            * Their derivatives are of degree (p - 1)
-            * Products of two derivatives are of degree (2p - 2)
-          Therefore, an exact integration rule requires:
-              quadrature_degree = 2 * u_deg - 2
-    
-        - Integration schemes:
-            * 'default': exact integration with quadrature_degree = 2*u_deg - 2
-            * 'reduit': reduced integration (quadrature_degree = 2*u_deg - 3),
-                        often used to alleviate locking (e.g. shear locking)
-            * 'over': over-integration (quadrature_degree = 2*u_deg),
-                      sometimes used for stabilisation (e.g. to prevent hourglassing)
+        Justification
+        -------------
+        Sur les éléments tensoriels (quad, hex), l'intégrand de raideur
+        atteint le degré 2p par direction, ce qui impose 2p comme minimum.
+        Sur les simplexes affines, 2(p-1) suffirait pour l'élasticité linéaire,
+        mais on préfère 2p pour une convention unique robuste à la distorsion
+        géométrique et aux lois non linéaires (où l'intégrand n'est plus
+        polynomial). Le coût supplémentaire est faible (4 pts vs 1 pt sur
+        tet linéaire par exemple).
         """
+        p = self.u_deg
         if self.schema == "default":
-            return 2 * (self.u_deg - 1)
+            return 2 * p
         elif self.schema == "reduit":
-            return max(1, 2 * self.u_deg - 3)
+            return max(0, 2 * (p - 1))
         elif self.schema == "over":
-            return 2 * self.u_deg 
-            raise ValueError(f"Unknown integration schema {self.schema}")
+            return 2 * (p + 1)
+        else:
+            raise ValueError(f"Schéma d'intégration inconnu : {self.schema}")
     
     def create_metadata(self):
         quad_deg = self.default_quadrature_degree()
